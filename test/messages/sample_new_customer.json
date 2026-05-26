@@ -1,0 +1,13 @@
+{
+  "_comment": "Input de prueba: cliente nuevo escribe a WhatsApp pidiendo cotización de plumas",
+  "model": "mail.message",
+  "record": {
+    "id": 1001,
+    "model": "discuss.channel",
+    "res_id": 1,
+    "body": "<p>hola, quiero cotizar 500 plumas metálicas con mi logo</p>",
+    "message_type": "whatsapp",
+    "author_id": null,
+    "date": "2026-05-23T10:00:00"
+  }
+}

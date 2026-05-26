@@ -1,0 +1,172 @@
+{
+  "_comment": "Fixtures de datos mockeados para test de Server Actions. NUNCA usar datos reales aquí.",
+  
+  "discuss.channel": [
+    {
+      "id": 1,
+      "name": "Cliente Demo +52 55 5555 5555",
+      "channel_type": "whatsapp",
+      "x_ai_mode": "auto",
+      "x_ai_turn_count": 0,
+      "x_lead_id": null,
+      "whatsapp_partner_id": null,
+      "whatsapp_number": "525555555555"
+    },
+    {
+      "id": 2,
+      "name": "Cliente Existente +52 55 1234 5678",
+      "channel_type": "whatsapp",
+      "x_ai_mode": "auto",
+      "x_ai_turn_count": 5,
+      "x_lead_id": 101,
+      "whatsapp_partner_id": 42,
+      "whatsapp_number": "525512345678"
+    },
+    {
+      "id": 3,
+      "name": "Cliente con AI pausado",
+      "channel_type": "whatsapp",
+      "x_ai_mode": "paused",
+      "x_ai_paused_reason": "Cliente solicitó humano",
+      "whatsapp_partner_id": 99
+    }
+  ],
+  
+  "mail.message": [
+    {
+      "id": 1001,
+      "model": "discuss.channel",
+      "res_id": 1,
+      "body": "<p>hola, quiero cotizar plumas con mi logo</p>",
+      "message_type": "whatsapp",
+      "author_id": null,
+      "date": "2026-05-23T10:00:00"
+    },
+    {
+      "id": 1002,
+      "model": "discuss.channel",
+      "res_id": 2,
+      "body": "<p>mejor pásame con un asesor</p>",
+      "message_type": "whatsapp",
+      "author_id": null,
+      "date": "2026-05-23T10:15:00"
+    }
+  ],
+  
+  "res.partner": [
+    {
+      "id": 42,
+      "name": "Juan Pérez (DEMO)",
+      "phone": "+525512345678",
+      "email": "j***@empresademo.com",
+      "parent_id": [43, "Empresa Demo SA de CV"],
+      "supplier_rank": 0,
+      "customer_rank": 1
+    },
+    {
+      "id": 100,
+      "name": "Promo Opción (DEMO)",
+      "supplier_rank": 1,
+      "customer_rank": 0
+    }
+  ],
+  
+  "crm.lead": [
+    {
+      "id": 101,
+      "name": "Cotización plumas Demo",
+      "contact_name": "Juan Pérez",
+      "type": "lead",
+      "x_collected_qty": 500,
+      "x_collected_tecnica": "serigrafia",
+      "x_collected_tiene_arte": "si_vectorial",
+      "x_collected_fecha_entrega": "2026-06-15",
+      "x_ai_score": 75.0
+    }
+  ],
+  
+  "product.template": [
+    {
+      "id": 567,
+      "name": "Pluma metálica MTZ-100",
+      "default_code": "MTZ-100",
+      "list_price": 25.00,
+      "type": "product",
+      "x_proveedor_id": [100, "Promo Opción"],
+      "x_proveedor_sku": "MTZ-100",
+      "x_tecnica_default": "serigrafia",
+      "x_area_max_cm2": 4.0,
+      "x_area_dimensiones": "2x2 cm",
+      "x_tiempo_produccion_dias": 7,
+      "x_requiere_cotizacion": true,
+      "active": true
+    },
+    {
+      "id": 5109,
+      "name": "AGENDA DIARIA FALUN (DEMO)",
+      "default_code": "EX-086",
+      "list_price": 154.35,
+      "type": "product",
+      "x_proveedor_id": [101, "Innovation Line"],
+      "x_proveedor_sku": "EX-086",
+      "x_tecnica_default": "serigrafia",
+      "x_area_max_cm2": 100.0,
+      "x_area_dimensiones": "10x10 cm",
+      "x_tiempo_produccion_dias": 10,
+      "x_requiere_cotizacion": true,
+      "active": true
+    }
+  ],
+  
+  "x_costo_personalizacion": [
+    {
+      "id": 1,
+      "name": "Serigrafía 1 tinta - 100-499 pzas",
+      "tecnica": "serigrafia",
+      "proveedor_id": [100, "Promo Opción"],
+      "qty_from": 100,
+      "qty_to": 499,
+      "tintas": 1,
+      "posiciones": 1,
+      "area_max_cm2": 100,
+      "costo_unit": 17.00,
+      "costo_setup": 350.00,
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "Serigrafía 1 tinta - 500+ pzas",
+      "tecnica": "serigrafia",
+      "proveedor_id": [100, "Promo Opción"],
+      "qty_from": 500,
+      "qty_to": null,
+      "tintas": 1,
+      "posiciones": 1,
+      "area_max_cm2": 100,
+      "costo_unit": 14.00,
+      "costo_setup": 350.00,
+      "active": true
+    }
+  ],
+  
+  "loyalty.program": [
+    {
+      "id": 1,
+      "name": "Descuento volumen 5%",
+      "program_type": "promotion",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "Descuento volumen 10%",
+      "program_type": "promotion",
+      "active": true
+    },
+    {
+      "id": 3,
+      "name": "Descuento volumen 15%",
+      "program_type": "promotion",
+      "active": true
+    }
+  ]
+}

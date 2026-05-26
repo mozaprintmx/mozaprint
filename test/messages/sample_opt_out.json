@@ -1,0 +1,13 @@
+{
+  "_comment": "Input de prueba: cliente existente pide hablar con asesor humano (opt-out)",
+  "model": "mail.message",
+  "record": {
+    "id": 1002,
+    "model": "discuss.channel",
+    "res_id": 2,
+    "body": "<p>mejor pásame con un asesor humano</p>",
+    "message_type": "whatsapp",
+    "author_id": null,
+    "date": "2026-05-23T10:15:00"
+  }
+}

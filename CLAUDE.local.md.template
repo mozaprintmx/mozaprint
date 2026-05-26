@@ -1,0 +1,49 @@
+# CLAUDE.local.md (template)
+
+> Este archivo NO se commitea (está en .gitignore). Es para preferencias 
+> personales del operador. Copiar este template a `CLAUDE.local.md` y editarlo.
+
+## Mi setup
+
+- Editor: [VS Code | Cursor | Vim | otro]
+- Shell: [bash | zsh | fish]
+- Terminal: [iTerm2 | Windows Terminal | Alacritty | otro]
+- OS: [macOS | Linux | Windows]
+- Python: [version]
+- Node: [version]
+
+## Mis preferencias de estilo
+
+- Comments: [en español | en inglés | mixto]
+- Naming: [snake_case siempre | camelCase para JS | mixto según contexto]
+- Docstring style: [Google | NumPy | Sphinx | minimal]
+- Test framework preferido: [pytest | unittest]
+- Linter: [ruff | flake8 | black]
+
+## Mis atajos / aliases
+
+```bash
+# Ejemplo de alias útiles que tengo
+alias claude-mozaprint='cd ~/projects/mozaprint && claude'
+alias mozaprint-backup='cd ~/projects/mozaprint && python scripts/backup_catalog.py'
+```
+
+## Notas personales
+
+- (Cosas que recuerdas para ti mismo, que Claude no necesita saber para 
+  los demás del equipo)
+
+## Cosas que olvido seguido
+
+- Cómo regenerar el access token de Meta cuando expira
+- Comando exacto para reiniciar n8n: `docker compose restart n8n`
+- URL del staging: ?
+
+## Workflow personal de iteración
+
+1. Cambio en local
+2. Test
+3. Commit en rama proposal/
+4. Push y revisar diff
+5. Si OK → aplicar en Odoo / n8n
+6. Documentar en changelog

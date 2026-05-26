@@ -1,0 +1,130 @@
+# =============================================================================
+# Secrets y credenciales
+# =============================================================================
+
+# Nunca commitear API keys
+.env
+.env.local
+.env.*.local
+secrets/
+*.key
+*.pem
+credentials.json
+
+# =============================================================================
+# Datos sensibles del cliente
+# =============================================================================
+
+# Exports de WhatsApp (siempre tienen PII)
+whatsapp-exports/
+*.whatsapp_export.txt
+*-chat.txt
+
+# Backups con datos reales
+backups/
+*.sql
+*.dump
+
+# Datos reales de prueba
+test/real-data/
+test/private/
+
+# Exports de Odoo con datos
+*_export_*.json
+*_export_*.csv
+catalog_*.json
+
+# =============================================================================
+# Python
+# =============================================================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+.python-version
+
+# =============================================================================
+# Node / JavaScript
+# =============================================================================
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json.bak
+
+# =============================================================================
+# n8n
+# =============================================================================
+
+# Credentials encriptadas locales de n8n
+.n8n/credentials/
+.n8n/database.sqlite
+
+# Logs de ejecución
+n8n-executions/
+*.execution.json
+
+# =============================================================================
+# Editor / IDE
+# =============================================================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# =============================================================================
+# Logs
+# =============================================================================
+
+logs/
+*.log
+*.log.*
+
+# =============================================================================
+# Claude Code
+# =============================================================================
+
+# Memoria local de Claude Code (proyecto-específica)
+.claude/
+.claude-memory/
+
+# CLAUDE.local.md es para preferencias personales del operador,
+# no se commitea
+CLAUDE.local.md
+
+# =============================================================================
+# Sistema operativo
+# =============================================================================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =============================================================================
+# Anonimización temporal
+# =============================================================================
+
+# Archivos en proceso de anonimización (antes de validar)
+anonymized/staging/
+
+# =============================================================================
+# Snapshots y diffs
+# =============================================================================
+
+snapshots/
+diffs/
+*.diff.json

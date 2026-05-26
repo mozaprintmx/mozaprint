@@ -1,0 +1,497 @@
+# Configuración Studio — Mozaprint
+#
+# Este archivo es la fuente de verdad versionable de los campos custom (x_) 
+# y modelos custom creados vía Odoo Studio.
+#
+# Studio no exporta a YAML automáticamente. Este archivo se mantiene a mano 
+# en paralelo a lo que está configurado en Odoo. Cada cambio en Studio 
+# debe reflejarse aquí.
+#
+# Convenciones:
+# - field_name: nombre técnico del campo (con prefijo x_)
+# - field_type: char | text | integer | float | boolean | date | datetime | 
+#              selection | many2one | many2many | one2many
+# - string: etiqueta visible al usuario
+# - help: texto de ayuda mostrado en el formulario
+# - required: si es obligatorio (default false)
+# - default: valor por defecto
+# - relation: solo para many2one/many2many/one2many
+
+version: '0.1.0'
+last_updated: 2026-05-23
+
+# =============================================================================
+# EXTENSIONES A MODELOS EXISTENTES
+# =============================================================================
+
+extensions:
+  product.template:
+    - field_name: x_proveedor_id
+      field_type: many2one
+      relation: res.partner
+      string: 'Proveedor'
+      help: 'Proveedor del que se compra este producto'
+      domain: [['supplier_rank', '>', 0]]
+
+    - field_name: x_proveedor_sku
+      field_type: char
+      string: 'SKU del proveedor'
+      help: 'Código original del producto en el sistema del proveedor'
+
+    - field_name: x_tecnica_default_id
+      field_type: many2one
+      relation: x_tecnica_personalizacion
+      string: 'Técnica de personalización default'
+      help: 'Técnica sugerida por defecto'
+
+    - field_name: x_tecnicas_compatibles_ids
+      field_type: many2many
+      relation: x_tecnica_personalizacion
+      string: 'Técnicas compatibles'
+      help: 'Todas las técnicas posibles para este producto'
+
+    - field_name: x_personalizacion_ninguna
+      field_type: boolean
+      string: 'No requiere personalización'
+      default: false
+      help: 'Producto que se vende sin personalizar (ej. stock para reventa directa)' 
+
+    - field_name: x_area_max_cm2
+      field_type: float
+      string: 'Área máxima de impresión (cm²)'
+
+    - field_name: x_area_dimensiones
+      field_type: char
+      string: 'Dimensiones del área'
+      help: "Texto descriptivo, ej. '10x10 cm'"
+
+    - field_name: x_tiempo_produccion_dias
+      field_type: integer
+      string: 'Tiempo de producción (días hábiles)'
+
+    - field_name: x_requiere_cotizacion
+      field_type: boolean
+      string: 'Requiere cotización'
+      default: true
+
+    - field_name: x_es_servicio_personalizacion
+      field_type: boolean
+      string: 'Es servicio de personalización'
+
+  crm.lead:
+    - field_name: x_origen_canal
+      field_type: selection
+      string: 'Canal de origen'
+      selection:
+        - [whatsapp_ai, 'WhatsApp (AI)']
+        - [whatsapp_human, 'WhatsApp (humano)']
+        - [livechat_ai, 'Livechat web (AI)']
+        - [livechat_human, 'Livechat web (humano)']
+        - [website_form, 'Formulario web']
+        - [email_direct, 'Email directo']
+        - [referido, 'Referido']
+        - [otro, 'Otro']
+
+    - field_name: x_ai_score
+      field_type: float
+      string: 'AI Lead Score'
+      help: 'Puntuación 0-100 generada por AI'
+
+    - field_name: x_ai_score_reasoning
+      field_type: text
+      string: 'Razonamiento del score'
+
+    - field_name: x_collected_product_sku
+      field_type: char
+      string: 'SKU producto solicitado'
+
+    - field_name: x_collected_qty
+      field_type: integer
+      string: 'Cantidad solicitada'
+
+    - field_name: x_collected_tecnica_id
+      field_type: many2one
+      relation: x_tecnica_personalizacion
+      string: 'Técnica solicitada'
+      help: 'Técnica de personalización que el cliente pidió'
+
+    - field_name: x_collected_tecnica_no_se
+      field_type: boolean
+      string: 'Cliente no sabe la técnica'
+      default: false
+
+    - field_name: x_collected_tiene_arte
+      field_type: selection
+      string: 'Estado del arte'
+      selection:
+        - [si_vectorial, 'Sí, vectorial (AI/EPS/PDF)']
+        - [si_raster, 'Sí, raster (PNG/JPG)']
+        - [solo_idea, 'Sólo tengo una idea']
+        - [necesito_diseno, 'Necesito que diseñen']
+
+    - field_name: x_collected_fecha_entrega
+      field_type: date
+      string: 'Fecha objetivo de entrega'
+
+    - field_name: x_collected_industria
+      field_type: char
+      string: 'Industria del cliente'
+
+    - field_name: x_collected_presupuesto
+      field_type: selection
+      string: 'Presupuesto aproximado'
+      selection:
+        - [menor_5k, 'Menor a $5,000']
+        - [5k_15k, '$5,000 - $15,000']
+        - [15k_50k, '$15,000 - $50,000']
+        - [mayor_50k, 'Mayor a $50,000']
+        - [no_definido, 'No definido']
+
+    - field_name: x_conversation_summary
+      field_type: text
+      string: 'Resumen de conversación AI'
+
+  discuss.channel:
+    - field_name: x_ai_mode
+      field_type: selection
+      string: 'Modo AI'
+      default: auto
+      selection:
+        - [auto, 'AI atiende automáticamente']
+        - [paused, 'Pausado (humano atiende)']
+        - [manual, 'Manual (AI no participa)']
+
+    - field_name: x_ai_paused_at
+      field_type: datetime
+      string: 'AI pausado el'
+
+    - field_name: x_ai_paused_by_id
+      field_type: many2one
+      relation: res.users
+      string: 'AI pausado por'
+
+    - field_name: x_ai_paused_reason
+      field_type: text
+      string: 'Razón del pausado'
+
+    - field_name: x_lead_id
+      field_type: many2one
+      relation: crm.lead
+      string: 'Lead asociado'
+
+    - field_name: x_assigned_user_id
+      field_type: many2one
+      relation: res.users
+      string: 'Vendedor asignado'
+
+    - field_name: x_last_ai_response_at
+      field_type: datetime
+      string: 'Última respuesta AI'
+
+    - field_name: x_ai_turn_count
+      field_type: integer
+      string: 'Turnos del AI'
+
+  sale.order:
+    - field_name: x_generated_by_ai
+      field_type: boolean
+      string: 'Generado por AI'
+
+    - field_name: x_requires_human_approval
+      field_type: boolean
+      string: 'Requiere aprobación humana'
+
+    - field_name: x_approval_request_id
+      field_type: many2one
+      relation: x_approval_request
+      string: 'Solicitud de aprobación'
+
+    - field_name: x_approval_status
+      field_type: selection
+      string: 'Estado de aprobación'
+      default: no_aplica
+      selection:
+        - [no_aplica, 'No aplica']
+        - [pending, 'Pendiente']
+        - [approved, 'Aprobada']
+        - [rejected, 'Rechazada']
+        - [edited, 'Editada por humano']
+
+    - field_name: x_customization_cost_source
+      field_type: selection
+      string: 'Fuente del costo de personalización'
+      default: no_aplica
+      selection:
+        - [parametrized, 'Parametrizado en sistema']
+        - [manually_approved, 'Aprobado manualmente']
+        - [no_aplica, 'No aplica']
+
+    - field_name: x_origen_lead_id
+      field_type: many2one
+      relation: crm.lead
+      string: 'Lead origen'
+
+# =============================================================================
+# MODELOS NUEVOS
+# =============================================================================
+
+new_models:
+  x_tecnica_personalizacion:
+    display_name: 'Técnica de Personalización'
+    description: 'Catálogo maestro de técnicas. Permite extensión sin tocar selections'
+    fields:
+      - field_name: name
+        field_type: char
+        required: true
+        string: 'Nombre'
+        help: "Ej: 'Serigrafía', 'DTF Textil'"
+
+      - field_name: code
+        field_type: char
+        required: true
+        string: 'Código técnico'
+        help: "Ej: 'serigrafia', 'dtf_textil'. Único, para referencias programáticas"
+
+      - field_name: descripcion
+        field_type: text
+        string: 'Descripción para cliente'
+
+      - field_name: casos_uso_tipicos
+        field_type: text
+        string: 'Casos de uso típicos'
+
+      - field_name: materiales_compatibles
+        field_type: char
+        string: 'Materiales compatibles'
+
+      - field_name: materiales_incompatibles
+        field_type: char
+        string: 'Materiales incompatibles'
+
+      - field_name: max_tintas_default
+        field_type: integer
+        default: 4
+        string: 'Máximo de tintas default'
+
+      - field_name: requiere_arte_vectorial
+        field_type: boolean
+        default: true
+        string: 'Requiere arte vectorial'
+
+      - field_name: tiempo_extra_dias
+        field_type: integer
+        default: 0
+        string: 'Días extra de producción'
+
+      - field_name: active
+        field_type: boolean
+        default: true
+        string: 'Activo'
+
+      - field_name: sequence
+        field_type: integer
+        default: 10
+        string: 'Orden'
+
+  x_approval_request:
+    display_name: 'Solicitud de Aprobación'
+    description: 'Solicitudes humanas para costos no parametrizados'
+    fields:
+      - field_name: name
+        field_type: char
+        required: true
+        string: 'Descripción'
+
+      - field_name: sale_order_id
+        field_type: many2one
+        relation: sale.order
+        required: true
+        string: 'Cotización'
+
+      - field_name: channel_id
+        field_type: many2one
+        relation: discuss.channel
+        string: 'Conversación WA'
+
+      - field_name: reason
+        field_type: text
+        string: 'Razón'
+
+      - field_name: context_json
+        field_type: text
+        string: 'Contexto (JSON)'
+
+      - field_name: requested_at
+        field_type: datetime
+        string: 'Solicitado en'
+
+      - field_name: responded_at
+        field_type: datetime
+        string: 'Respondido en'
+
+      - field_name: responded_by_id
+        field_type: many2one
+        relation: res.users
+        string: 'Respondido por'
+
+      - field_name: status
+        field_type: selection
+        default: pending
+        string: 'Estado'
+        selection:
+          - [pending, 'Pendiente']
+          - [approved, 'Aprobada']
+          - [rejected, 'Rechazada']
+
+      - field_name: approved_cost_unit
+        field_type: float
+        string: 'Costo unitario aprobado'
+
+      - field_name: approved_setup_cost
+        field_type: float
+        string: 'Costo de setup aprobado'
+
+      - field_name: approved_servicio_id
+        field_type: many2one
+        relation: product.product
+        string: 'Servicio aplicado'
+
+      - field_name: notes
+        field_type: text
+        string: 'Notas internas'
+
+      - field_name: assigned_user_id
+        field_type: many2one
+        relation: res.users
+        string: 'Asignado a'
+
+  x_costo_personalizacion:
+    display_name: 'Costo de Personalización'
+    description: 'Matriz de costos por proveedor/técnica/cantidad'
+    fields:
+      - field_name: name
+        field_type: char
+        required: true
+        string: 'Descripción'
+
+      - field_name: tecnica_id
+        field_type: many2one
+        relation: x_tecnica_personalizacion
+        required: true
+        string: 'Técnica' 
+
+      - field_name: proveedor_id
+        field_type: many2one
+        relation: res.partner
+        required: true
+        string: 'Proveedor'
+
+      - field_name: qty_from
+        field_type: integer
+        required: true
+        string: 'Cantidad mínima'
+
+      - field_name: qty_to
+        field_type: integer
+        string: 'Cantidad máxima'
+
+      - field_name: tintas
+        field_type: integer
+        default: 1
+        string: 'Tintas'
+
+      - field_name: posiciones
+        field_type: integer
+        default: 1
+        string: 'Posiciones'
+
+      - field_name: area_max_cm2
+        field_type: float
+        string: 'Área máxima soportada (cm²)'
+
+      - field_name: costo_unit
+        field_type: float
+        required: true
+        string: 'Costo unitario (MXN)'
+
+      - field_name: costo_setup
+        field_type: float
+        default: 0
+        string: 'Costo de setup'
+
+      - field_name: fecha_vigencia
+        field_type: date
+        string: 'Vigente hasta'
+
+      - field_name: notas
+        field_type: text
+        string: 'Notas'
+
+      - field_name: active
+        field_type: boolean
+        default: true
+        string: 'Activo'
+
+  x_ai_interaction_log:
+    display_name: 'Log de Interacción AI'
+    description: 'Telemetría del agente IA. Purgable después de 12 meses.'
+    fields:
+      - field_name: timestamp
+        field_type: datetime
+        required: true
+
+      - field_name: channel_id
+        field_type: many2one
+        relation: discuss.channel
+
+      - field_name: conversation_id
+        field_type: char
+
+      - field_name: turn_number
+        field_type: integer
+
+      - field_name: user_message
+        field_type: text
+
+      - field_name: ai_response
+        field_type: text
+
+      - field_name: tools_called
+        field_type: text
+        help: 'JSON con tools llamados'
+
+      - field_name: action_taken
+        field_type: selection
+        selection:
+          - [respond, 'Responder']
+          - [escalate, 'Escalar']
+          - [wait_approval, 'Esperar aprobación']
+          - [send_quote, 'Enviar cotización']
+          - [no_action, 'Sin acción']
+
+      - field_name: latency_ms
+        field_type: integer
+
+      - field_name: tokens_input
+        field_type: integer
+
+      - field_name: tokens_output
+        field_type: integer
+
+      - field_name: cost_usd
+        field_type: float
+
+      - field_name: model_used
+        field_type: char
+
+      - field_name: outcome
+        field_type: selection
+        selection:
+          - [ongoing, 'En curso']
+          - [escalated, 'Escalada']
+          - [closed_ai, 'Cerrada por AI']
+          - [closed_quoted, 'Cerrada con cotización']
+          - [error, 'Error']
+
+      - field_name: context_json
+        field_type: text

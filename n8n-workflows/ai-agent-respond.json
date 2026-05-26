@@ -1,0 +1,396 @@
+{
+  "name": "ai-agent-respond",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wa-incoming",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook · Meta WA Incoming",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "wa-incoming-mozaprint"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Verifica firma HMAC de Meta\nconst crypto = require('crypto');\nconst signature = $input.first().headers['x-hub-signature-256'];\nif (!signature) {\n  throw new Error('Falta header X-Hub-Signature-256');\n}\nconst expected = crypto\n  .createHmac('sha256', $env.META_APP_SECRET)\n  .update($input.first().binary?.data?.data || JSON.stringify($input.first().json))\n  .digest('hex');\nif (`sha256=${expected}` !== signature) {\n  throw new Error('Firma de Meta inválida');\n}\nreturn $input.all();"
+      },
+      "id": "verify-signature",
+      "name": "Verify Meta Signature",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extrae y normaliza el mensaje del payload de Meta\nconst payload = $input.first().json;\n\nif (!payload.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {\n  // Puede ser un status update, no un mensaje. Skip.\n  return [];\n}\n\nconst change = payload.entry[0].changes[0].value;\nconst message = change.messages[0];\nconst contact = change.contacts?.[0] || {};\n\nreturn [{\n  json: {\n    from_phone: message.from,\n    contact_name: contact.profile?.name || 'Desconocido',\n    message_id: message.id,\n    timestamp: message.timestamp,\n    type: message.type,\n    body: message.text?.body || message.button?.text || '',\n    phone_number_id: change.metadata?.phone_number_id,\n    waba_id: payload.entry[0].id\n  }\n}];"
+      },
+      "id": "parse-message",
+      "name": "Parse WA Message",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.ODOO_URL}}/json2/discuss.channel/search_read",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.ODOO_API_KEY}}"
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={\n  \"domain\": [\n    [\"whatsapp_number\", \"=\", \"{{ $json.from_phone }}\"],\n    [\"channel_type\", \"=\", \"whatsapp\"]\n  ],\n  \"fields\": [\"id\", \"name\", \"x_ai_mode\", \"x_ai_turn_count\", \"x_lead_id\", \"whatsapp_partner_id\"],\n  \"limit\": 1\n}",
+        "options": {}
+      },
+      "id": "odoo-find-channel",
+      "name": "Odoo · Find Channel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [840, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "channel-exists",
+              "leftValue": "={{ $json.result.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-channel-exists",
+      "name": "¿Channel existe?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1040, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Verifica si está en modo auto. Si no, no procesar.\nconst channel = $json.result[0];\nif (channel.x_ai_mode !== 'auto') {\n  return []; // Skip, humano atiende\n}\nreturn [{\n  json: {\n    channel_id: channel.id,\n    channel_name: channel.name,\n    turn_count: channel.x_ai_turn_count || 0,\n    lead_id: channel.x_lead_id?.[0] || null,\n    partner_id: channel.whatsapp_partner_id?.[0] || null,\n    message: $node['parse-message'].json\n  }\n}];"
+      },
+      "id": "check-ai-mode",
+      "name": "Check AI Mode",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1240, 240]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.ODOO_URL}}/json2/mail.message/search_read",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.ODOO_API_KEY}}"
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={\n  \"domain\": [\n    [\"model\", \"=\", \"discuss.channel\"],\n    [\"res_id\", \"=\", {{ $json.channel_id }}]\n  ],\n  \"fields\": [\"body\", \"date\", \"author_id\", \"message_type\"],\n  \"order\": \"date desc\",\n  \"limit\": 20\n}"
+      },
+      "id": "odoo-get-history",
+      "name": "Odoo · Get Conversation History",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1440, 240]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Construye el contexto para Claude\nconst channelData = $node['check-ai-mode'].json;\nconst messages = $json.result.reverse(); // cronológico\n\nconst history = messages.map(m => ({\n  role: (m.author_id && m.author_id[0] && m.author_id[1].includes('@mozaprint')) ? 'assistant' : 'user',\n  content: (m.body || '').replace(/<[^>]+>/g, '').trim()\n})).filter(m => m.content.length > 0);\n\n// Asegura que el último mensaje sea el actual del cliente\nif (history.length === 0 || history[history.length - 1].content !== channelData.message.body) {\n  history.push({\n    role: 'user',\n    content: channelData.message.body\n  });\n}\n\nreturn [{\n  json: {\n    ...channelData,\n    history: history\n  }\n}];"
+      },
+      "id": "build-context",
+      "name": "Build Conversation Context",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1640, 240]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "x-api-key", "value": "={{$env.ANTHROPIC_API_KEY}}"},
+            {"name": "anthropic-version", "value": "2023-06-01"},
+            {"name": "content-type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={\n  \"model\": \"{{$env.ANTHROPIC_MODEL_FAST}}\",\n  \"max_tokens\": 1024,\n  \"system\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"{{ $vars.system_prompt }}\",\n      \"cache_control\": {\"type\": \"ephemeral\"}\n    }\n  ],\n  \"messages\": {{ JSON.stringify($json.history) }},\n  \"tools\": {{ JSON.stringify($vars.tools_schema) }}\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "call-claude",
+      "name": "Claude · Generate Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1840, 240]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "is-tool-use",
+              "leftValue": "={{ $json.stop_reason }}",
+              "rightValue": "tool_use",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-stop-reason",
+      "name": "¿Tool use o end_turn?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2040, 240]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Si es tool_use, despachar al sub-workflow correspondiente.\n// Sub-workflow: execute-tool (no incluido en este ejemplo, separado)\nconst content = $json.content;\nconst toolUses = content.filter(c => c.type === 'tool_use');\n\nreturn toolUses.map(tu => ({\n  json: {\n    tool_use_id: tu.id,\n    tool_name: tu.name,\n    tool_input: tu.input,\n    channel_id: $node['build-context'].json.channel_id,\n    partner_id: $node['build-context'].json.partner_id,\n    history: $node['build-context'].json.history\n  }\n}));"
+      },
+      "id": "dispatch-tools",
+      "name": "Dispatch Tool Calls",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2240, 180]
+    },
+    {
+      "parameters": {
+        "workflowId": "={{ 'tool-execute-' + $json.tool_name.replace(/_/g, '-') }}",
+        "options": {}
+      },
+      "id": "execute-tool",
+      "name": "Execute Tool (sub-workflow)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [2440, 180]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Después de ejecutar tools, prepara la siguiente llamada a Claude\n// con el resultado del tool. Si Claude responde otra vez con tool_use, \n// loop. Si responde end_turn, salir.\n//\n// Esta lógica simplificada se ejecuta dentro del loop principal arriba.\n// En producción, este loop debe tener max iterations (5) para evitar bucles.\n\nreturn $input.all();"
+      },
+      "id": "loop-tool-response",
+      "name": "Continue Tool Loop",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2640, 180]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Si es end_turn, extraer el texto de la respuesta\nconst content = $json.content;\nconst textBlocks = content.filter(c => c.type === 'text');\nconst response = textBlocks.map(b => b.text).join('\\n\\n');\n\nreturn [{\n  json: {\n    response_text: response,\n    channel_id: $node['build-context'].json.channel_id,\n    message: $node['build-context'].json.message,\n    usage: $json.usage\n  }\n}];"
+      },
+      "id": "extract-response",
+      "name": "Extract Response Text",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v18.0/{{$env.META_WA_PHONE_NUMBER_ID}}/messages",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "Bearer {{$env.META_WA_TOKEN}}"}
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.message.from_phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.response_text.replace(/\\\"/g, '\\\\\"').replace(/\\n/g, '\\\\n') }}\"\n  }\n}"
+      },
+      "id": "send-to-whatsapp",
+      "name": "Send Response to WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2440, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.ODOO_URL}}/json2/discuss.channel/message_post",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.ODOO_API_KEY}}"
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={\n  \"ids\": [{{ $node['extract-response'].json.channel_id }}],\n  \"kwargs\": {\n    \"body\": \"{{ $node['extract-response'].json.response_text }}\",\n    \"message_type\": \"whatsapp\",\n    \"author_id\": false\n  }\n}"
+      },
+      "id": "log-to-odoo",
+      "name": "Log Response to Odoo Channel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2640, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\" }"
+      },
+      "id": "respond-to-meta",
+      "name": "Respond 200 to Meta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2840, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "no-channel",
+              "leftValue": "={{ $json.result.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "channel-not-exists",
+      "name": "Channel no existe",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1240, 360]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Si no existe channel, crear uno nuevo en Odoo\n// Y crear lead automáticamente\n// (sub-workflow: lead-intake-whatsapp)\nreturn [{\n  json: {\n    create_new: true,\n    from_phone: $node['parse-message'].json.from_phone,\n    contact_name: $node['parse-message'].json.contact_name,\n    first_message: $node['parse-message'].json.body\n  }\n}];"
+      },
+      "id": "init-new-conversation",
+      "name": "Init New Conversation",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1440, 360]
+    },
+    {
+      "parameters": {
+        "workflowId": "lead-intake-whatsapp"
+      },
+      "id": "trigger-lead-intake",
+      "name": "Trigger Lead Intake Workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [1640, 360]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [[{"node": "verify-signature", "type": "main", "index": 0}]]
+    },
+    "verify-signature": {
+      "main": [[{"node": "parse-message", "type": "main", "index": 0}]]
+    },
+    "parse-message": {
+      "main": [[{"node": "odoo-find-channel", "type": "main", "index": 0}]]
+    },
+    "odoo-find-channel": {
+      "main": [[
+        {"node": "check-channel-exists", "type": "main", "index": 0}
+      ]]
+    },
+    "check-channel-exists": {
+      "main": [
+        [{"node": "check-ai-mode", "type": "main", "index": 0}],
+        [{"node": "channel-not-exists", "type": "main", "index": 0}]
+      ]
+    },
+    "check-ai-mode": {
+      "main": [[{"node": "odoo-get-history", "type": "main", "index": 0}]]
+    },
+    "odoo-get-history": {
+      "main": [[{"node": "build-context", "type": "main", "index": 0}]]
+    },
+    "build-context": {
+      "main": [[{"node": "call-claude", "type": "main", "index": 0}]]
+    },
+    "call-claude": {
+      "main": [[{"node": "check-stop-reason", "type": "main", "index": 0}]]
+    },
+    "check-stop-reason": {
+      "main": [
+        [{"node": "dispatch-tools", "type": "main", "index": 0}],
+        [{"node": "extract-response", "type": "main", "index": 0}]
+      ]
+    },
+    "dispatch-tools": {
+      "main": [[{"node": "execute-tool", "type": "main", "index": 0}]]
+    },
+    "execute-tool": {
+      "main": [[{"node": "loop-tool-response", "type": "main", "index": 0}]]
+    },
+    "loop-tool-response": {
+      "main": [[{"node": "call-claude", "type": "main", "index": 0}]]
+    },
+    "extract-response": {
+      "main": [[{"node": "send-to-whatsapp", "type": "main", "index": 0}]]
+    },
+    "send-to-whatsapp": {
+      "main": [[{"node": "log-to-odoo", "type": "main", "index": 0}]]
+    },
+    "log-to-odoo": {
+      "main": [[{"node": "respond-to-meta", "type": "main", "index": 0}]]
+    },
+    "channel-not-exists": {
+      "main": [
+        [{"node": "init-new-conversation", "type": "main", "index": 0}],
+        []
+      ]
+    },
+    "init-new-conversation": {
+      "main": [[{"node": "trigger-lead-intake", "type": "main", "index": 0}]]
+    }
+  },
+  "_comments": {
+    "purpose": "Workflow principal del agente WhatsApp. Recibe mensaje de Meta, decide si AI debe responder, llama a Claude con tools, envía respuesta y loggea en Odoo.",
+    "important_notes": [
+      "Este workflow es un EJEMPLO de referencia. Para producción:",
+      "1. Implementar max iterations en el loop de tools (evitar bucles)",
+      "2. Agregar error handling en cada nodo con webhook a Odoo para escalado",
+      "3. Implementar timeout global (30s) y fallback message",
+      "4. Cache del system prompt como variable de n8n",
+      "5. Verificar que el body del mensaje WA viene en formato esperado",
+      "6. Implementar rate limiting outbound a Claude y Meta",
+      "7. Loggear cada llamada a x_ai_interaction_log en Odoo"
+    ],
+    "missing_subworkflows": [
+      "lead-intake-whatsapp: crear lead + channel cuando cliente es nuevo",
+      "tool-execute-search-product: implementar tool de búsqueda",
+      "tool-execute-create-quote-draft: implementar tool de cotización",
+      "tool-execute-escalate-to-human: implementar tool de escalado",
+      "...y otras 9 tools del spec ai-agent-spec.md"
+    ]
+  }
+}

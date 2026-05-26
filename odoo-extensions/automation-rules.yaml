@@ -1,0 +1,224 @@
+# Automation Rules — Mozaprint
+#
+# Reglas de automatización configuradas en Odoo (Settings → Technical → 
+# Automation Rules). Este YAML es la fuente de verdad versionable.
+#
+# Cada cambio en Odoo debe reflejarse aquí.
+
+version: '0.1.0'
+last_updated: 2026-05-23
+
+rules:
+
+  # ===========================================================================
+  # Lead nuevo → acuse + asignación
+  # ===========================================================================
+  
+  - id: ar_lead_acuse_inmediato
+    name: 'Lead nuevo: enviar acuse al cliente'
+    model: crm.lead
+    trigger: on_create
+    filter_domain: [
+      ['x_origen_canal', 'in', ['website_form', 'whatsapp_ai', 'livechat_ai']]
+    ]
+    actions:
+      - type: email
+        template: email_template_lead_acuse_ai
+        recipient: contact_email_from
+      - type: server_action
+        action: action_log_lead_received
+    notes: |
+      Solo para leads que entran por canales digitales (no manuales).
+      El email lo redacta AI con tono adaptativo según industria detectada.
+
+  - id: ar_lead_asignacion
+    name: 'Lead nuevo: asignar a vendedor por round-robin'
+    model: crm.lead
+    trigger: on_create
+    filter_domain: [['user_id', '=', false]]
+    actions:
+      - type: server_action
+        action: action_assign_sales_round_robin
+      - type: activity
+        activity_type: mail.mail_activity_data_call
+        summary: 'Contactar lead'
+        date_deadline: 'depends on x_ai_score'  # alto: +30min, medio: +2h, bajo: +24h
+    notes: |
+      Asignación según round-robin del Sales Team activo.
+      Si x_ai_score > 80, marcar como urgente.
+
+  - id: ar_lead_ai_scoring
+    name: 'Lead nuevo: calcular AI score'
+    model: crm.lead
+    trigger: on_create
+    actions:
+      - type: server_action
+        action: action_calculate_ai_lead_score
+    notes: |
+      Llama a OpenAI/Claude vía Server Action (vía n8n para no bloquear).
+      Llena x_ai_score y x_ai_score_reasoning.
+
+  # ===========================================================================
+  # Aprobaciones humanas para cotizaciones
+  # ===========================================================================
+
+  - id: ar_approval_creada
+    name: 'Approval request: notificar al vendedor'
+    model: x_approval_request
+    trigger: on_create
+    actions:
+      - type: activity
+        activity_type: mail.mail_activity_data_todo
+        summary: 'Cotizar costo de personalización con proveedor'
+        user_id: 'assigned_user_id'
+        date_deadline: 'now + 30min'
+      - type: discuss_message
+        recipients: 'assigned_user_id'
+        body: '⚠️ Nueva solicitud de aprobación: {name}'
+
+  - id: ar_approval_aprobada
+    name: 'Approval aprobada: agregar línea a cotización'
+    model: x_approval_request
+    trigger: on_write
+    filter_domain: [['status', '=', 'approved']]
+    actions:
+      - type: server_action
+        action: action_apply_approved_cost_to_quote
+      - type: webhook
+        target: n8n_workflow_cotizacion_aprobar
+    notes: |
+      1. Agrega línea con servicio aprobado al sale.order
+      2. Recalcula totales incluyendo Promotions
+      3. Dispara n8n para enviar PDF al cliente
+
+  - id: ar_approval_demorada
+    name: 'Approval demorada: avisar al cliente'
+    model: x_approval_request
+    trigger: on_time
+    filter_domain: [
+      ['status', '=', 'pending'],
+      ['requested_at', '<', 'now - 60min']
+    ]
+    actions:
+      - type: webhook
+        target: n8n_workflow_notify_delayed_approval
+    notes: |
+      Si hace más de 60 min que se solicitó y no se aprueba, 
+      AI envía mensaje al cliente "seguimos trabajando en tu cotización".
+
+  # ===========================================================================
+  # Cotizaciones
+  # ===========================================================================
+
+  - id: ar_sale_confirmed
+    name: 'Cotización confirmada: notificar cliente y disparar PO'
+    model: sale.order
+    trigger: on_write
+    filter_domain: [
+      ['state', '=', 'sale']
+    ]
+    actions:
+      - type: webhook
+        target: n8n_workflow_sale_confirmed
+      - type: discuss_message
+        recipients: 'user_id'
+        body: '🎉 Cotización {name} confirmada por el cliente'
+
+  - id: ar_sale_followup_24h
+    name: 'Cotización sin respuesta 24h: follow-up'
+    model: sale.order
+    trigger: on_time
+    filter_domain: [
+      ['state', '=', 'sent'],
+      ['write_date', '<', 'now - 24h']
+    ]
+    actions:
+      - type: webhook
+        target: n8n_workflow_followup_24h
+    notes: |
+      Cotización enviada hace 24h y no se ha movido a 'sale'.
+      n8n llama a Claude para redactar follow-up personalizado.
+
+  - id: ar_sale_followup_72h
+    name: 'Cotización sin respuesta 72h: escalar a vendedor'
+    model: sale.order
+    trigger: on_time
+    filter_domain: [
+      ['state', '=', 'sent'],
+      ['write_date', '<', 'now - 72h']
+    ]
+    actions:
+      - type: activity
+        activity_type: mail.mail_activity_data_call
+        summary: 'Cotización 72h sin respuesta - llamar cliente'
+        user_id: 'user_id'
+
+  # ===========================================================================
+  # Eventos de WhatsApp
+  # ===========================================================================
+
+  - id: ar_whatsapp_message_received
+    name: 'Mensaje WA recibido en modo AI: trigger handler'
+    model: mail.message
+    trigger: on_create
+    filter_domain: [
+      ['model', '=', 'discuss.channel']
+    ]
+    actions:
+      - type: server_action
+        action: ai_handle_whatsapp_message
+    notes: |
+      Trigger principal del agente IA. El Server Action filtra por modo, 
+      tipo de canal y autor antes de procesar.
+
+  - id: ar_whatsapp_channel_paused
+    name: 'Channel pausado por AI: notificar vendedor'
+    model: discuss.channel
+    trigger: on_write
+    filter_domain: [
+      ['channel_type', '=', 'whatsapp'],
+      ['x_ai_mode', '=', 'paused']
+    ]
+    actions:
+      - type: activity
+        activity_type: mail.mail_activity_data_todo
+        summary: 'Conversación WA escalada por AI'
+        user_id: 'x_assigned_user_id'
+        date_deadline: 'now + 30min'
+
+  # ===========================================================================
+  # Productos / Catálogo
+  # ===========================================================================
+
+  - id: ar_product_created_from_provider
+    name: 'Producto nuevo de proveedor: enriquecer con AI'
+    model: product.template
+    trigger: on_create
+    filter_domain: [
+      ['x_proveedor_id', '!=', false],
+      ['description_sale', '=', false]
+    ]
+    actions:
+      - type: webhook
+        target: n8n_workflow_enrich_product_description
+    notes: |
+      Cuando llega producto nuevo del sync de proveedor sin descripción comercial,
+      AI genera descripción atractiva basada en nombre y atributos.
+
+  # ===========================================================================
+  # Mantenimiento
+  # ===========================================================================
+
+  - id: ar_purge_ai_logs_old
+    name: 'Purgar logs AI más viejos que 12 meses'
+    model: x_ai_interaction_log
+    trigger: on_time
+    schedule: 'monthly'
+    filter_domain: [
+      ['timestamp', '<', 'now - 365d']
+    ]
+    actions:
+      - type: server_action
+        action: action_archive_old_logs
+    notes: |
+      Mantiene la tabla manejable. Solo archiva, no borra.
