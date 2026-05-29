@@ -48,6 +48,7 @@ Correo electrónico
 | TXT | mozaprintmx.com | `google-site-verification=MBGZHf8Yy81bMZ...` | Google Search Console |
 | TXT | _dmarc.mozaprintmx.com | `v=DMARC1; p=none` | DMARC (ver pendientes) |
 | A | autodiscover.mozaprintmx.com | 104.21.18.145 | Autodescubrimiento email |
+| ~~A~~ | ~~old.mozaprintmx.com~~ | ~~104.21.18.145~~ | Eliminado 2026-05-29 |
 
 ---
 
@@ -62,10 +63,8 @@ El sitio fue migrado a Odoo Online (mozaprintmx.odoo.com). Motivos: unificar cat
 ### Migración DNS a Cloudflare
 Los nameservers se migraron de Hostinger a Cloudflare. Motivo: mejoras de rendimiento y SEO identificadas vía PageSpeed Insights (CDN, caching, headers de seguridad, HTTP/2). Hostinger quedó solo como registrar.
 
-### Sitio WordPress respaldado en old.mozaprintmx.com
-El sitio WordPress original fue conservado en `old.mozaprintmx.com` como respaldo. Según la auditoría del 2026-05-28 aún está activo apuntando a `104.21.18.145`.
-
-> **TODO**: confirmar fecha de eliminación del registro A de `old.mozaprintmx.com` en Cloudflare y actualizar esta línea. Verificar que el contenido no sea necesario antes de eliminar.
+### Sitio WordPress respaldado en old.mozaprintmx.com (eliminado)
+El sitio WordPress original fue conservado en `old.mozaprintmx.com` como respaldo transitorio. El registro A fue eliminado de Cloudflare el **2026-05-29**. Estaba activo apuntando a `104.21.18.145` según la auditoría baseline del 2026-05-28.
 
 ---
 
