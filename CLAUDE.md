@@ -86,6 +86,15 @@ Ver `specs/data-model.md` para detalle completo.
 
 ## Cómo trabajamos
 
+### Antes de preguntar
+Antes de hacerme una pregunta sobre el proyecto, verifica si la respuesta ya está en el repo:
+1. Busca en `docs/` (arquitectura, decisiones del equipo, glosario, roadmap)
+2. Revisa `decisions/` para ver si ya hay un ADR que lo cubre
+3. Lee `specs/` si la duda es sobre modelos de datos o contratos de API
+4. Explora el código en `scripts/`, `n8n-workflows/`, `odoo-extensions/` si la duda es sobre implementación existente
+
+**Solo pregúntame lo que realmente no puede resolverse leyendo el repo.** Si la información existe pero está incompleta o contradictoria, señala la contradicción en lugar de preguntar desde cero.
+
 ### Antes de implementar
 1. Leer `docs/architecture.md` para entender el sistema completo
 2. Revisar `decisions/` para decisiones tomadas previamente

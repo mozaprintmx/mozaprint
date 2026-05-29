@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-05-28 · docs · patch
+
+**Tipo**: `docs`
+**Descripción**: Añadida regla de autonomía epistémica a CLAUDE.md.
+
+**Cambios**:
+- Nueva subsección `### Antes de preguntar` en `## Cómo trabajamos`
+- Define que Claude debe buscar en `docs/`, `decisions/`, `specs/`, `scripts/`,
+  `n8n-workflows/` y `odoo-extensions/` antes de escalar una duda al operador
+- Solo se escala lo que realmente no puede resolverse leyendo el repo
+
+**Impacto**: ninguno en producción. Solo cambia comportamiento del asistente.
+
+---
+
 ## 2026-05-24 · decision · v0.2.0
 
 **Tipo**: `decision`
