@@ -44,7 +44,7 @@ Correo electrónico
 | A | www.mozaprintmx.com | 172.67.182.84 | Proxy Cloudflare → Odoo |
 | MX | mozaprintmx.com | 5 mx1.hostinger.com | Email Hostinger |
 | MX | mozaprintmx.com | 10 mx2.hostinger.com | Email Hostinger (fallback) |
-| TXT | mozaprintmx.com | `v=spf1 include:_spf.mail.hostinger.com ~all` | SPF (ver pendientes) |
+| TXT | mozaprintmx.com | `v=spf1 include:_spf.mail.hostinger.com -all` | SPF estricto ✓ |
 | TXT | mozaprintmx.com | `google-site-verification=MBGZHf8Yy81bMZ...` | Google Search Console |
 | TXT | _dmarc.mozaprintmx.com | `v=DMARC1; p=none` | DMARC (ver pendientes) |
 | A | autodiscover.mozaprintmx.com | 104.21.18.145 | Autodescubrimiento email |
@@ -84,14 +84,12 @@ Para que los correos transaccionales de Odoo (cotizaciones, follow-ups) lleguen 
 ## Pendientes de optimización
 
 ### 1. SPF: cambiar `~all` por `-all`
-**Estado**: pendiente
-**Registro actual**: `v=spf1 include:_spf.mail.hostinger.com ~all`
-**Riesgo actual**: `~all` (softfail) permite que servidores no autorizados envíen con el dominio sin ser bloqueados.
-**Acción**: cuando se active el envío de correo desde Odoo, actualizar a:
+**Estado**: ✓ completado 2026-05-29
+**Registro activo**: `v=spf1 include:_spf.mail.hostinger.com -all`
+**Pendiente futuro**: cuando se active el envío de correo desde Odoo, agregar su include antes del `-all`:
 ```
 v=spf1 include:_spf.mail.hostinger.com include:<spf-odoo> -all
 ```
-Verificar el include de Odoo en su documentación antes de cambiar.
 
 ### 2. DMARC: escalar de `p=none` a `p=quarantine`
 **Estado**: pendiente — esperar 2-4 semanas de reportes primero
