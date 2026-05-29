@@ -1,0 +1,105 @@
+{
+  "domain": "mozaprintmx.com",
+  "timestamp": "2026-05-29T05:18:07.939097Z",
+  "nameservers": [
+    "noel.ns.cloudflare.com.",
+    "anita.ns.cloudflare.com."
+  ],
+  "authoritative_provider": "cloudflare",
+  "a_records": [
+    {
+      "name": "mozaprintmx.com",
+      "rtype": "A",
+      "value": "104.21.18.145",
+      "ttl": null
+    },
+    {
+      "name": "mozaprintmx.com",
+      "rtype": "A",
+      "value": "172.67.182.84",
+      "ttl": null
+    }
+  ],
+  "aaaa_records": [
+    {
+      "name": "mozaprintmx.com",
+      "rtype": "AAAA",
+      "value": "2606:4700:3032::6815:1291",
+      "ttl": null
+    },
+    {
+      "name": "mozaprintmx.com",
+      "rtype": "AAAA",
+      "value": "2606:4700:3036::ac43:b654",
+      "ttl": null
+    }
+  ],
+  "mx_records": [
+    {
+      "name": "mozaprintmx.com",
+      "rtype": "MX",
+      "value": "10 mx2.hostinger.com.",
+      "ttl": null
+    },
+    {
+      "name": "mozaprintmx.com",
+      "rtype": "MX",
+      "value": "5 mx1.hostinger.com.",
+      "ttl": null
+    }
+  ],
+  "txt_records": [
+    {
+      "name": "mozaprintmx.com",
+      "rtype": "TXT",
+      "value": "v=spf1 include:_spf.mail.hostinger.com ~all",
+      "ttl": null
+    },
+    {
+      "name": "mozaprintmx.com",
+      "rtype": "TXT",
+      "value": "google-site-verification=MBGZHf8Yy81bMZ37kVhVm_nOUpGOdVNMouwGqk9eXUk",
+      "ttl": null
+    }
+  ],
+  "cname_records": [],
+  "subdomains_alive": {
+    "www.mozaprintmx.com": [
+      "104.21.18.145",
+      "172.67.182.84"
+    ],
+    "old.mozaprintmx.com": [
+      "104.21.18.145",
+      "172.67.182.84"
+    ],
+    "autodiscover.mozaprintmx.com": [
+      "172.67.182.84",
+      "104.21.18.145"
+    ],
+    "_dmarc.mozaprintmx.com": [
+      "v=DMARC1; p=none"
+    ]
+  },
+  "spf_status": {
+    "present": true,
+    "record": "v=spf1 include:_spf.mail.hostinger.com ~all",
+    "includes": [
+      "_spf.mail.hostinger.com"
+    ],
+    "has_all_directive": true,
+    "strict_all": false
+  },
+  "dmarc_status": {
+    "present": true,
+    "record": "v=DMARC1; p=none",
+    "policy": "none",
+    "strict": false
+  },
+  "dkim_found": [],
+  "warnings": [
+    "SPF sin '-all' estricto. Considera usar '-all' en lugar de '~all' para mejor protección anti-spoofing.",
+    "DMARC con policy='none'. Eventualmente migrar a 'quarantine' o 'reject' para reducir spoofing.",
+    "Configuración mixta detectada: Cloudflare es authoritative pero hay registros apuntando a infraestructura Hostinger. Esto es válido si Hostinger solo aloja email/hosting y Cloudflare maneja DNS+CDN. Verificar que cada servicio apunte al servidor correcto."
+  ],
+  "errors": []
+}

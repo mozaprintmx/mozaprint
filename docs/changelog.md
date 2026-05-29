@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-05-28 · scripts · patch
+
+**Tipo**: `scripts`
+**Descripción**: Migración de `scripts/dns_audit.py` de `subprocess + dig` a `dnspython` para compatibilidad nativa en Windows.
+
+**Cambios**:
+- Reemplazada función `run_dig()` por `dns_query()` usando `dns.resolver` de dnspython
+- Eliminada dependencia de `subprocess` y del binario externo `dig`
+- Añadido guard de import al inicio: mensaje de error claro si dnspython no está instalado
+- Añadido `sys.stdout.reconfigure(encoding='utf-8')` para evitar errores de encoding en consola Windows (cp1252)
+- Actualizado docstring del módulo
+- Creada carpeta `reports/` y primer baseline: `reports/dns_20260528.json`
+- Creado `requirements.txt` con dependencias del proyecto
+
+**Impacto**: ninguno en producción. El script produce output idéntico al anterior.
+
+**Dependencia nueva**: `dnspython>=2.6` — instalar con `pip install dnspython`
+
+**Primera ejecución**: mozaprintmx.com auditado el 2026-05-28. Hallazgos:
+- Cloudflare authoritative ✓
+- SPF presente pero `~all` (no estricto) ⚠
+- DMARC presente con `p=none` ⚠
+- Subdominio `old.mozaprintmx.com` activo — verificar si es legacy
+- `n8n.mozaprintmx.com` pendiente de crear
+
+---
+
 ## 2026-05-28 · docs · patch
 
 **Tipo**: `docs`

@@ -1,0 +1,5 @@
+# Dependencias Python del proyecto Mozaprint
+# Instalar con: pip install -r requirements.txt
+
+# Auditoría DNS (scripts/dns_audit.py)
+dnspython>=2.6

@@ -14,25 +14,33 @@ Detecta:
 - Validación de configuración de email (SPF/DKIM/DMARC)
 
 Uso:
-    python3 dns_audit.py
-    python3 dns_audit.py --domain otrodominio.com
-    python3 dns_audit.py --output reporte.json
+    python dns_audit.py
+    python dns_audit.py --domain otrodominio.com
+    python dns_audit.py --output reporte.json
 
 Requiere:
-    - dnspython:    pip install dnspython
-    - rich (opcional): pip install rich   # para output más bonito
-
-Sin dependencias externas (solo Python 3.9+), usando subprocess + dig:
-    python3 dns_audit.py --use-dig
+    pip install dnspython
 """
 
 import argparse
 import json
-import subprocess
 import sys
 from dataclasses import dataclass, field, asdict
 from typing import Any
 from datetime import datetime
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
+
+try:
+    import dns.resolver
+    import dns.exception
+except ImportError:
+    print("✗ ERROR: dnspython no está instalado.")
+    print("  Instalar con:  pip install dnspython")
+    sys.exit(1)
 
 DEFAULT_DOMAIN = 'mozaprintmx.com'
 
@@ -94,28 +102,30 @@ class AuditReport:
     errors: list[str] = field(default_factory=list)
 
 
-def run_dig(name: str, rtype: str = 'A', nameserver: str | None = None) -> list[str]:
-    """Wrapper sobre dig. Devuelve lista de respuestas."""
-    cmd = ['dig', '+short', '+time=3', '+tries=1']
-    if nameserver:
-        cmd.append(f'@{nameserver}')
-    cmd.extend([name, rtype])
-
+def dns_query(name: str, rtype: str = 'A') -> list[str]:
+    """Consulta DNS usando dnspython. Devuelve lista de valores como strings."""
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-        if result.returncode != 0:
-            return []
-        lines = [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
-        # Filtrar líneas que parecen comentarios
-        lines = [l for l in lines if not l.startswith(';')]
-        return lines
-    except (subprocess.TimeoutExpired, FileNotFoundError):
+        answers = dns.resolver.resolve(name, rtype, lifetime=5)
+        results = []
+        for rdata in answers:
+            if rtype == 'A':
+                results.append(rdata.address)
+            elif rtype == 'AAAA':
+                results.append(rdata.address)
+            elif rtype == 'MX':
+                results.append(f"{rdata.preference} {rdata.exchange}")
+            elif rtype == 'NS':
+                results.append(str(rdata.target))
+            elif rtype == 'CNAME':
+                results.append(str(rdata.target))
+            elif rtype == 'TXT':
+                # Cada registro TXT puede tener múltiples strings; los concatenamos
+                results.append(b''.join(rdata.strings).decode('utf-8', errors='replace'))
+            else:
+                results.append(str(rdata))
+        return results
+    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.exception.Timeout,
+            dns.resolver.NoNameservers):
         return []
 
 
@@ -190,7 +200,7 @@ def audit(domain: str) -> AuditReport:
 
     # 1. Nameservers
     print("→ Consultando nameservers (NS)...")
-    ns = run_dig(domain, 'NS')
+    ns = dns_query(domain, 'NS')
     report.nameservers = ns
     report.authoritative_provider = identify_provider(ns)
 
@@ -205,7 +215,7 @@ def audit(domain: str) -> AuditReport:
 
     # 2. Registros A del dominio raíz
     print("\n→ Registros A del dominio raíz...")
-    a_records = run_dig(domain, 'A')
+    a_records = dns_query(domain, 'A')
     for a in a_records:
         report.a_records.append(DNSRecord(domain, 'A', a))
         print(f"  · {a}")
@@ -213,13 +223,13 @@ def audit(domain: str) -> AuditReport:
         report.warnings.append(f"Sin registros A para {domain}")
 
     # 3. Registros AAAA (IPv6)
-    aaaa_records = run_dig(domain, 'AAAA')
+    aaaa_records = dns_query(domain, 'AAAA')
     for r in aaaa_records:
         report.aaaa_records.append(DNSRecord(domain, 'AAAA', r))
 
     # 4. MX (Email)
     print("\n→ Registros MX (correo)...")
-    mx_records = run_dig(domain, 'MX')
+    mx_records = dns_query(domain, 'MX')
     for mx in mx_records:
         report.mx_records.append(DNSRecord(domain, 'MX', mx))
         print(f"  · {mx}")
@@ -228,7 +238,7 @@ def audit(domain: str) -> AuditReport:
 
     # 5. TXT (SPF, verificaciones, etc.)
     print("\n→ Registros TXT...")
-    txt_records = run_dig(domain, 'TXT')
+    txt_records = dns_query(domain, 'TXT')
     for txt in txt_records:
         report.txt_records.append(DNSRecord(domain, 'TXT', txt))
         # Mostrar primeros 80 chars
@@ -256,7 +266,7 @@ def audit(domain: str) -> AuditReport:
 
     # 7. DMARC
     print("\n→ Análisis DMARC...")
-    dmarc_txt = run_dig(f'_dmarc.{domain}', 'TXT')
+    dmarc_txt = dns_query(f'_dmarc.{domain}', 'TXT')
     dmarc_status = parse_dmarc(dmarc_txt)
     report.dmarc_status = dmarc_status
     if dmarc_status['present']:
@@ -278,14 +288,14 @@ def audit(domain: str) -> AuditReport:
     for sub in SUBDOMAINS_TO_CHECK:
         if sub.startswith('_') or 'domainkey' in sub:
             # TXT records (DKIM, verificaciones)
-            records = run_dig(f'{sub}.{domain}', 'TXT')
+            records = dns_query(f'{sub}.{domain}', 'TXT')
             rtype = 'TXT'
         else:
-            records = run_dig(f'{sub}.{domain}', 'A')
+            records = dns_query(f'{sub}.{domain}', 'A')
             rtype = 'A'
             if not records:
                 # Probar CNAME
-                records = run_dig(f'{sub}.{domain}', 'CNAME')
+                records = dns_query(f'{sub}.{domain}', 'CNAME')
                 if records:
                     rtype = 'CNAME'
 
@@ -426,16 +436,6 @@ def main():
     parser.add_argument('--no-recommendations', action='store_true',
                         help='No imprimir recomendaciones')
     args = parser.parse_args()
-
-    # Verificar que dig está disponible
-    try:
-        subprocess.run(['dig', '-v'], capture_output=True, timeout=2, check=False)
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        print("✗ ERROR: 'dig' no está instalado.")
-        print("  macOS:  brew install bind")
-        print("  Ubuntu: apt-get install dnsutils")
-        print("  Windows: instalar BIND o usar WSL")
-        return 1
 
     report = audit(args.domain)
     print_summary(report)
