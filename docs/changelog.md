@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-05-29 · docs · patch
+
+**Tipo**: `docs`
+**Descripción**: Creado `docs/dns-status.md` con arquitectura DNS completa de mozaprintmx.com.
+
+**Cambios**:
+- Nuevo documento `docs/dns-status.md` con: arquitectura actual (registrar/Cloudflare/Odoo/Hostinger email), tabla de registros activos, historial (WordPress→Odoo, Hostinger DNS→Cloudflare), configuración de email, y pendientes de optimización (SPF `-all`, DMARC `quarantine`, DKIM, subdominio n8n)
+
+**Impacto**: ninguno en producción. Solo documentación.
+
+---
+
 ## 2026-05-28 · scripts · patch
 
 **Tipo**: `scripts`
