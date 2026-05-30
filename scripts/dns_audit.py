@@ -60,10 +60,13 @@ SUBDOMAINS_TO_CHECK = [
     'ftp',
     'n8n',  # propuesto para el orquestador
     '_dmarc',
-    'default._domainkey',  # DKIM común
-    'google._domainkey',   # Google Workspace
+    'default._domainkey',       # DKIM común
+    'google._domainkey',        # Google Workspace
     'selector1._domainkey',
     'selector2._domainkey',
+    'hostingermail-a._domainkey',  # Hostinger DKIM
+    'hostingermail-b._domainkey',
+    'hostingermail-c._domainkey',
 ]
 
 # Patrones para identificar provider
@@ -287,9 +290,13 @@ def audit(domain: str) -> AuditReport:
     print("\n→ Auditando subdominios comunes...")
     for sub in SUBDOMAINS_TO_CHECK:
         if sub.startswith('_') or 'domainkey' in sub:
-            # TXT records (DKIM, verificaciones)
+            # DKIM puede ser TXT directo o CNAME delegation (ej. Hostinger)
             records = dns_query(f'{sub}.{domain}', 'TXT')
             rtype = 'TXT'
+            if not records:
+                records = dns_query(f'{sub}.{domain}', 'CNAME')
+                if records:
+                    rtype = 'CNAME'
         else:
             records = dns_query(f'{sub}.{domain}', 'A')
             rtype = 'A'
