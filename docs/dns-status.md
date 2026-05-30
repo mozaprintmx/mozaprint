@@ -48,6 +48,9 @@ Correo electrónico
 | TXT | mozaprintmx.com | `google-site-verification=MBGZHf8Yy81bMZ...` | Google Search Console |
 | TXT | _dmarc.mozaprintmx.com | `v=DMARC1; p=none` | DMARC (ver pendientes) |
 | A | autodiscover.mozaprintmx.com | 104.21.18.145 | Autodescubrimiento email |
+| CNAME | hostingermail-a._domainkey.mozaprintmx.com | hostingermail-a.dkim.mail.hostinger.com | DKIM selector A |
+| CNAME | hostingermail-b._domainkey.mozaprintmx.com | hostingermail-b.dkim.mail.hostinger.com | DKIM selector B |
+| CNAME | hostingermail-c._domainkey.mozaprintmx.com | hostingermail-c.dkim.mail.hostinger.com | DKIM selector C |
 | ~~A~~ | ~~old.mozaprintmx.com~~ | ~~104.21.18.145~~ | Eliminado 2026-05-29 |
 
 ---
@@ -101,9 +104,13 @@ v=spf1 include:_spf.mail.hostinger.com include:<spf-odoo> -all
 4. Eventualmente a `p=reject`
 
 ### 3. DKIM: verificar y documentar selector de Hostinger
-**Estado**: pendiente investigación
-**Contexto**: la auditoría buscó los selectores comunes (`default`, `google`, `selector1`, `selector2`) y no encontró ninguno activo. Hostinger puede usar un selector diferente.
-**Acción**: revisar en panel Hostinger → Email → DKIM, identificar el selector activo y documentarlo aquí.
+**Estado**: ✓ completado — confirmado en vivo 2026-05-29
+**Selectores activos** (CNAME → Hostinger DKIM):
+- `hostingermail-a._domainkey` → `hostingermail-a.dkim.mail.hostinger.com`
+- `hostingermail-b._domainkey` → `hostingermail-b.dkim.mail.hostinger.com`
+- `hostingermail-c._domainkey` → `hostingermail-c.dkim.mail.hostinger.com`
+
+Hostinger usa CNAME delegation en lugar de registros TXT directos; por eso la auditoría inicial no los detectó (buscaba selectores estándar como `default`, `selector1`, `selector2`).
 
 ### 4. Subdominio n8n
 **Estado**: pendiente — crear cuando se aprovisione el VPS Hetzner
