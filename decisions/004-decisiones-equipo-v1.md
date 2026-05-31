@@ -18,7 +18,9 @@ que estaban pendientes.
 |---|---|---|
 | Camino WhatsApp | **A — Coexistence** | Mantener app móvil + Cloud API en mismo número |
 | LLM Provider | **A definir en piloto (Claude vs OpenAI)** | Evaluación A/B en sprint 5-6 con conversaciones reales |
-| DNS | **Cloudflare ya activo** | Validar config actual antes de cambios. Hostinger queda solo como registrar |
+| DNS | **Cloudflare authoritative** | ✓ Validado 2026-05-28. Hostinger solo registrar + email. Ver `docs/dns-status.md` |
+| Gestor de secretos | **Bitwarden** | Centraliza API keys, tokens y contraseñas. Adoptado 2026-05-31 |
+| Usuario técnico API | **Reutilizar Rosy Ponce** | No crear `integration@` (costo facturable). Ver `docs/usuarios-odoo.md` |
 | Orquestador | **n8n self-hosted en VPS** | Decisión revisada: 10-20 conv/sem genera 2,300-3,500 ejec/mes, Starter ($24/mes) queda chico, Pro ($60/mes) caro. VPS Hetzner ~$6/mes es mejor |
 | Repo Git | **GitHub público** | El paquete de contexto se versiona ahí |
 | Seguimiento proactivo | **Progresivo en 3 fases** | Reactivo en piloto → Nivel 1 post-piloto → Nivel 2 mes 6+ |
@@ -76,10 +78,11 @@ que estaban pendientes.
 ## Tareas derivadas
 
 ### Esta semana
-- [ ] Ejecutar script de auditoría DNS (`scripts/dns_audit.py`)
-- [ ] Crear repo GitHub público con el paquete
+- [x] Ejecutar script de auditoría DNS (`scripts/dns_audit.py`) — 2026-05-28
+- [x] Crear repo GitHub público con el paquete — 2026-05-24
+- [x] Usuario técnico API Odoo configurado (Rosy Ponce, permisos reducidos) — 2026-05-31
 - [ ] Crear cuentas: Anthropic API + OpenAI API (para evaluación)
-- [ ] Iniciar trámite Meta Business Manager (te ayudo paso a paso)
+- [ ] Iniciar trámite Meta Business Manager
 - [ ] Aprovisionar VPS Hetzner CX22 (~€5/mes)
 
 ### Próxima semana

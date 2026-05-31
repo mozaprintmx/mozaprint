@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-05-31 · infra · patch
+
+**Tipo**: `infra`
+**Descripción**: Cierre de tareas DNS y usuario técnico API de Fase 0.
+
+**DNS — completado**:
+- Auditoría ejecutada 2026-05-28 con `scripts/dns_audit.py` (adaptado a dnspython para Windows)
+- Cloudflare authoritative confirmado · Hostinger queda solo como registrar + email
+- `old.mozaprintmx.com` eliminado de Cloudflare (residuo WooCommerce legacy)
+- SPF reforzado de `~all` a `-all` (modo estricto)
+- DKIM confirmado: 3 selectores Hostinger (`hostingermail-a/b/c._domainkey`) vía CNAME delegation
+- DMARC en `p=none` — en observación, escalar a `quarantine` en ~4 semanas
+- **Alerta futura documentada**: cuando Odoo envíe email con servidor propio, agregar `include:<spf-odoo>` al SPF antes del `-all` o los correos serán rechazados
+
+**Usuario técnico API Odoo — completado**:
+- Decisión: NO crear usuario `integration@` dedicado (evitar costo de usuario facturable adicional en Odoo Online)
+- Se reutiliza usuario existente "Rosy Ponce" (`rosy_ponce@mozaprintmx.com`) con permisos reducidos desde casi-admin a mínimos necesarios para la API
+- API key `"n8n-produccion"` generada y almacenada en Bitwarden
+- API key `"proveedores-sync"` queda pendiente para la fase de migración del script
+- Ver detalle completo en `docs/usuarios-odoo.md`
+
+**Gestor de secretos**:
+- Adoptado Bitwarden para centralizar API keys, tokens y contraseñas del proyecto
+
+**Impacto**: DNS de producción modificado (SPF, eliminación de subdominio). Permisos de usuario Odoo reducidos.
+
+---
+
 ## 2026-05-29 · docs · patch
 
 **Tipo**: `docs`

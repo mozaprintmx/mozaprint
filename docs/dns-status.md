@@ -80,7 +80,7 @@ Envío entrante → MX en Cloudflare → mx1/mx2.hostinger.com → buzón Hostin
 Envío saliente → Hostinger SMTP → SPF valida _spf.mail.hostinger.com
 ```
 
-Para que los correos transaccionales de Odoo (cotizaciones, follow-ups) lleguen correctamente, el registro SPF debe incluir los servidores de Odoo además de Hostinger. Pendiente de resolver (ver sección de pendientes).
+Para que los correos transaccionales de Odoo (cotizaciones, follow-ups) lleguen correctamente cuando Odoo envíe con servidor propio, el SPF deberá incluir los servidores de Odoo. **Esto es un pendiente futuro** — ver sección 1 de Pendientes de optimización.
 
 ---
 

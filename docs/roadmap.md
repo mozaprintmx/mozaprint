@@ -5,14 +5,14 @@
 ## Fases
 
 ### FASE 0: Higiene de fundamentos
-**Estado**: 🟡 En curso (semana 1)
+**Estado**: 🟡 En curso (semana 2) · 3/9 tareas completadas
 **Decisiones tomadas**: Camino A WhatsApp · DNS Cloudflare confirmado · Roles asignados
 **Tareas**:
-- [ ] Auditar DNS con `scripts/dns_audit.py` (Cloudflare + Hostinger)
-- [ ] Crear usuario técnico Odoo `integration@` con scope mínimo
+- [x] Auditar DNS con `scripts/dns_audit.py` (Cloudflare + Hostinger) — 2026-05-28
+- [x] Crear repo GitHub público y subir paquete — 2026-05-24
+- [x] Usuario técnico API Odoo — 2026-05-31 (ver `docs/usuarios-odoo.md`; se reutilizó Rosy Ponce con permisos reducidos en lugar de crear `integration@`)
 - [ ] Rotar API key del script de proveedores
 - [ ] Whitelist Googlebot en WAF si aplica
-- [ ] Crear repo GitHub público y subir paquete
 - [ ] Iniciar trámite Meta Business Manager
 - [ ] Crear cuentas Anthropic + OpenAI (para evaluación)
 - [ ] Aprovisionar VPS Hetzner CX22 (~€5/mes)
