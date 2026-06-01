@@ -13,7 +13,7 @@
 - [x] Usuario técnico API Odoo — 2026-05-31 (ver `docs/usuarios-odoo.md`; se reutilizó Rosy Ponce con permisos reducidos en lugar de crear `integration@`)
 - [ ] Rotar API key del script de proveedores
 - [ ] Whitelist Googlebot en WAF si aplica
-- [ ] Iniciar trámite Meta Business Manager
+- [x] Iniciar trámite Meta Business Manager — 2026-06-01 (WABA aprobada, base lista; conexión Cloud API pendiente VPS — ver `docs/meta-whatsapp-status.md`)
 - [ ] Crear cuentas Anthropic + OpenAI (para evaluación)
 - [ ] Aprovisionar VPS Hetzner CX22 (~€5/mes)
 - [ ] Crear subdominio n8n.mozaprintmx.com en Cloudflare
@@ -58,7 +58,7 @@
 
 ### FASE 4: Setup técnico WhatsApp + n8n
 **Estado**: 🔴 No iniciada (semana 9)
-**Bloquea hasta**: Verificación Meta Business completa
+**Bloquea hasta**: VPS n8n desplegado con URL pública (verificación Meta NO requerida — ver `docs/meta-whatsapp-status.md`)
 **Tareas**:
 - [ ] Aprovisionar VPS para n8n (Hetzner CX22 o equivalente)
 - [ ] Instalar n8n + Docker + Caddy

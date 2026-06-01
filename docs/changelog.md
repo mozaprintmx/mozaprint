@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-06-01 · infra · patch
+
+**Tipo**: `infra`
+**Descripción**: Setup base de Meta Business / WhatsApp completado. Documentada decisión de orden.
+
+**Cambios**:
+- Portfolio Meta confirmado: mozaprint_mx (Business ID: 100794159106337), admins Juan Carlos y Karina
+- WABA "Moza Print" (ID: 358071354051207) aprobada, número +52 1 56 3277 6277 registrado
+- Verificación de negocio Meta: no requerida para este caso de uso (no bloquea)
+- Creado `docs/meta-whatsapp-status.md` con estado completo, pendientes y limitaciones de Coexistence
+- Decisión documentada: pausar conexión Cloud API hasta tener VPS n8n con URL pública
+- Roadmap actualizado: tarea Meta marcada `[x]`, bloqueante de Fase 4 corregido (era "verificación Meta", es "VPS n8n")
+
+**Pendientes documentados** (se completan de corrido al tener n8n):
+- Crear App en Meta for Developers (App ID, App Secret)
+- Crear System User con token permanente
+- Activar Coexistence en el número
+- Configurar webhook hacia n8n
+- Enviar 5 plantillas a aprobación Meta
+
+**Impacto**: ninguno en producción. Solo documentación y configuración de accesos.
+
+---
+
 ## 2026-05-31 · infra · patch
 
 **Tipo**: `infra`
