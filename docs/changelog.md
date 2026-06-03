@@ -4,6 +4,36 @@
 
 ---
 
+## 2026-06-03 · odoo · minor
+
+**Tipo**: `odoo`
+**Descripción**: Fase 1 parcialmente completada — CRM activo, /contactanos conectado, automation rule de notificación funcionando.
+
+**Cambios en Odoo (producción)**:
+- Etapa "Leads" activada en CRM (antes todo entraba como Oportunidad directamente)
+- Formulario /contactanos reconectado: acción cambiada de "Enviar correo" a "Crear registro" en `crm.lead`, tipo forzado a Lead (no Oportunidad). Mapeo: Nombre→`contact_name`, Teléfono→`phone`, Correo→`email_from`, Empresa→`partner_name`, Asunto→`name`, Pregunta→`description`, Origen→`x_studio_origen_form="Contactanos"`. Probado en producción.
+- Automation Rule "Notificar nuevo lead de formulario web": dispara al crear `crm.lead` con `x_studio_origen_form` establecido; envía correo a `info@mozaprintmx.com`. Probado en producción.
+
+**Hallazgos técnicos documentados**:
+- Odoo Online procesa cola de correo vía cron (~cada hora). Notificación de lead puede tardar hasta ~1h. Aceptado: el lead se crea al instante, WhatsApp vía n8n será instantáneo.
+- AI Lead Scoring funciona nativamente en Odoo Online sin configuración adicional (tier IA incluido en el plan Custom, no requiere API key propia).
+- Odoo detecta "leads similares" y rastrea "visitas a página" automáticamente.
+- Las Automation Rules no tienen costo extra en el plan Custom de Odoo Online.
+- Conectar formulario al CRM NO impide responder por correo — se puede tener Lead en CRM + notificación por correo simultáneamente.
+- Odoo NO crea Contacto (`res.partner`) al entrar un Lead. El contacto se crea al "Convertir a Oportunidad". Flujo recomendado: lead entra → revisar → si vale, convertir y crear contacto; si no, marcar Perdido.
+
+**Nota en template**: las variables en cuerpos de correo de Automation Rules deben insertarse con el comando `/campo` del editor. Escribir `{{ object.campo }}` a mano se guarda como texto literal y no se sustituye.
+
+**Pendientes de Fase 1 documentados**:
+- Reconectar formularios /shop y ficha de producto (mapeo más complejo)
+- Corregir typo "Si"→"Sí" en dropdown web antes de reconectar
+- Definir cómo llenar `x_studio_origen_url` automáticamente
+- Configurar asignación automática a Sales Team
+
+**Nueva tarea registrada en roadmap**: Correo bidireccional `@mozaprintmx.com` en Odoo (prioridad media, requiere ajuste de SPF antes de activar).
+
+---
+
 ## 2026-06-02 · odoo · patch
 
 **Tipo**: `odoo`

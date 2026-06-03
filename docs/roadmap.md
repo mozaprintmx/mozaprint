@@ -19,14 +19,15 @@
 - [ ] Crear subdominio n8n.mozaprintmx.com en Cloudflare
 
 ### FASE 1: Captura estructurada de leads
-**Estado**: 🔴 No iniciada (semana 2-4)
+**Estado**: 🟡 En curso (semana 3) · 5/8 tareas completadas
 **Tareas**:
-- [ ] Activar Leads en CRM
-- [ ] Cambiar acción del formulario /contactanos a Create Opportunity
-- [ ] Crear campos custom en crm.lead (Studio)
-- [ ] Crear formulario contextual desde ficha de producto
-- [ ] Configurar AI Lead Scoring con Server Action
-- [ ] Configurar Automation Rules de acuse
+- [x] Activar Leads en CRM — 2026-06-03
+- [x] Reconectar formulario /contactanos al CRM — 2026-06-03 (crea Lead, no Oportunidad; ver `docs/fase1-captura-leads.md`)
+- [x] Crear 5 campos custom en crm.lead (Studio) — 2026-06-02 (ver `specs/data-model.md`)
+- [x] Configurar Automation Rule de notificación de nuevos leads web — 2026-06-03
+- [x] AI Lead Scoring — funciona nativamente en Odoo Online (no requiere Server Action propia)
+- [ ] Reconectar formularios /shop y ficha de producto al CRM (mapeo más complejo: incluyen qty, producto, personalización)
+- [ ] Definir cómo llenar `x_studio_origen_url` + corregir typo "Si"→"Sí" en dropdown web antes de reconectar
 - [ ] Configurar asignación automática a Sales Team
 
 ### FASE 2: Precios y catálogo
@@ -127,6 +128,18 @@
 - [ ] Más combinaciones técnica/qty parametrizadas (reduce HITL)
 - [ ] Agente proactivo (cross-sell, reactivación)
 
+### INFRAESTRUCTURA: Correo bidireccional @mozaprintmx.com en Odoo
+**Estado**: 🔴 Pendiente
+**Prioridad**: Media — no urgente, la notificación desde dominio Odoo ya cumple su función
+**Objetivo**: Que Odoo envíe y reciba correos desde `@mozaprintmx.com` (no desde `mozaprintmx.odoo.com`), para gestionar comunicación con clientes directamente desde Odoo con consistencia de marca.
+**Tareas**:
+- [ ] Configurar servidor de correo saliente en Odoo (SMTP de Hostinger)
+- [ ] Configurar servidor de correo entrante (recibir respuestas de clientes en Odoo)
+- [ ] Ajustar SPF para incluir el servidor SMTP de Hostinger como emisor autorizado de Odoo ⚠️ SPF está en `-all` estricto — agregar el `include` antes o los correos serán rechazados
+- [ ] Verificar DKIM para ese envío
+- [ ] Configurar alias de correo en Odoo (ej. `ventas@` o `info@`)
+**Nota**: mini-proyecto con su complejidad de deliverability. Ejecutar como bloque dedicado para no romper la configuración de email actual.
+
 ## Hitos críticos
 
 | Hito | Semana | Bloquea |
@@ -144,17 +157,20 @@
 - Catálogo en sitio web con atributos y variantes
 - Integración con 3 proveedores vía script (XML-RPC actual)
 - Descuentos por monto visibles en ficha (manual)
-- Formulario /contactanos (envía email)
+- Formulario /contactanos conectado al CRM (crea Lead con campos custom)
+- Automation Rule: notificación por correo al entrar un lead web
+- AI Lead Scoring nativo de Odoo (probabilidad automática)
 - WhatsApp del negocio operado manualmente desde celular
 
 ### Lo que NO funciona aún
-- Leads no se capturan estructuradamente
+- Formularios /shop y ficha de producto aún no conectados al CRM
 - Descuentos no se aplican automáticamente en cotización
 - Cotizaciones se arman 100% manualmente
 - Sin trazabilidad de WhatsApp en Odoo
 - Sin agente IA
 - Sin matriz de costos de personalización formal
 - Sin webhooks Odoo → externo
+- Correo desde @mozaprintmx.com no configurado en Odoo (sale desde dominio Odoo)
 
 ## Notas para Claude Code
 
