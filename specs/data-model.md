@@ -82,8 +82,53 @@ x_color_hex:
 
 ### crm.lead (extendido)
 
+> **IMPORTANTE — prefijo x_studio_**: La instancia de Odoo Online fuerza el prefijo `x_studio_`
+> en todos los campos creados vía Studio. Los nombres técnicos reales difieren de los planeados
+> originalmente con prefijo `x_`. Los campos marcados con ✓ **ya existen en producción** con
+> su nombre real. Los marcados con ○ son planificados y aún no creados.
+> Ver `odoo-extensions/studio-fields.yaml` para el registro completo con fechas.
+
+#### ✓ Creados en producción (2026-06-02)
+
 ```yaml
-x_origen_canal:
+x_studio_collected_qty:
+  type: integer
+  string: "Cantidad solicitada"
+  help: "Cantidad de piezas que pide el cliente"
+  # Nombre original planeado: x_collected_qty
+
+x_studio_collected_producto:
+  type: char
+  string: "Producto solicitado"
+  help: "Producto de interés mencionado por el cliente"
+  # Reemplaza x_collected_product_sku — se captura nombre/descripción, no SKU técnico
+
+x_studio_collected_personalizacion:
+  type: selection
+  string: "Lleva personalización"
+  selection:
+    - [si, "Sí"]
+    - [no, "No"]
+    - [sin_decidir, "Aún no he decidido"]
+  # Campo nuevo, no estaba en el plan original
+
+x_studio_origen_form:
+  type: char
+  string: "Origen del formulario"
+  help: "Clasificador del punto de entrada: Producto / Tienda / Contacto"
+  # Campo nuevo, no estaba en el plan original
+
+x_studio_origen_url:
+  type: char
+  string: "Origen URL"
+  help: "URL exacta desde la que se generó el lead (pendiente: definir cómo se llena)"
+  # Campo nuevo, no estaba en el plan original
+```
+
+#### ○ Planificados (pendiente crear en Odoo)
+
+```yaml
+x_studio_origen_canal:
   type: selection
   selection:
     - [whatsapp_ai, "WhatsApp (atendido por AI)"]
@@ -96,36 +141,28 @@ x_origen_canal:
     - [otro, "Otro"]
   string: "Canal de origen"
 
-x_ai_score:
+x_studio_ai_score:
   type: float
   string: "AI Lead Score (0-100)"
   help: "Puntuación generada por AI evaluando la probabilidad de cierre"
 
-x_ai_score_reasoning:
+x_studio_ai_score_reasoning:
   type: text
   string: "Razonamiento del AI score"
   help: "Explicación de por qué se asignó este score (generado por AI)"
 
-x_collected_product_sku:
-  type: char
-  string: "SKU producto solicitado"
-
-x_collected_qty:
-  type: integer
-  string: "Cantidad solicitada"
-
-x_collected_tecnica_id:
+x_studio_collected_tecnica_id:
   type: many2one
   comodel: x_tecnica_personalizacion
   string: "Técnica solicitada"
   help: "Técnica de personalización que el cliente solicitó"
 
-x_collected_tecnica_no_se:
+x_studio_collected_tecnica_no_se:
   type: boolean
   string: "Cliente no sabe la técnica"
   help: "True si el cliente dijo 'no sé, asesórenme'"
 
-x_collected_tiene_arte:
+x_studio_collected_tiene_arte:
   type: selection
   selection:
     - [si_vectorial, "Sí, formato vectorial (AI/EPS/PDF)"]
@@ -134,16 +171,16 @@ x_collected_tiene_arte:
     - [necesito_diseno, "Necesito que diseñen"]
   string: "Estado del arte"
 
-x_collected_fecha_entrega:
+x_studio_collected_fecha_entrega:
   type: date
   string: "Fecha objetivo de entrega"
 
-x_collected_industria:
+x_studio_collected_industria:
   type: char
   string: "Industria del cliente"
   help: "Detectada de email o preguntada explícitamente"
 
-x_collected_presupuesto:
+x_studio_collected_presupuesto:
   type: selection
   selection:
     - [menor_5k, "Menor a $5,000"]
@@ -153,7 +190,7 @@ x_collected_presupuesto:
     - [no_definido, "No definido"]
   string: "Presupuesto aproximado"
 
-x_conversation_summary:
+x_studio_conversation_summary:
   type: text
   string: "Resumen de conversación AI"
   help: "Resumen generado por AI de la conversación con el cliente"

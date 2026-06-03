@@ -17,8 +17,28 @@
 # - default: valor por defecto
 # - relation: solo para many2one/many2many/one2many
 
-version: '0.1.0'
-last_updated: 2026-05-23
+version: '0.2.0'
+last_updated: 2026-06-02
+
+# =============================================================================
+# NOTA IMPORTANTE — PREFIJO x_studio_ EN ODOO ONLINE
+# =============================================================================
+#
+# La instancia de Odoo Online de este proyecto fuerza el prefijo "x_studio_"
+# en TODOS los campos creados vía Studio (no es editable por el operador).
+# Los campos planeados originalmente con prefijo "x_" tienen nombres técnicos
+# reales "x_studio_<nombre>" en producción.
+#
+# Considerar esto al:
+# - Referenciar campos en formularios y vistas de Studio
+# - Escribir Server Actions (usar x_studio_<nombre>, no x_<nombre>)
+# - Configurar workflows en n8n que lean/escriban estos campos vía JSON-2 API
+# - Crear nuevos campos: siempre tendrán prefijo x_studio_ automáticamente
+#
+# En este archivo:
+#   status: created   → campo existe en producción (nombre técnico real)
+#   status: planned   → campo planeado, aún no creado en Odoo
+# =============================================================================
 
 # =============================================================================
 # EXTENSIONES A MODELOS EXISTENTES
@@ -79,9 +99,54 @@ extensions:
       string: 'Es servicio de personalización'
 
   crm.lead:
-    - field_name: x_origen_canal
+    # --- CREADOS EN PRODUCCIÓN (2026-06-02) ---
+
+    - field_name: x_studio_collected_qty
+      field_type: integer
+      string: 'Cantidad solicitada'
+      help: 'Cantidad de piezas que pide el cliente'
+      status: created
+      created_date: 2026-06-02
+
+    - field_name: x_studio_collected_producto
+      field_type: char
+      string: 'Producto solicitado'
+      help: 'Producto de interés mencionado por el cliente'
+      status: created
+      created_date: 2026-06-02
+      # Reemplaza el campo planeado x_collected_product_sku (era SKU técnico;
+      # se decidió capturar el nombre/descripción del producto en su lugar)
+
+    - field_name: x_studio_collected_personalizacion
+      field_type: selection
+      string: 'Lleva personalización'
+      status: created
+      created_date: 2026-06-02
+      selection:
+        - [si, 'Sí']
+        - [no, 'No']
+        - [sin_decidir, 'Aún no he decidido']
+
+    - field_name: x_studio_origen_form
+      field_type: char
+      string: 'Origen del formulario'
+      help: 'Clasificador del punto de entrada: Producto / Tienda / Contacto'
+      status: created
+      created_date: 2026-06-02
+
+    - field_name: x_studio_origen_url
+      field_type: char
+      string: 'Origen URL'
+      help: 'URL exacta desde la que se generó el lead (pendiente definir cómo se llena automáticamente)'
+      status: created
+      created_date: 2026-06-02
+
+    # --- PLANIFICADOS (pendiente crear en Odoo) ---
+
+    - field_name: x_studio_origen_canal
       field_type: selection
       string: 'Canal de origen'
+      status: planned
       selection:
         - [whatsapp_ai, 'WhatsApp (AI)']
         - [whatsapp_human, 'WhatsApp (humano)']
@@ -92,54 +157,54 @@ extensions:
         - [referido, 'Referido']
         - [otro, 'Otro']
 
-    - field_name: x_ai_score
+    - field_name: x_studio_ai_score
       field_type: float
       string: 'AI Lead Score'
       help: 'Puntuación 0-100 generada por AI'
+      status: planned
 
-    - field_name: x_ai_score_reasoning
+    - field_name: x_studio_ai_score_reasoning
       field_type: text
       string: 'Razonamiento del score'
+      status: planned
 
-    - field_name: x_collected_product_sku
-      field_type: char
-      string: 'SKU producto solicitado'
-
-    - field_name: x_collected_qty
-      field_type: integer
-      string: 'Cantidad solicitada'
-
-    - field_name: x_collected_tecnica_id
+    - field_name: x_studio_collected_tecnica_id
       field_type: many2one
       relation: x_tecnica_personalizacion
       string: 'Técnica solicitada'
       help: 'Técnica de personalización que el cliente pidió'
+      status: planned
 
-    - field_name: x_collected_tecnica_no_se
+    - field_name: x_studio_collected_tecnica_no_se
       field_type: boolean
       string: 'Cliente no sabe la técnica'
       default: false
+      status: planned
 
-    - field_name: x_collected_tiene_arte
+    - field_name: x_studio_collected_tiene_arte
       field_type: selection
       string: 'Estado del arte'
+      status: planned
       selection:
         - [si_vectorial, 'Sí, vectorial (AI/EPS/PDF)']
         - [si_raster, 'Sí, raster (PNG/JPG)']
         - [solo_idea, 'Sólo tengo una idea']
         - [necesito_diseno, 'Necesito que diseñen']
 
-    - field_name: x_collected_fecha_entrega
+    - field_name: x_studio_collected_fecha_entrega
       field_type: date
       string: 'Fecha objetivo de entrega'
+      status: planned
 
-    - field_name: x_collected_industria
+    - field_name: x_studio_collected_industria
       field_type: char
       string: 'Industria del cliente'
+      status: planned
 
-    - field_name: x_collected_presupuesto
+    - field_name: x_studio_collected_presupuesto
       field_type: selection
       string: 'Presupuesto aproximado'
+      status: planned
       selection:
         - [menor_5k, 'Menor a $5,000']
         - [5k_15k, '$5,000 - $15,000']
@@ -147,9 +212,10 @@ extensions:
         - [mayor_50k, 'Mayor a $50,000']
         - [no_definido, 'No definido']
 
-    - field_name: x_conversation_summary
+    - field_name: x_studio_conversation_summary
       field_type: text
       string: 'Resumen de conversación AI'
+      status: planned
 
   discuss.channel:
     - field_name: x_ai_mode

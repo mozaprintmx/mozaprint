@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-06-02 · odoo · patch
+
+**Tipo**: `odoo`
+**Descripción**: Creación de 5 campos custom en `crm.lead` vía Studio. Documentada divergencia de prefijo `x_studio_` en Odoo Online.
+
+**Campos creados en producción**:
+| Nombre técnico real | Etiqueta | Tipo |
+|---|---|---|
+| `x_studio_collected_qty` | Cantidad solicitada | Integer |
+| `x_studio_collected_producto` | Producto solicitado | Char |
+| `x_studio_collected_personalizacion` | Lleva personalización | Selection (Sí/No/Aún no he decidido) |
+| `x_studio_origen_form` | Origen del formulario | Char |
+| `x_studio_origen_url` | Origen URL | Char |
+
+**Hallazgo importante**: Odoo Online fuerza el prefijo `x_studio_` en todos los campos creados vía Studio (no editable). Los nombres planeados originalmente con prefijo `x_` tienen nombres reales `x_studio_<nombre>`. Todos los campos custom futuros tendrán este prefijo.
+
+**Documentación actualizada**:
+- `specs/data-model.md`: sección `crm.lead` separada en "Creados en producción" vs "Planificados"; nombres técnicos reales; nota sobre el prefijo
+- `odoo-extensions/studio-fields.yaml`: `status: created/planned` en cada campo; nota global sobre el prefijo `x_studio_`; versión `0.2.0`
+
+**Impacto**: los workflows de n8n y Server Actions que referencien estos campos deben usar los nombres `x_studio_*`, no `x_*`.
+
+---
+
 ## 2026-06-02 · architecture · patch
 
 **Tipo**: `architecture`
