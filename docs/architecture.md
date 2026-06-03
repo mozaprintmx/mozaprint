@@ -85,7 +85,7 @@ Odoo **SÍ debe**:
 n8n es el **pegamento**. Recibe eventos, llama APIs, transforma datos, decide qué hacer.
 
 n8n **SÍ debe**:
-- Recibir webhooks de Meta WhatsApp y procesarlos
+- **Ser el receptor único del webhook de Meta WhatsApp** — la Cloud API solo permite un webhook por número; Odoo y cualquier otro sistema reciben los mensajes a través de n8n, nunca directamente desde Meta (ver ADR 005)
 - Llamar a Anthropic API con el prompt y contexto
 - Llamar a Odoo vía JSON-2 API para crear/actualizar registros
 - Llamar a APIs de proveedores para sync
@@ -210,7 +210,7 @@ Claude **NO debe**:
 ### En n8n
 ```
 ODOO_URL=https://mozaprint.odoo.com
-ODOO_API_KEY=<api key del usuario integration@>
+ODOO_API_KEY=<api key "n8n-produccion" — usuario Rosy Ponce, ver docs/usuarios-odoo.md>
 ODOO_DATABASE=<nombre db si multi-db>
 
 ANTHROPIC_API_KEY=<sk-ant-...>
@@ -241,6 +241,7 @@ Ver carpeta `decisions/` para detalle. Resumen:
 - **n8n self-hosted vs cloud**: self-hosted en VPS chico. Razón: control total, sin per-execution pricing, datos sensibles del cliente.
 - **Claude vs OpenAI**: Claude (Haiku + Sonnet). Razón: mejor razonamiento para tool use complejo, prompt caching 90% off.
 - **Bridge custom vs BSP**: Bridge custom con n8n. Razón: control total, conversaciones en Odoo, sin vendor lock-in.
+- **n8n como router único / inbox escalable en Odoo**: un número de Cloud API = un webhook = n8n. El inbox para escalar el equipo de vendedores se construye sobre Odoo en etapas. Ver ADR 005.
 - **JSON-2 vs XML-RPC**: JSON-2 para todo lo nuevo. Razón: XML-RPC deprecado en Online 21.1 (2027).
 
 ## Lo que no está construido todavía

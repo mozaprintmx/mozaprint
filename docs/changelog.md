@@ -4,6 +4,19 @@
 
 ---
 
+## 2026-06-02 · architecture · patch
+
+**Tipo**: `architecture`
+**Descripción**: ADR 005 — n8n como router único de WhatsApp + camino de inbox escalable en Odoo.
+
+**Cambios**:
+- Nuevo `decisions/005-n8n-router-unico-inbox-escalable.md`: documenta la restricción técnica de webhook único por número, la decisión de construir inbox sobre Odoo en lugar de adoptar un BSP, y el plan de crecimiento en 3 etapas
+- `docs/architecture.md`: agregado bullet en `n8n SÍ debe` sobre la restricción de webhook único (con referencia a ADR 005); agregada entrada en `Decisiones arquitectónicas clave`; corregido comentario de `ODOO_API_KEY` de `integration@` a `Rosy Ponce` (consistente con `docs/usuarios-odoo.md`)
+
+**Impacto**: ninguno en producción. Define una restricción arquitectónica crítica que Claude Code debe respetar al sugerir integraciones.
+
+---
+
 ## 2026-06-01 · infra · patch
 
 **Tipo**: `infra`
