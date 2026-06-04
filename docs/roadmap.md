@@ -19,18 +19,24 @@
 - [ ] Crear subdominio n8n.mozaprintmx.com en Cloudflare
 
 ### FASE 1: Captura estructurada de leads
-**Estado**: 🟡 En curso (semana 3) · 7/9 tareas completadas
+**Estado**: ✅ Completada (semana 3)
 **Tareas**:
 - [x] Activar Leads en CRM — 2026-06-03
 - [x] Reconectar formulario /contactanos al CRM — 2026-06-03 (crea Lead, no Oportunidad; ver `docs/fase1-captura-leads.md`)
 - [x] Crear 5 campos custom en crm.lead (Studio) — 2026-06-02 (ver `specs/data-model.md`)
 - [x] Configurar Automation Rule de notificación de nuevos leads web — 2026-06-03
 - [x] AI Lead Scoring — funciona nativamente en Odoo Online (no requiere Server Action propia)
-- [x] Reconectar formularios /shop y ficha de producto al CRM — 2026-06-03 (qty, producto, personalización mapeados; typo "Si"→"Sí" corregido)
+- [x] Reconectar formularios /shop y ficha de producto al CRM — 2026-06-03
 - [x] Actualizar plantilla notificación con campos qty/producto/personalización — 2026-06-03
-- [ ] Definir cómo llenar `x_studio_origen_url` automáticamente
-- [ ] Alertas de leads estancados + limpieza del pipeline actual
-- [ ] Configurar asignación automática a Sales Team
+- [x] Limpiar pipeline (leads/oportunidades estancados resueltos) — 2026-06-03
+- [x] Crear etiquetas CRM y 3 alertas de seguimiento (Automation Rules) — 2026-06-03
+
+**Mejoras futuras (no bloquean operación)**:
+- Definir cómo llenar `x_studio_origen_url` automáticamente (opción JS/UTM, baja prioridad)
+- Configurar asignación automática a Sales Team (manual funciona por ahora)
+- Validar las 3 alertas en funcionamiento real (esperar a que se disparen naturalmente)
+
+**Dependencia operativa documentada**: el equipo debe mover las tarjetas en el pipeline cada vez que actúa con un cliente (ver `docs/proceso-equipo-crm.md`). Se elimina con correo bidireccional o integración WhatsApp (Fase 4).
 
 ### FASE 2: Precios y catálogo
 **Estado**: 🔴 No iniciada (semana 5-6)
@@ -166,11 +172,14 @@
 - Los tres formularios web conectados al CRM: /contactanos, /shop y ficha de producto (crean Lead con campos custom; origen diferenciado por x_studio_origen_form)
 - Automation Rule: notificación por correo al entrar un lead web (incluye qty, producto, personalización y origen)
 - AI Lead Scoring nativo de Odoo (probabilidad automática)
+- Pipeline limpio con etiquetas "Urge contactar" y "Peligro, posible pérdida"
+- 3 alertas automáticas: lead sin calificar en 1 día, oportunidad sin avanzar en 1 día, oportunidad en peligro a los 3 días
 - WhatsApp del negocio operado manualmente desde celular
 
 ### Lo que NO funciona aún
 - `x_studio_origen_url` sin captura automática aún
 - Descuentos no se aplican automáticamente en cotización
+- Odoo no detecta actividad si el vendedor actúa desde Gmail (depende de mover tarjetas manualmente — ver `docs/proceso-equipo-crm.md`)
 - Cotizaciones se arman 100% manualmente
 - Sin trazabilidad de WhatsApp en Odoo
 - Sin agente IA

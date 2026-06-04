@@ -1,7 +1,7 @@
 # Fase 1: Captura estructurada de leads — Estado
 
-> Estado de implementación de la captura de leads en Odoo.
-> Última actualización: 2026-06-03 (v2)
+> Referencia completa de la Fase 1 — captura y seguimiento de leads.
+> Estado: ✅ COMPLETADA · Última actualización: 2026-06-03 (v3)
 
 ---
 
@@ -16,10 +16,11 @@
 | AI Lead Scoring | ✓ Funciona nativo | 2026-06-03 |
 | Formularios /shop y ficha de producto | ✓ En producción | 2026-06-03 |
 | Plantilla notificación (qty/producto/personalización) | ✓ En producción | 2026-06-03 |
-| `x_studio_origen_url` automático | ⏳ Pendiente definición | — |
-| Alertas de leads estancados | ⏳ Pendiente | — |
-| Limpieza del pipeline actual | ⏳ Pendiente | — |
-| Asignación automática a Sales Team | ⏳ Pendiente | — |
+| Limpieza del pipeline | ✓ Completado | 2026-06-03 |
+| Etiquetas CRM (Urge contactar / Peligro) | ✓ En producción | 2026-06-03 |
+| 3 alertas de seguimiento (Automation Rules) | ✓ En producción | 2026-06-03 |
+| `x_studio_origen_url` automático | 🔵 Mejora futura | — |
+| Asignación automática a Sales Team | 🔵 Mejora futura | — |
 
 ---
 
@@ -142,6 +143,55 @@ El filtro limita la regla a leads de formularios web — no dispara para leads c
 
 ---
 
+### 6. Etiquetas CRM
+
+Dos etiquetas creadas en CRM para identificar visualmente el estado de urgencia en el pipeline:
+
+| Etiqueta | Color | Cuándo aparece |
+|---|---|---|
+| Urge contactar | Naranja/amarillo | Alerta 2 la agrega al día de sin avanzar en "Nuevo lead" |
+| Peligro, posible pérdida | Rojo | Alerta 3 la agrega a los 3 días sin avanzar en "Nuevo lead" |
+
+Las etiquetas son **acumulativas**: a los 3 días una oportunidad tendrá ambas etiquetas, mostrando la escalada en el pipeline sin perder el contexto de la alerta anterior.
+
+---
+
+### 7. Alertas de seguimiento (3 Automation Rules)
+
+Tres reglas basadas en tiempo configuradas en CRM → Automation Rules:
+
+| Regla | Modelo | Campo tiempo | Espera | Filtro | Acciones |
+|---|---|---|---|---|---|
+| Alerta - Lead sin calificar 1 día | crm.lead | Creado el (`date`) | 1 día | Tipo = Lead | Actividad: "Calificar o descartar este lead" → Juan Carlos |
+| Alerta - Oportunidad sin avanzar 1 día | crm.lead | Últ. act. etapa (`date_last_stage_update`) | 1 día | Tipo = Oportunidad + Etapa = Nuevo lead | Actividad: "Urge contactar" → Juan Carlos · Agregar etiqueta "Urge contactar" |
+| Alerta - Oportunidad en peligro 3 días | crm.lead | Últ. act. etapa (`date_last_stage_update`) | 3 días | Tipo = Oportunidad + Etapa = Nuevo lead | Actividad: "PELIGRO" → Juan Carlos · Agregar etiqueta "Peligro, posible pérdida" · Correo a `mozaprintmx@gmail.com` |
+
+**Comportamiento acumulativo**: las etiquetas se configuran con modo "Agregar" (no reemplazar), por lo que a los 3 días una oportunidad tendrá ambas etiquetas simultáneamente.
+
+**Nota de calibración**: la Alerta 1 se ajustó de 2 días a 1 día para alinearse con el SLA de 24h del negocio.
+
+**Validación pendiente**: esperar a que se disparen naturalmente con el pipeline real, o forzar el cron para verificar.
+
+---
+
+### 8. Regla de proceso crítica del equipo
+
+> ⚠️ **IMPORTANTE — Comunicar a Karina y a todo vendedor que use el CRM**
+
+**Contexto**: Odoo no está conectado al correo. La comunicación con clientes se hace desde Gmail. Odoo solo sabe que el vendedor actuó si el vendedor **mueve la tarjeta en el pipeline**.
+
+**La regla**: cada vez que el vendedor actúe con un cliente (contactó, cotizó, envió info, llamó), debe mover la oportunidad/lead a la siguiente etapa en el CRM.
+
+**Qué pasa si no se hace**: las alertas basadas en tiempo (`date_last_stage_update`) se disparan aunque el vendedor ya haya actuado, generando falsos positivos. La Alerta 3 manda correo al equipo, lo cual se vuelve ruido si el motivo fue solo no mover la tarjeta.
+
+**Cuándo desaparece esta dependencia**:
+1. Al implementar correo bidireccional `@mozaprintmx.com` en Odoo (tarea prioridad media en roadmap) — Odoo detectará las respuestas del cliente automáticamente
+2. Al implementar integración WhatsApp (Fase 4) — los mensajes de WA se registrarán directamente en Odoo
+
+Ver `docs/proceso-equipo-crm.md` para la guía operativa del equipo.
+
+---
+
 ### 5. AI Lead Scoring nativo
 
 Odoo Online calcula automáticamente la probabilidad de cierre de cada lead sin configuración adicional. Usa el tier de IA incluido en el plan Custom — no requiere API key de OpenAI ni Server Action propia.
@@ -169,7 +219,7 @@ Las Automation Rules no tienen costo adicional en el plan Custom de Odoo Online.
 
 ---
 
-## Pendientes
+## Mejoras futuras (no bloquean operación)
 
 ### Definir cómo llenar x_studio_origen_url
 El campo existe en Odoo pero la lógica de captura está pendiente. Opciones a evaluar:
@@ -193,8 +243,11 @@ El CRM tiene leads acumulados de semanas anteriores sin clasificar. Antes de act
 - Convertir a Oportunidad los que sí avanzan
 - Establecer una línea base limpia
 
+### Validar alertas en funcionamiento real
+Esperar a que las 3 alertas se disparen naturalmente con el pipeline real, o forzar el cron de Odoo para verificar que las acciones (actividades, etiquetas, correo) se ejecutan correctamente.
+
 ### Asignación automática a Sales Team
-Pendiente configurar reglas de asignación de leads al equipo de ventas correcto según origen o criterios del negocio.
+Manual funciona por ahora (equipo es de una persona). Configurar cuando crezca el equipo de ventas.
 
 ---
 

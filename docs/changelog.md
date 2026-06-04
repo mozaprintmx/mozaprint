@@ -4,6 +4,57 @@
 
 ---
 
+## 2026-06-03 · odoo · minor (v4) — Cierre Fase 1
+
+**Tipo**: `odoo`
+**Descripción**: Cierre de Fase 1 — limpieza del pipeline, etiquetas CRM y 3 alertas de seguimiento configuradas.
+
+### Limpieza del pipeline
+
+Leads y oportunidades estancados revisados manualmente. Las etapas "Nuevo lead" y "Contactado" quedaron en cero antes de activar alertas, estableciendo una línea base limpia.
+
+### Etiquetas CRM creadas
+
+| Etiqueta | Color | Uso |
+|---|---|---|
+| Urge contactar | Naranja/amarillo | Oportunidad sin avanzar 1 día en etapa "Nuevo lead" |
+| Peligro, posible pérdida | Rojo | Oportunidad sin avanzar 3 días en etapa "Nuevo lead" |
+
+Las etiquetas se acumulan: a los 3 días una oportunidad tendrá ambas, mostrando la escalada visualmente en el pipeline.
+
+### 3 Automation Rules de alerta
+
+**Alerta 1 — "Alerta - Lead sin calificar 1 día"**
+- Disparador: basado en tiempo / campo `date` (Creado el) / espera 1 día
+- Filtro: `Tipo = Lead`
+- Acción: crear actividad "Calificar o descartar este lead" asignada a Juan Carlos Asomoza
+- Nota: ajustada de 2 a 1 día para cumplir SLA de 24h del negocio
+
+**Alerta 2 — "Alerta - Oportunidad sin avanzar 1 día"**
+- Disparador: basado en tiempo / campo `date_last_stage_update` (Última actualización de etapa) / espera 1 día
+- Filtro: `Tipo = Oportunidad` Y `Etapa = Nuevo lead`
+- Acción 1: crear actividad "Urge contactar" asignada a Juan Carlos Asomoza
+- Acción 2: actualizar registro — AGREGAR etiqueta "Urge contactar" (modo agregar, no reemplazar)
+
+**Alerta 3 — "Alerta - Oportunidad en peligro 3 días"**
+- Disparador: basado en tiempo / campo `date_last_stage_update` / espera 3 días
+- Filtro: `Tipo = Oportunidad` Y `Etapa = Nuevo lead`
+- Acción 1: crear actividad "PELIGRO - posible pérdida" asignada a Juan Carlos Asomoza
+- Acción 2: actualizar registro — AGREGAR etiqueta "Peligro, posible pérdida"
+- Acción 3: enviar correo a `mozaprintmx@gmail.com` con plantilla de alerta (variables con `/campo`)
+
+### Regla de proceso crítica documentada
+
+Odoo no está conectado al correo (comunicación con clientes se hace desde Gmail). Odoo solo detecta actividad cuando el vendedor **mueve la tarjeta en el pipeline**. Si el vendedor contacta o cotiza desde Gmail sin mover la tarjeta, las alertas se disparan como falsos positivos (incluyendo la Alerta 3 que manda correo al equipo).
+
+**Comunicar a Karina y a todo vendedor**: mover la tarjeta en el pipeline cada vez que se actúa con un cliente. Ver `docs/proceso-equipo-crm.md`.
+
+Esta dependencia desaparece cuando se implemente correo bidireccional (tarea prioridad media documentada) o la integración WhatsApp (Fase 4), donde Odoo detectará actividad automáticamente.
+
+**Documentación actualizada**: `docs/fase1-captura-leads.md` (estado final), `docs/roadmap.md` (Fase 1 marcada completa), nuevo `docs/proceso-equipo-crm.md`.
+
+---
+
 ## 2026-06-03 · docs · patch (v3)
 
 **Tipo**: `docs`
