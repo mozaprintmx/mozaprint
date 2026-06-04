@@ -19,15 +19,17 @@
 - [ ] Crear subdominio n8n.mozaprintmx.com en Cloudflare
 
 ### FASE 1: Captura estructurada de leads
-**Estado**: 🟡 En curso (semana 3) · 5/8 tareas completadas
+**Estado**: 🟡 En curso (semana 3) · 7/9 tareas completadas
 **Tareas**:
 - [x] Activar Leads en CRM — 2026-06-03
 - [x] Reconectar formulario /contactanos al CRM — 2026-06-03 (crea Lead, no Oportunidad; ver `docs/fase1-captura-leads.md`)
 - [x] Crear 5 campos custom en crm.lead (Studio) — 2026-06-02 (ver `specs/data-model.md`)
 - [x] Configurar Automation Rule de notificación de nuevos leads web — 2026-06-03
 - [x] AI Lead Scoring — funciona nativamente en Odoo Online (no requiere Server Action propia)
-- [ ] Reconectar formularios /shop y ficha de producto al CRM (mapeo más complejo: incluyen qty, producto, personalización)
-- [ ] Definir cómo llenar `x_studio_origen_url` + corregir typo "Si"→"Sí" en dropdown web antes de reconectar
+- [x] Reconectar formularios /shop y ficha de producto al CRM — 2026-06-03 (qty, producto, personalización mapeados; typo "Si"→"Sí" corregido)
+- [x] Actualizar plantilla notificación con campos qty/producto/personalización — 2026-06-03
+- [ ] Definir cómo llenar `x_studio_origen_url` automáticamente
+- [ ] Alertas de leads estancados + limpieza del pipeline actual
 - [ ] Configurar asignación automática a Sales Team
 
 ### FASE 2: Precios y catálogo
@@ -157,13 +159,13 @@
 - Catálogo en sitio web con atributos y variantes
 - Integración con 3 proveedores vía script (XML-RPC actual)
 - Descuentos por monto visibles en ficha (manual)
-- Formulario /contactanos conectado al CRM (crea Lead con campos custom)
-- Automation Rule: notificación por correo al entrar un lead web
+- Los tres formularios web conectados al CRM: /contactanos, /shop y ficha de producto (crean Lead con campos custom; origen diferenciado por x_studio_origen_form)
+- Automation Rule: notificación por correo al entrar un lead web (incluye qty, producto, personalización y origen)
 - AI Lead Scoring nativo de Odoo (probabilidad automática)
 - WhatsApp del negocio operado manualmente desde celular
 
 ### Lo que NO funciona aún
-- Formularios /shop y ficha de producto aún no conectados al CRM
+- `x_studio_origen_url` sin captura automática aún
 - Descuentos no se aplican automáticamente en cotización
 - Cotizaciones se arman 100% manualmente
 - Sin trazabilidad de WhatsApp en Odoo

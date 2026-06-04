@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-06-03 · odoo · minor (v2)
+
+**Tipo**: `odoo`
+**Descripción**: Fase 1 completada al 7/9 — tres formularios web funcionando en producción, plantilla de notificación actualizada.
+
+**Cambios en Odoo (producción)**:
+- Formulario /shop reconectado al CRM: acción "Crear registro" en `crm.lead`, mapeo completo incluyendo `x_studio_collected_qty`, `x_studio_collected_producto`, `x_studio_collected_personalizacion`. `x_studio_origen_form = "Tienda"`.
+- Formulario de ficha de producto reconectado al CRM: mismo mapeo que /shop, producto pre-rellenado con nombre del artículo. `x_studio_origen_form = "Producto"`.
+- Typo corregido en dropdown de personalización web: `"Si"` → `"Sí"` para que coincida con el valor del campo `x_studio_collected_personalizacion` en Odoo.
+- Plantilla de notificación "Notificación nuevo lead web" actualizada: ahora incluye Cantidad (`x_studio_collected_qty`), Producto (`x_studio_collected_producto`) y Personalización (`x_studio_collected_personalizacion`) además de los datos de contacto y origen.
+
+**Pendientes documentados en `docs/fase1-captura-leads.md`**:
+- `x_studio_origen_url`: definir mecanismo de captura automática (JavaScript en formulario, variable nativa Odoo, o UTM)
+- Alertas de leads estancados: hay leads de hasta 42 días sin movimiento; configurar Automation Rule con umbral a definir
+- Limpieza del pipeline actual: pasada manual antes de activar alertas
+- Asignación automática a Sales Team
+
+---
+
 ## 2026-06-03 · odoo · minor
 
 **Tipo**: `odoo`

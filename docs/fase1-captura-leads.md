@@ -1,7 +1,7 @@
 # Fase 1: Captura estructurada de leads — Estado
 
 > Estado de implementación de la captura de leads en Odoo.
-> Última actualización: 2026-06-03
+> Última actualización: 2026-06-03 (v2)
 
 ---
 
@@ -14,8 +14,11 @@
 | Formulario /contactanos → CRM | ✓ En producción | 2026-06-03 |
 | Automation Rule notificación web | ✓ En producción | 2026-06-03 |
 | AI Lead Scoring | ✓ Funciona nativo | 2026-06-03 |
-| Formularios /shop y ficha de producto | ⏳ Pendiente | — |
+| Formularios /shop y ficha de producto | ✓ En producción | 2026-06-03 |
+| Plantilla notificación (qty/producto/personalización) | ✓ En producción | 2026-06-03 |
 | `x_studio_origen_url` automático | ⏳ Pendiente definición | — |
+| Alertas de leads estancados | ⏳ Pendiente | — |
+| Limpieza del pipeline actual | ⏳ Pendiente | — |
 | Asignación automática a Sales Team | ⏳ Pendiente | — |
 
 ---
@@ -75,6 +78,49 @@ Cinco campos creados vía Studio, disponibles en el formulario de lead. Ver `spe
 
 ---
 
+### 3b. Formularios /shop y ficha de producto
+
+**Estado**: ✓ En producción 2026-06-03
+
+Ambos formularios reconectados al CRM. Mapeo de campos:
+
+**Formulario /shop (tienda)**:
+
+| Campo del formulario | Campo en crm.lead |
+|---|---|
+| Nombre | `contact_name` |
+| Correo | `email_from` |
+| Teléfono | `phone` |
+| Empresa | `partner_name` |
+| Producto de interés | `x_studio_collected_producto` |
+| Cantidad | `x_studio_collected_qty` |
+| Personalización | `x_studio_collected_personalizacion` |
+| Comentarios / Mensaje | `description` |
+| _(fijo)_ | `x_studio_origen_form` = "Tienda" |
+
+**Formulario de ficha de producto**:
+
+| Campo del formulario | Campo en crm.lead |
+|---|---|
+| Nombre | `contact_name` |
+| Correo | `email_from` |
+| Teléfono | `phone` |
+| Empresa | `partner_name` |
+| Producto _(pre-rellenado con el producto de la ficha)_ | `x_studio_collected_producto` |
+| Cantidad | `x_studio_collected_qty` |
+| Personalización | `x_studio_collected_personalizacion` |
+| Mensaje | `description` |
+| _(fijo)_ | `x_studio_origen_form` = "Producto" |
+
+**Diferenciadores respecto a /contactanos**:
+- Incluyen campos de cantidad, producto y personalización (mapean a los campos custom)
+- El producto viene pre-rellenado con el nombre del producto de la ficha cuando el cliente abre el formulario desde una ficha
+- `x_studio_origen_form` toma valores distintos para identificar la fuente exacta
+
+**Corrección aplicada**: el typo `"Si"` (sin tilde) en el dropdown web de personalización fue corregido a `"Sí"` para coincidir con el valor del campo `x_studio_collected_personalizacion` en Odoo. Sin esta corrección, el valor no se mapeaba.
+
+---
+
 ### 4. Automation Rule: notificación de nuevo lead web
 
 **Nombre**: "Notificar nuevo lead de formulario web"
@@ -89,6 +135,8 @@ Cinco campos creados vía Studio, disponibles en el formulario de lead. Ver `spe
 | Destinatario | `info@mozaprintmx.com` |
 
 El filtro limita la regla a leads de formularios web — no dispara para leads creados manualmente en Odoo.
+
+**Plantilla actualizada (2026-06-03)**: la plantilla de notificación ahora incluye los campos `x_studio_collected_qty` (Cantidad), `x_studio_collected_producto` (Producto) y `x_studio_collected_personalizacion` (Personalización), además del nombre, teléfono, correo y origen. Esto aplica a los tres formularios (/contactanos, /shop, ficha de producto) porque todos comparten la misma regla de notificación.
 
 **Nota técnica sobre variables en plantillas**: las variables dinámicas (`nombre del cliente`, `teléfono`, etc.) deben insertarse usando el comando `/campo` dentro del editor de plantillas de Odoo. **No** escribir `{{ object.campo }}` a mano — se guarda como texto literal y no se sustituye al enviar.
 
@@ -123,13 +171,6 @@ Las Automation Rules no tienen costo adicional en el plan Custom de Odoo Online.
 
 ## Pendientes
 
-### Reconectar formularios /shop y ficha de producto
-Los formularios del catálogo (tienda y ficha de producto) tienen campos adicionales que /contactanos no tiene: cantidad, producto específico, tipo de personalización. El mapeo es más complejo y requiere pruebas adicionales.
-
-**Antes de reconectar**:
-1. Corregir el typo en el dropdown de personalización web: el texto actual dice `"Si"` (sin tilde) pero el campo `x_studio_collected_personalizacion` en Odoo tiene el valor `"Sí"`. Si no coinciden exactamente, el valor puede no mapearse. Corregir en el formulario web.
-2. Definir `x_studio_origen_form` para cada formulario: `"Tienda"` para /shop, `"Producto"` para fichas.
-
 ### Definir cómo llenar x_studio_origen_url
 El campo existe en Odoo pero la lógica de captura está pendiente. Opciones a evaluar:
 - Variable nativa de Odoo en el formulario web (si existe)
@@ -137,6 +178,20 @@ El campo existe en Odoo pero la lógica de captura está pendiente. Opciones a e
 - Parámetro UTM en la URL
 
 **Consideración**: el sitio usa Cloudflare como proxy/CDN. Verificar que el cache de Cloudflare no interfiera con la captura de URLs dinámicas.
+
+### Alertas de leads estancados
+Hay leads en el CRM de hasta 42 días sin movimiento. Pendiente configurar una Automation Rule que:
+- Dispare cuando un lead lleva X días sin actividad (sin notas, sin cambio de etapa)
+- Notifique al vendedor asignado (o a `info@`) con el nombre y datos del lead
+- Criterio sugerido: alerta a los 7, 14 y 30 días sin movimiento
+
+**Por definir**: umbral exacto de días y acción (solo notificar, o marcar perdido automáticamente después de cierto tiempo).
+
+### Limpieza del pipeline actual
+El CRM tiene leads acumulados de semanas anteriores sin clasificar. Antes de activar alertas automáticas, conviene hacer una pasada manual para:
+- Revisar leads viejos y marcar los que ya se perdieron
+- Convertir a Oportunidad los que sí avanzan
+- Establecer una línea base limpia
 
 ### Asignación automática a Sales Team
 Pendiente configurar reglas de asignación de leads al equipo de ventas correcto según origen o criterios del negocio.
@@ -146,12 +201,21 @@ Pendiente configurar reglas de asignación de leads al equipo de ventas correcto
 ## Flujo completo de un lead (actual)
 
 ```
-1. Cliente llena /contactanos
-2. Odoo crea crm.lead con todos los campos mapeados
-   └── x_studio_origen_form = "Contactanos"
-   └── AI Lead Score calculado automáticamente
+1. Cliente llena formulario web (cualquiera de los tres):
+   ├── /contactanos → x_studio_origen_form = "Contactanos"
+   ├── /shop (tienda) → x_studio_origen_form = "Tienda"
+   └── Ficha de producto → x_studio_origen_form = "Producto"
+
+2. Odoo crea crm.lead con todos los campos mapeados:
+   ├── Datos de contacto: nombre, teléfono, correo, empresa
+   ├── Datos del pedido: qty, producto, personalización (si aplica)
+   ├── Origen: x_studio_origen_form según punto de entrada
+   └── AI Lead Score calculado automáticamente al crear
+
 3. Automation Rule detecta x_studio_origen_form establecido
 4. Cola de correo procesa (≤1h) → notificación a info@mozaprintmx.com
+   └── Incluye: nombre, teléfono, correo, producto, cantidad, personalización, origen
+
 5. Vendedor revisa el lead en CRM
    ├── Si califica → Convertir a Oportunidad → crear/vincular Contacto → pipeline
    └── Si no califica → Marcar Perdido con razón
