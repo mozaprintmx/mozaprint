@@ -81,12 +81,16 @@
 - [ ] Implementar tools 1-6 en n8n (sin agente activo aún)
 - [ ] Test individual de cada tool
 - [ ] Enviar plantillas Meta a aprobación
+- [ ] Crear campo `x_studio_no_agente` en res.partner (Studio) y marcar contactos a excluir (empleados, números internos)
+- [ ] Verificar que todos los proveedores activos estén en Odoo con número de WhatsApp en campo teléfono/móvil (requerido para el filtro de exclusión)
 
 ### FASE 6: Bridge custom Odoo↔AI↔WA (V1)
 **Estado**: 🔴 No iniciada (semana 12-13)
 **Bloquea hasta**: Fase 5 completa + plantillas Meta aprobadas
 **Tareas**:
 - [ ] Implementar workflow ai-agent-respond en n8n
+- [ ] Implementar pre-flight filter en n8n: excluir proveedores (`supplier_rank > 0`), contactos con `x_studio_no_agente = True` y números internos — antes de llamar al agente (ver `specs/ai-agent-spec.md`)
+- [ ] Implementar auto-identificación de contacto desde WA `profile.name` al recibir primer mensaje: find-or-create en Odoo antes de llamar a Claude (ver `specs/ai-agent-spec.md`)
 - [ ] Implementar tools 7-12 en n8n
 - [ ] Crear modelo x_approval_request en Odoo
 - [ ] Implementar Server Action ai_handle_whatsapp_message

@@ -240,6 +240,26 @@ x_ai_turn_count:
   string: "Turnos del AI en esta conversación"
 ```
 
+### res.partner (extendido)
+
+> **IMPORTANTE — prefijo x_studio_**: Al igual que en `crm.lead`, los campos creados en `res.partner` vía Studio en Odoo Online tendrán el prefijo `x_studio_`. El campo aquí planificado como `x_no_agente` tendrá nombre técnico real `x_studio_no_agente`.
+
+#### ○ Planificados (pendiente crear en Odoo · Fase 4)
+
+```yaml
+x_studio_no_agente:
+  type: boolean
+  string: "No atender con agente IA"
+  default: False
+  help: "True para excluir este contacto del agente Moza. Aplica a proveedores, empleados, números internos y cualquier contacto que no deba recibir respuesta automática de WhatsApp."
+  # Usada por n8n en el pre-flight check antes de cada mensaje entrante.
+  # Los proveedores con supplier_rank > 0 ya quedan excluidos por lógica en n8n
+  # sin necesidad de marcar este campo; x_studio_no_agente es para exclusiones
+  # adicionales que no se detectan por supplier_rank.
+```
+
+---
+
 ### sale.order (extendido)
 
 ```yaml

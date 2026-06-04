@@ -223,8 +223,44 @@ Pendiente configurar reglas de asignación de leads al equipo de ventas correcto
 
 ---
 
+## Hallazgos del pipeline (se resuelven en Fase 4-6)
+
+Estos dos problemas se identificaron durante la limpieza manual del pipeline de leads. No tienen solución completa en Fase 1; se resuelven cuando se conecta WhatsApp Cloud API + n8n.
+
+---
+
+### Hallazgo 1 — Identificación de contactos de WhatsApp
+
+**Problema actual**: la mayoría de leads entran por WhatsApp. Sin conexión WhatsApp-Odoo, los clientes se ven solo por número en la WA Business App si no están guardados manualmente en el celular. Al crear el lead en Odoo solo queda el número, sin nombre, dificultando la limpieza del pipeline.
+
+**Por qué no se resuelve hoy**: la agenda de la WA Business App no tiene API de escritura. Herramientas de terceros que prometen sincronizar nombres hacia la app violan términos de Meta (riesgo de ban del número) — descartadas.
+
+**Solución en Fase 4-6**: la Cloud API con Coexistence entrega `profile.name` (el nombre que el cliente puso en su propio WhatsApp) en cada mensaje entrante. n8n lo usará para auto-crear o actualizar el contacto en Odoo antes de llamar al agente. Odoo se convierte en la fuente de verdad de contactos.
+
+**Mitigación temporal (hasta Fase 4)**:
+- Al registrar manualmente un lead de WhatsApp, poner SIEMPRE el número en el campo teléfono (formato +52 10 dígitos) para poder buscar por número en Odoo
+- Mantener la práctica de guardar contactos en el celular con formato consistente (Nombre Apellido - Empresa) al cotizar
+
+---
+
+### Hallazgo 2 — Exclusión de proveedores del agente
+
+**Problema actual**: el negocio contacta proveedores por WhatsApp para comprar mercancía. El agente Moza no debe responder a esos números (sería confuso y potencialmente problemático). Hoy se identifican con etiquetas en la WA Business App, pero esas etiquetas son locales del celular y no se exponen vía Cloud API.
+
+**Solución en Fase 4-6**: pre-flight filter en n8n. Antes de que el agente responda cualquier mensaje, n8n verifica que el remitente no sea proveedor (`supplier_rank > 0` en Odoo), no esté marcado con `x_studio_no_agente = True`, ni sea un número interno. Si está excluido: conversación en modo manual, sin respuesta del agente, sin lead de venta en CRM.
+
+**Preparación del terreno (se puede hacer antes de Fase 4)**:
+- Asegurar que los proveedores activos estén registrados en Odoo (Compras → Contactos) con su número de WhatsApp en el campo teléfono o móvil
+- Sin ese número en Odoo, el match por número no funcionará y el agente podría responder a un proveedor
+
+Ver especificación completa del filtro en `specs/ai-agent-spec.md` → sección "Pipeline de mensajes entrantes".
+
+---
+
 ## Referencias
 
 - Campos custom detalle: `specs/data-model.md` → sección crm.lead
 - Registro de campos en Studio: `odoo-extensions/studio-fields.yaml`
 - Nota sobre prefijo x_studio_: `CLAUDE.md` y `odoo-extensions/studio-fields.yaml`
+- Filtro de exclusión y auto-identificación: `specs/ai-agent-spec.md` → "Pipeline de mensajes entrantes"
+- Campo x_studio_no_agente en res.partner: `specs/data-model.md` → sección res.partner

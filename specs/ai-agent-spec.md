@@ -218,6 +218,8 @@ Escala. El cierre es del humano.
 
 **Descripción**: Busca contacto en Odoo por teléfono/email. Crea si no existe.
 
+> **Nota Fase 4-6**: la auto-identificación del contacto al recibir el primer mensaje la ejecuta **n8n directamente** (antes de llamar a Claude), usando el número y el `profile.name` del payload de Cloud API. Este tool lo usa Claude durante la conversación cuando el cliente da datos adicionales (nombre formal, empresa, email).
+
 ```json
 {
   "name": "find_or_create_partner",
@@ -422,6 +424,48 @@ Escala. El cierre es del humano.
   }
 }
 ```
+
+## Pipeline de mensajes entrantes (requerimientos Fase 4-6)
+
+Antes de que el agente responda cualquier mensaje de WhatsApp, n8n ejecuta
+dos pasos obligatorios en este orden:
+
+### Pre-flight: filtro de exclusión
+
+n8n verifica que el remitente **no** sea ninguno de los siguientes:
+
+1. **Proveedor**: `supplier_rank > 0` en `res.partner` de Odoo (match por número normalizado a E.164)
+2. **Marcado para excluir**: `x_studio_no_agente = True` en `res.partner` (empleados, números internos, contactos especiales que no deben recibir respuesta automática)
+3. **Número interno**: lista fija en n8n con los números propios del negocio
+
+Si el número está excluido:
+- La conversación queda en `x_ai_mode = manual` (el agente no responde)
+- El mensaje es visible para atención humana desde la app/desktop de WhatsApp
+- **No** se crea lead de venta en el CRM
+- Se registra en `x_ai_interaction_log` con `action_taken = no_action` y razón de exclusión
+
+**Caso especial — número es cliente y proveedor a la vez**: si `supplier_rank > 0` pero el contacto tiene `sale.order` en estado `sale` o `done` en los últimos 6 meses, se trata como cliente. La prioridad exacta se define en la implementación; documentar en el workflow cuando se resuelva.
+
+### Auto-identificación de contacto
+
+Al recibir cualquier mensaje, n8n extrae del payload de Cloud API:
+- `from`: número del remitente (E.164)
+- `contacts[0].profile.name`: nombre de perfil de WhatsApp del cliente
+
+Con esos datos, **antes de llamar a Claude**, n8n ejecuta find-or-create en Odoo:
+
+1. Busca `res.partner` por `phone` (match exacto en formato E.164)
+2. Si no existe → crea contacto con `name = profile.name`, `phone = número`, `x_studio_no_agente = False`
+3. Si existe y el nombre actual es el número o está vacío → actualiza `name = profile.name`
+4. Si existe y ya tiene nombre formal → **no sobrescribir** (el vendedor pudo haberlo corregido)
+
+Odoo queda como **fuente de verdad de contactos**. La agenda del celular deja de ser necesaria para identificar clientes.
+
+**Limitación conocida**: `profile.name` puede ser informal, apodo, o vacío. Sigue siendo muy superior a solo el número, y es completamente automático. El vendedor puede corregir el nombre en Odoo en cualquier momento sin afectar el flujo.
+
+El agente enriquece el contacto a lo largo de la conversación (nombre formal, empresa, email) usando el tool `find_or_create_partner` cuando el cliente los proporciona.
+
+---
 
 ## Políticas de escalamiento
 

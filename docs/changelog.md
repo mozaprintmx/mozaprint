@@ -4,6 +4,37 @@
 
 ---
 
+## 2026-06-03 · docs · patch (v3)
+
+**Tipo**: `docs`
+**Descripción**: Documentados dos hallazgos técnicos surgidos en la limpieza del pipeline (Fase 1), que condicionan el diseño del agente WhatsApp (Fase 4-6).
+
+### Hallazgo 1 — Identificación de contactos de WhatsApp
+
+**Problema**: sin conexión WhatsApp-Odoo, los clientes se ven solo por número en la WA Business App si no están guardados manualmente. Guardar contactos es manual y tedioso; al pasar al CRM solo queda un número sin nombre.
+
+**Limitación técnica confirmada**: la agenda de la WA Business App no tiene API para escritura automática. Herramientas de terceros que prometen esto violan términos de Meta (riesgo de ban del número) — descartadas.
+
+**Solución planeada (Fase 4-6)**: la Cloud API con Coexistence entrega `profile.name` en cada mensaje entrante. n8n lo usará para auto-crear o actualizar el contacto en Odoo (find-or-create) antes de llamar al agente. Odoo pasa a ser la fuente de verdad de contactos.
+
+**Mitigación temporal**: poner siempre el número en el campo teléfono al registrar leads manuales de WhatsApp; mantener práctica de guardar contactos en celular con formato consistente.
+
+### Hallazgo 2 — Exclusión de proveedores del agente
+
+**Problema**: el negocio contacta proveedores por WhatsApp para comprar. El agente Moza no debe responder a esos números. Las etiquetas de la WA Business App son locales del celular y no se exponen vía Cloud API.
+
+**Solución planeada (Fase 4-6)**: pre-flight filter en n8n antes de cada respuesta del agente. Verifica que el remitente no sea: (1) proveedor (`supplier_rank > 0` en res.partner), (2) marcado con `x_studio_no_agente = True`, (3) número interno. Si excluido: conversación en modo manual, sin respuesta del agente, sin lead de venta en CRM.
+
+**Preparación del terreno (hacer antes de Fase 4)**: registrar proveedores activos en Odoo con número de WhatsApp en campo teléfono/móvil.
+
+**Cambios en documentación**:
+- `specs/ai-agent-spec.md`: nueva sección `## Pipeline de mensajes entrantes` con pre-flight filter y auto-identificación de contacto; nota al tool `find_or_create_partner` (#5)
+- `specs/data-model.md`: nueva sección `res.partner (extendido)` con campo `x_studio_no_agente` (booleano, status: planned, Fase 4)
+- `docs/roadmap.md`: tareas de preparación en Fase 5; tareas de implementación en Fase 6
+- `docs/fase1-captura-leads.md`: nueva sección con ambos hallazgos y mitigaciones temporales
+
+---
+
 ## 2026-06-03 · odoo · minor (v2)
 
 **Tipo**: `odoo`
