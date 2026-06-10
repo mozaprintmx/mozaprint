@@ -1,138 +1,105 @@
 # CLAUDE.md — Proyecto Mozaprint
 
-> Contexto persistente para Claude Code. Este archivo se carga automáticamente en cada sesión. Mantener corto y accionable.
+> Contexto persistente para Claude Code. Se carga al inicio de cada sesión y
+> consume tokens en toda la sesión. Mantener < 200 líneas y accionable.
+> El detalle vive en `docs/` y `specs/`; aquí solo lo que debe estar presente
+> SIEMPRE. Las convenciones por tipo de archivo viven en `.claude/rules/`.
 
-## Quién eres en este proyecto
+## Quién eres
 
-Eres un asistente de desarrollo trabajando junto a un ingeniero en computación que es operador único del proyecto Mozaprint MX (artículos promocionales personalizados).
+Asistente de desarrollo junto a **Juan Carlos Asomoza** (ingeniero en
+computación, operador único) en **Mozaprint MX** — artículos promocionales
+personalizados B2B, CDMX, con gestión integral (diseño → personalización →
+asesoría → entrega). Tú escribes el código; el operador lo revisa y despliega.
+Karina Asomoza (Marketing) será dueña del knowledge base del agente "Moza".
 
-El stack es **Odoo Online 19.0 Custom + n8n self-hosted + Claude/OpenAI API** (provider definitivo se evalúa en piloto). Toda la lógica de negocio vive en Odoo. La orquestación entre sistemas vive en n8n. Tú escribes el código que el operador despliega en ambos.
+## Stack (resumen — detalle en `docs/architecture.md`)
 
-## Decisiones del equipo (v1 · 2026-05-24)
-
-Las decisiones operativas ya están tomadas. Ver detalle completo en 
-`docs/decisiones-equipo-v1.md` y `decisions/004-decisiones-equipo-v1.md`.
-
-Resumen ejecutivo:
-- WhatsApp: **Coexistence Mode** (app móvil + Cloud API mismo número)
-- LLM: **Pendiente piloto** (Claude vs OpenAI, evaluación A/B en sprint 5-6)
-- DNS: **Cloudflare** authoritative, Hostinger solo registrar
-- Orquestador: **n8n self-hosted** en VPS Hetzner CX22 (~€5/mes)
-- Repo: **GitHub público**
-- Tono del agente: **Tutea por default**, español MX
-- Comandos: **en español** (`/tomar`, `/reactivar`, `/pausar`)
-- Modo toma vendedor: **híbrido** (auto al primer mensaje + override manual)
-- Horario humano: L-V 9-18, Sáb 10-13, Dom cerrado
-- Anticipo: 50% estándar / valoración en órdenes >$100k MXN
-- Pago: Transferencia (principal) + Mercado Pago
-- Técnicas prioritarias: Serigrafía, Tampografía, Bordado, DTF Textil, DTF UV
+- **Odoo Online 19.0 Custom** (`mozaprint.odoo.com`): datos, CRM, ventas,
+  catálogo, inventario, sitio web. Toda la lógica de negocio vive aquí.
+- **n8n self-hosted** (VPS Hetzner): orquestador y **router único** del webhook
+  de WhatsApp (Cloud API permite 1 webhook por número).
+- **LLM** (Claude vs OpenAI — se decide en piloto, Fase 7): agente "Moza".
+- **GitHub público** + Claude Code. Secretos en **Bitwarden**, NUNCA en el repo.
 
 ## Lo que NO debes asumir
 
-- **No tenemos acceso a `addons/` de Odoo**: es Online, no se instalan módulos custom propios. Toda extensión se hace vía Studio (campos custom prefijo `x_`), Automation Rules, Server Actions (Python sandbox limitado), y AI Fields.
-- **El sandbox Python de Odoo Online no permite imports arbitrarios**: sólo módulos whitelist (`datetime`, `json`, `re`, `math`, `time`, `dateutil`, etc.). Si una lógica requiere librerías externas, va a n8n, no a Server Action.
-- **No despliegues directos a producción**: todo cambio se valida primero en staging o en un entorno duplicado.
+- **No hay acceso a `addons/`**: es Odoo Online, no se instalan módulos custom.
+  Extensión SOLO vía Studio (campos `x_studio_`), Automation Rules, Server
+  Actions (sandbox Python limitado) y AI Fields.
+- **El sandbox Python de Odoo Online no permite imports arbitrarios**: solo
+  whitelist (`datetime`, `json`, `re`, `math`, `time`, `dateutil`, etc.). Si la
+  lógica requiere librerías externas o HTTP saliente → va a **n8n**, no a Server
+  Action.
+- **No despliegues directos a producción**: validar primero en staging o en un
+  entorno duplicado.
 
-## Stack y dónde vive cada cosa
+## Modelo de datos (detalle en `specs/data-model.md` — léelo antes de crear campos)
 
-```
-Odoo Online 19.0 Custom (mozaprint.odoo.com)
-├── Datos: products, partners, leads, sale orders, inventory
-├── UI: website /shop, CRM, Sales, Inventory, Knowledge (para KB de Moza)
-├── Extensiones permitidas: Studio fields, Automation Rules, Server Actions
-└── AI Agent nativo: livechat web + tools internos
-
-n8n self-hosted en VPS Hetzner (n8n.mozaprintmx.com)
-├── Orquestación entre Odoo, Meta WhatsApp, LLM provider
-├── Workflows de captura, sync de proveedores, follow-ups
-├── Webhooks receiver de Odoo y de Meta
-└── Punto único de logging y observabilidad
-
-LLM Provider (Claude o OpenAI, a definir)
-├── Modelo conversacional del agente WhatsApp "Moza"
-├── Haiku 4.5 / GPT-4o-mini para FAQ
-├── Sonnet 4.6 / GPT-4o para cotizaciones complejas
-└── Llamado desde n8n vía HTTP node (provider-agnostic)
-```
-
-## Modelo de datos clave
-
-**Técnicas de personalización**: viven en modelo `x_tecnica_personalizacion` 
-(NO selection). Productos las referencian por many2one (`x_tecnica_default_id`) 
-y many2many (`x_tecnicas_compatibles_ids`). Costos por proveedor/qty viven en 
-`x_costo_personalizacion` con many2one a la técnica.
-
-Ver `specs/data-model.md` para detalle completo.
+- Técnicas de personalización: modelo propio `x_tecnica_personalizacion`
+  (NO selection). Producto → técnica por `x_tecnica_default_id` (m2o) y
+  `x_tecnicas_compatibles_ids` (m2m). Costos en `x_costo_personalizacion`
+  (m2o a la técnica).
+- **Cuidado con el prefijo**: la instancia FUERZA `x_studio_` en CAMPOS custom
+  (ej. `x_studio_collected_qty`). Los MODELOS custom salen como `x_<nombre>`.
+  NO asumas nombres desde las specs — verifica el nombre real en Odoo antes de
+  integrar (hay deuda histórica donde specs y realidad divergen).
 
 ## Convenciones de código
 
-### Python (Odoo Server Actions)
-- Type hints obligatorios donde el sandbox lo permita
-- Docstrings con ejemplos de uso
-- Manejo de errores explícito; nunca silenciar excepciones
-- Logging con `_logger.info()` para todo cambio de estado
-- Idempotencia siempre que sea posible (revisar antes de crear)
+Las convenciones por tipo de archivo viven en `.claude/rules/` y se cargan solo
+al trabajar con archivos que coinciden con su `paths`:
 
-### JavaScript (n8n Function nodes)
-- Usar arrow functions
-- Validar inputs al inicio del nodo
-- Output siempre array de items con la forma estándar de n8n: `[{ json: {...} }]`
-- Comentarios explicando el "por qué", no el "qué"
+- `odoo-server-actions.md` → Python de Server Actions (sandbox)
+- `n8n-workflows.md` → JavaScript de Function nodes
+- `data-model.md` → naming de modelos y campos custom
+- `scripts.md` → scripts Python ejecutables (fuera del sandbox)
 
-### JSON / API payloads
-- Snake_case en payloads de Odoo (sigue la convención del modelo)
-- camelCase en payloads de Meta WhatsApp (sigue la convención de Meta)
-- Documentar cada campo nuevo en `specs/api-shapes.md`
+Transversal: snake_case en payloads de Odoo, camelCase en payloads de Meta.
+Documentar cada campo nuevo de API en `specs/api-shapes.md`.
+
+## Reglas de seguridad (siempre)
+
+- **Precios SIEMPRE de Odoo**: el AI nunca calcula montos. Consulta
+  `sale.order` o `product.pricelist` vía tool.
+- **Datos sensibles NUNCA en logs**: nombres, teléfonos, emails ofuscados.
+  SKU y montos OK.
+- **API keys en variables de entorno / Bitwarden**: nunca hardcodeadas, nunca
+  en commits.
+- **Human-in-the-loop obligatorio** para: cotizaciones con costos no
+  parametrizados, mensajes salientes a clientes nuevos, cambios masivos de
+  catálogo (> 10 productos).
+- **JSON-2 API, no XML-RPC** para integraciones nuevas (XML-RPC se deprecia
+  2027 en Online).
 
 ## Cómo trabajamos
 
-### Antes de preguntar
-Antes de hacerme una pregunta sobre el proyecto, verifica si la respuesta ya está en el repo:
-1. Busca en `docs/` (arquitectura, decisiones del equipo, glosario, roadmap)
-2. Revisa `decisions/` para ver si ya hay un ADR que lo cubre
-3. Lee `specs/` si la duda es sobre modelos de datos o contratos de API
-4. Explora el código en `scripts/`, `n8n-workflows/`, `odoo-extensions/` si la duda es sobre implementación existente
+- **Antes de preguntar**: revisa si la respuesta ya está en el repo (`docs/`,
+  `decisions/`, `specs/`, y código en `scripts/`, `n8n-workflows/`,
+  `odoo-extensions/`). Solo pregunta lo que no se resuelve leyendo. Si hay
+  contradicción, señálala en vez de preguntar desde cero.
+- **Antes de implementar**: lee la spec relevante; si toca un modelo custom,
+  `specs/data-model.md`; si toca una API externa, `specs/integrations.md`.
+- **Al implementar**: una tarea a la vez; tests primero cuando haya lógica de
+  negocio; documenta side effects en el commit; no inventes nombres de campos.
+- **Estilo de colaboración**: pasos uno a uno con pausas de validación, no
+  avanzar de golpe. No asumir herramientas/versiones (preguntar o dar opciones).
+  Honestidad sobre trade-offs y el "por qué". Español de México.
+- **Cuando termines**: actualiza `docs/changelog.md`; si hay modelo/campo nuevo
+  → `specs/data-model.md` + `odoo-extensions/studio-fields.yaml`; si hay
+  workflow n8n nuevo → exporta el JSON a `n8n-workflows/`.
 
-**Solo pregúntame lo que realmente no puede resolverse leyendo el repo.** Si la información existe pero está incompleta o contradictoria, señala la contradicción en lugar de preguntar desde cero.
+## Proactivo
 
-### Antes de implementar
-1. Leer `docs/architecture.md` para entender el sistema completo
-2. Revisar `decisions/` para decisiones tomadas previamente
-3. Si el feature toca un modelo custom, leer `specs/data-model.md`
-4. Si el feature toca una API externa, revisar `specs/integrations.md`
+Sugiere refactors ante duplicación; propón tests donde falten; marca pendientes
+con `# TODO(mozaprint):`; cuestiona requerimientos ambiguos antes de implementar.
 
-### Al implementar
-1. **Una tarea a la vez**: no metas múltiples cambios en un mismo PR/commit
-2. **Tests primero cuando sea posible**: especialmente para Server Actions con lógica de negocio
-3. **Documenta side effects**: si tu cambio afecta otros modelos, hazlo explícito en el commit
-4. **No inventes nombres de campos**: revisa `specs/data-model.md` antes de crear `x_` nuevos
+## No hagas
 
-### Cuando termines
-1. Actualiza `docs/changelog.md` con qué cambió y por qué
-2. Si introduces un nuevo modelo/campo custom, agrégalo a `specs/data-model.md` y `odoo-extensions/studio-fields.yaml`
-3. Si introduces un nuevo workflow en n8n, exporta el JSON y guárdalo en `n8n-workflows/`
-
-## Reglas de seguridad
-
-- **Precios SIEMPRE vienen de Odoo**: el AI nunca calcula montos. Si necesitas un precio, consulta `sale.order` o `product.pricelist` vía tool.
-- **Datos sensibles NUNCA en logs**: nombres, teléfonos, emails completos quedan ofuscados. SKU y montos OK.
-- **API keys SIEMPRE en variables de entorno**: nunca hardcodeadas, nunca en commits.
-- **Human-in-the-loop obligatorio** para: cotizaciones con costos no parametrizados, mensajes salientes a clientes nuevos, cambios masivos de catálogo (>10 productos).
-
-## Lo que SÍ debes hacer proactivamente
-
-- Sugerir refactors cuando veas duplicación
-- Proponer tests cuando veas funciones sin cobertura
-- Marcar TODOs claros con `# TODO(mozaprint):` cuando dejes algo pendiente
-- Cuestionar requerimientos ambiguos antes de implementar
-
-## Lo que NO debes hacer
-
-- No instalar librerías sin documentar por qué en el commit
-- No hacer migraciones de datos sin script de rollback
-- No cambiar nombres de campos custom existentes (rompe integraciones)
-- No subir credenciales ni datos de clientes a ningún repo
-- No usar XML-RPC para integraciones nuevas (deprecación 2027 en Online); usar JSON-2 API
+- No instalar librerías sin documentar por qué en el commit.
+- No migrar datos sin script de rollback.
+- No cambiar nombres de campos custom existentes (rompe integraciones).
+- No subir credenciales ni datos de clientes al repo.
 
 ## Comandos comunes
 
@@ -144,21 +111,23 @@ python3 scripts/dns_audit.py --output reports/dns_$(date +%Y%m%d).json
 python3 scripts/backup_catalog.py --output backups/$(date +%Y%m%d).json
 
 # Test Server Action localmente
-python3 scripts/test_server_action.py --action ai_handle_whatsapp_message --input test/messages/sample_new_customer.json
+python3 scripts/test_server_action.py --action ai_handle_whatsapp_message \
+  --input test/messages/sample_new_customer.json
 
 # Anonimizar conversaciones WhatsApp para análisis
 python3 scripts/anonymize_whatsapp.py "exports/*.txt" --output-dir anonymized/
 ```
 
-## Lectura recomendada antes de empezar
+## Dónde está el resto del contexto
 
-1. `docs/architecture.md` — Diagrama y responsabilidades de cada componente
-2. `docs/decisiones-equipo-v1.md` — Decisiones tomadas, contexto operativo
-3. `docs/glossary.md` — Términos del negocio
-4. `specs/data-model.md` — Modelos custom, campos, relaciones
-5. `decisions/` — Decisiones técnicas previas (cada decisión es un .md)
+- Decisiones del equipo (horarios, anticipo, pago, técnicas prioritarias):
+  `docs/decisiones-equipo-v1.md`
+- Términos del negocio: `docs/glossary.md`
+- Estado por fases: `docs/roadmap.md` y `docs/punto-de-control.md`
+- APIs externas y proveedores: `specs/integrations.md`
+- Agente "Moza" (identidad, prompts, tools): `specs/ai-agent-spec.md`
 
-@docs/architecture.md
-@docs/decisiones-equipo-v1.md
+<!-- Único import always-on. glossary.md ayuda a la adherencia de terminología
+     en toda sesión. Si crece mucho (>~150 líneas), conviértelo también en
+     referencia por ruta y elimina este import. -->
 @docs/glossary.md
-@specs/data-model.md

@@ -99,7 +99,10 @@ logs/
 # =============================================================================
 
 # Memoria local de Claude Code (proyecto-específica)
-.claude/
+.claude/*                    # (1) esencial: ignora el contenido directo
+!.claude/rules/              # (2) esencial: rescata la carpeta de reglas
+!.claude/rules/**            # (3) redundante con (2), pero documenta intención
+.claude/settings.local.json  # (4) redundante con (1), pero deja claro qué NO subir
 .claude-memory/
 
 # CLAUDE.local.md es para preferencias personales del operador,
