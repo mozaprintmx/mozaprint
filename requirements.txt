@@ -3,3 +3,9 @@
 
 # Auditoría DNS (scripts/dns_audit.py)
 dnspython>=2.6
+
+# Cliente HTTP (scripts/backup_catalog.py, scripts/audit_catalog.py, scripts/odoo_client.py)
+requests>=2.31
+
+# Carga de variables de entorno desde .env (scripts/audit_catalog.py)
+python-dotenv>=1.0

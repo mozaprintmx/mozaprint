@@ -30,64 +30,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import requests
-
-
-class OdooClient:
-    """Cliente mínimo para JSON-2 API de Odoo."""
-
-    def __init__(self, url: str, api_key: str, database: str | None = None):
-        self.url = url.rstrip('/')
-        self.headers = {
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json',
-        }
-        if database:
-            self.headers['DATABASE'] = database
-
-    def search_read(
-        self,
-        model: str,
-        domain: list | None = None,
-        fields: list | None = None,
-        limit: int | None = None,
-        offset: int = 0,
-    ) -> list[dict[str, Any]]:
-        """Llama a search_read y devuelve la lista de resultados."""
-        payload = {
-            'domain': domain or [],
-            'fields': fields or [],
-            'offset': offset,
-        }
-        if limit:
-            payload['limit'] = limit
-
-        response = requests.post(
-            f'{self.url}/json2/{model}/search_read',
-            headers=self.headers,
-            json=payload,
-            timeout=60,
-        )
-        response.raise_for_status()
-        return response.json().get('result', [])
-
-    def search_read_all(
-        self,
-        model: str,
-        domain: list | None = None,
-        fields: list | None = None,
-        batch_size: int = 500,
-    ) -> list[dict[str, Any]]:
-        """Paginación automática hasta traer todo."""
-        results = []
-        offset = 0
-        while True:
-            batch = self.search_read(model, domain, fields, batch_size, offset)
-            results.extend(batch)
-            if len(batch) < batch_size:
-                break
-            offset += batch_size
-        return results
+from odoo_client import OdooClient
 
 
 def backup_catalog(
