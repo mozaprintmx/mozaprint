@@ -37,6 +37,9 @@ test/private/
 # nombres de pricelist tipo cliente y métricas de negocio. NO se commitean.
 reports/catalog_audit_*
 
+# Dump de valores de técnica (CSV): dato de negocio, no va al repo público.
+reports/tecnica_values_*.csv
+
 # =============================================================================
 # Python
 # =============================================================================
