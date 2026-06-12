@@ -4,6 +4,41 @@
 
 ---
 
+## 2026-06-12 · data · minor (v7) — Seed canónico de técnicas de personalización
+
+**Tipo**: `data`
+**Descripción**: Se versiona el catálogo canónico de técnicas de personalización (`data/tecnicas_seed.csv`) y su documento de procedencia/limpieza (`data/tecnicas_seed.md`). Es el insumo para crear y poblar el modelo `x_tecnica_personalizacion` en Fase 2. Apto para repo público (sin datos sensibles).
+
+### Origen
+
+Derivado de los **159 valores crudos** del campo legacy `x_tecnica_impresion` (char, texto libre, **alimentado por el API de cada proveedor**) sobre ~5227 productos, detectados en el audit del 2026-06-11.
+
+### Decisiones de taxonomía (D7)
+
+- **Lista plana de 20 técnicas**, sin familias (el precio varía por técnica, no por familia).
+- **DTF genérico** (los proveedores no distinguen DTF Textil vs UV de forma consistente); se conserva además `DTF UV` aparte.
+- **Nombres dobles conservados**: Doming (Gota de Resina), Sand Blast (Grabado en Arena), Láser (Grabado Láser), Transfer (Termocalca), Bajo Relieve (Embozado).
+- **4 técnicas raras de 1 producto** (`vinyl`, `dtf_uv`, `offset`, `transfer`) marcadas para confirmar con producción.
+
+### Limpieza de aliases
+
+- **Typos conservados a propósito** (`Serigafía`, `Seigrafía`): el proveedor los manda y el sync debe reconocerlos.
+- **Contaminación de componentes removida** ("Serigrafía en Vidrio" → "Serigrafía").
+- **Dedup por forma normalizada** (sin acentos, minúsculas).
+- Detalle completo en `data/tecnicas_seed.md`.
+
+### Pendiente (F5)
+
+- Asignación de los **26 valores multi-componente** (~61 productos, kits).
+- Regla para elegir la técnica default (`x_tecnica_default_id`) en combos.
+
+### Nota técnica
+
+- CSV normalizado a UTF-8 sin BOM (el archivo original traía BOM, que rompía el nombre de la primera columna `code`).
+- ⚠️ Divergencia pendiente de reconciliar: el seed mapea a campos `x_code`/`x_name`/`x_aliases`/`x_orden`/`x_activa`, pero `specs/data-model.md` define el modelo con `code`/`name`/`descripcion`. A resolver al crear el modelo en Fase 2.
+
+---
+
 ## 2026-06-11 · docs · patch (v6) — Reconciliación spec-vs-realidad (catálogo)
 
 **Tipo**: `docs`

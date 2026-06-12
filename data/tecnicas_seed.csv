@@ -1,0 +1,21 @@
+code,nombre,x_aliases,x_orden
+serigrafia,Serigrafía,Serigrafía | Serigafía | Seigrafía | Serigrafía con Tinta Especial | Serigrafía Prensa,10
+tampografia,Tampografía,Tampografía,20
+laser,Láser (Grabado Láser),Grabado Láser | Láser | Láser Termo,30
+bordado,Bordado,Bordado,40
+dtf,DTF,DTF,50
+termograbado,Termograbado,Termograbado,60
+imp_uv,Impresión UV,Impresión UV | Serigrafía con Tinta UV,70
+bajo_relieve,Bajo Relieve (Embozado),Embozado,80
+sublimacion,Sublimación,Sublimación | Sublimado,90
+pantografo,Pantógrafo,Pantógrafo,100
+grab_espejo,Grabado Espejo,Grabado Espejo,110
+doming,Doming (Gota de Resina),Gota de Resina,120
+sandblast,Sand Blast (Grabado en Arena),Grabado Arena | Sand Blast,130
+punta_diamante,Punta Diamante,Punta Diamante,140
+grab_co2,Grabado CO2,Grabado CO2,150
+imp_digital,Impresión Digital,Full Color | Impresión Digital,160
+vinyl,Vinyl,Vinil textil,170
+dtf_uv,DTF UV,DTF UV,180
+offset,Offset,Offset,190
+transfer,Transfer (Termocalca),Termocalca | Heat Transfer,200
