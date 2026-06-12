@@ -91,14 +91,13 @@
       "name": "Pluma metálica MTZ-100",
       "default_code": "MTZ-100",
       "list_price": 25.00,
-      "type": "product",
-      "x_proveedor_id": [100, "Promo Opción"],
-      "x_proveedor_sku": "MTZ-100",
-      "x_tecnica_default": "serigrafia",
-      "x_area_max_cm2": 4.0,
-      "x_area_dimensiones": "2x2 cm",
-      "x_tiempo_produccion_dias": 7,
-      "x_requiere_cotizacion": true,
+      "type": "consu",
+      "seller_ids": [9001],
+      "x_proveedor_carga": "Promo Opción",
+      "x_tecnica_impresion": "Serigrafía",
+      "x_area_impresion": "2x2 cm",
+      "x_material": "Metal",
+      "x_medidas": "14 cm",
       "active": true
     },
     {
@@ -106,15 +105,33 @@
       "name": "AGENDA DIARIA FALUN (DEMO)",
       "default_code": "EX-086",
       "list_price": 154.35,
-      "type": "product",
-      "x_proveedor_id": [101, "Innovation Line"],
-      "x_proveedor_sku": "EX-086",
-      "x_tecnica_default": "serigrafia",
-      "x_area_max_cm2": 100.0,
-      "x_area_dimensiones": "10x10 cm",
-      "x_tiempo_produccion_dias": 10,
-      "x_requiere_cotizacion": true,
+      "type": "consu",
+      "seller_ids": [9002],
+      "x_proveedor_carga": "Innovation Line",
+      "x_tecnica_impresion": "Serigrafía-Tampografía",
+      "x_area_impresion": "10x10 cm",
+      "x_material": "Papel",
+      "x_medidas": "21x14 cm",
       "active": true
+    }
+  ],
+
+  "product.supplierinfo": [
+    {
+      "id": 9001,
+      "partner_id": [100, "Promo Opción"],
+      "product_tmpl_id": [567, "Pluma metálica MTZ-100"],
+      "product_code": "MTZ-100",
+      "price": 12.50,
+      "min_qty": 100
+    },
+    {
+      "id": 9002,
+      "partner_id": [101, "Innovation Line"],
+      "product_tmpl_id": [5109, "AGENDA DIARIA FALUN (DEMO)"],
+      "product_code": "EX-086",
+      "price": 95.00,
+      "min_qty": 50
     }
   ],
   

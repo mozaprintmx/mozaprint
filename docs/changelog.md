@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-06-11 · docs · patch (v6) — Reconciliación spec-vs-realidad (catálogo)
+
+**Tipo**: `docs`
+**Descripción**: Tras el audit del catálogo (`scripts/audit_catalog.py`, reporte local `reports/catalog_audit_20260611.md`), se reconcilia la documentación con la realidad descubierta. Decisiones del operador.
+
+### A · Proveedor → `product.supplierinfo` (no campo custom) — `specs/data-model.md`
+
+- **Eliminados** `x_proveedor_id` y `x_proveedor_sku` del modelo de producto: nunca existieron en Odoo; el vínculo producto↔proveedor usa el estándar `product.supplierinfo`.
+- Documentada la fuente de verdad: `product_code` = SKU del proveedor; `price` + `min_qty` = costo base por proveedor.
+- Aclarado que `product.supplierinfo` (costo del producto base) es **distinto y complementario** de `x_costo_personalizacion` (costo de aplicar la técnica, por cantidad).
+- Actualizados diagrama de relaciones, notas de migración y ejemplos de naming.
+- Registrada deuda de datos para Fase 6: ~3356 de 5432 `supplierinfo` apuntan a partners sin `supplier_rank > 0`.
+
+### B · Técnica: campos legacy reales — `specs/data-model.md`
+
+- Documentado que **`x_tecnica_impresion`** (char, texto libre) YA EXISTE con datos (5227 productos, 159 valores sin normalizar) y es la **fuente de migración** hacia el modelo nuevo. Marcado legacy/solo-lectura; **no borrar antes de validar la migración**.
+- Documentado el set completo de campos legacy reales verificados por el audit: `x_tecnica_impresion`, `x_area_impresion`, `x_proveedor_carga`, `x_material`, `x_capacidad`, `x_medidas`, `x_imagen_url_principal` (todos char de texto libre).
+- Marcados explícitamente como ○ "NO existen aún, se crean en Fase 2": `x_tecnica_default_id`, `x_tecnicas_compatibles_ids`, `x_costo_personalizacion`, `x_area_max_cm2`, `x_area_dimensiones`, etc. El diseño objetivo no cambia.
+- **Hallazgo**: existe un campo `x_proveedor_carga` (char) — etiqueta legacy de texto libre del proveedor que cargó el producto. NO es el vínculo estructurado (ese es `product.supplierinfo`); se documenta como tal para evitar confusión.
+
+### C · Descuentos: de-scope — `docs/roadmap.md`
+
+- Eliminada la tarea "Migrar tabla de descuentos a Promotions": los descuentos YA viven en `loyalty.program` (Tipo: Promociones, por compra mínima). No hay migración.
+- Reemplazada por dos notas de backlog: (1) auditar/arreglar los `loyalty.program` existentes con comportamiento extraño; (2) limpiar pricelists de prueba no usadas (conservar solo Default), validando antes que ninguna esté referenciada por partners u órdenes.
+
+### D · Limpieza de referencias residuales (alineación con la realidad)
+
+Archivos que aún referenciaban los campos descartados/inexistentes, corregidos para usar `product.supplierinfo` y los campos legacy reales:
+
+- `odoo-extensions/studio-fields.yaml`: eliminados `x_proveedor_id`/`x_proveedor_sku`; agregados los 7 campos legacy reales (`status: created`); marcados los planificados con `status: planned`; documentado supplierinfo. Versión 0.2.0 → 0.3.0.
+- `odoo-extensions/automation-rules.yaml`: la regla "Producto nuevo de proveedor" ahora filtra por `seller_ids` (supplierinfo estándar) en vez de `x_proveedor_id`.
+- `scripts/backup_catalog.py`: el filtro `--supplier` usa `seller_ids.partner_id`; la lista de campos usa los legacy reales (antes pedía campos inexistentes que romperían la llamada). TODO para capturar el supplierinfo completo.
+- `test/fixtures.json`: las plantillas de producto usan campos reales + `seller_ids`, con fixtures de `product.supplierinfo`; `type` corregido a `consu` (Goods en Odoo 19).
+
+---
+
 ## 2026-06-11 · scripts · patch (v5) — Fixes audit_catalog + corrección de spec JSON-2
 
 **Tipo**: `scripts`

@@ -17,8 +17,8 @@
 # - default: valor por defecto
 # - relation: solo para many2one/many2many/one2many
 
-version: '0.2.0'
-last_updated: 2026-06-02
+version: '0.3.0'
+last_updated: 2026-06-11
 
 # =============================================================================
 # NOTA IMPORTANTE — PREFIJO x_studio_ EN ODOO ONLINE
@@ -46,57 +46,103 @@ last_updated: 2026-06-02
 
 extensions:
   product.template:
-    - field_name: x_proveedor_id
-      field_type: many2one
-      relation: res.partner
-      string: 'Proveedor'
-      help: 'Proveedor del que se compra este producto'
-      domain: [['supplier_rank', '>', 0]]
+    # --- VÍNCULO CON PROVEEDOR ---
+    # NO hay campo custom de proveedor. El vínculo producto↔proveedor usa el
+    # estándar product.supplierinfo (partner_id, product_code=SKU, price=costo
+    # base, min_qty). x_proveedor_id / x_proveedor_sku fueron DESCARTADOS (nunca
+    # existieron en Odoo). Ver specs/data-model.md.
 
-    - field_name: x_proveedor_sku
+    # --- CREADOS (legacy, texto libre, verificados por audit 2026-06-11) ---
+    # Existen en producción con prefijo x_ (no x_studio_). Fecha de creación
+    # desconocida (anteceden a este registro). A deprecar tras migración a Fase 2.
+
+    - field_name: x_tecnica_impresion
       field_type: char
-      string: 'SKU del proveedor'
-      help: 'Código original del producto en el sistema del proveedor'
+      string: 'Tecnica de impresion'
+      status: created
+      help: 'Técnica(s) en texto libre, sin normalizar (5227 productos, 159 valores). FUENTE de migración a x_tecnica_default_id en Fase 2. NO borrar antes de validar.'
+
+    - field_name: x_area_impresion
+      field_type: char
+      string: 'Area de impresion'
+      status: created
+      help: 'Área de impresión en texto libre (ej. "5x5 cm.").'
+
+    - field_name: x_proveedor_carga
+      field_type: char
+      string: 'Proveedor Carga'
+      status: created
+      help: 'Etiqueta de texto libre del proveedor que cargó el producto. NO es el vínculo estructurado (ese es product.supplierinfo).'
+
+    - field_name: x_material
+      field_type: char
+      string: 'Material'
+      status: created
+
+    - field_name: x_capacidad
+      field_type: char
+      string: 'Capacidad'
+      status: created
+
+    - field_name: x_medidas
+      field_type: char
+      string: 'Medidas'
+      status: created
+
+    - field_name: x_imagen_url_principal
+      field_type: char
+      string: 'URL imagen principal'
+      status: created
+
+    # --- PLANIFICADOS (NO existen aún, se crean en Fase 2) ---
 
     - field_name: x_tecnica_default_id
       field_type: many2one
       relation: x_tecnica_personalizacion
       string: 'Técnica de personalización default'
       help: 'Técnica sugerida por defecto'
+      status: planned
 
     - field_name: x_tecnicas_compatibles_ids
       field_type: many2many
       relation: x_tecnica_personalizacion
       string: 'Técnicas compatibles'
       help: 'Todas las técnicas posibles para este producto'
+      status: planned
 
     - field_name: x_personalizacion_ninguna
       field_type: boolean
       string: 'No requiere personalización'
       default: false
-      help: 'Producto que se vende sin personalizar (ej. stock para reventa directa)' 
+      help: 'Producto que se vende sin personalizar (ej. stock para reventa directa)'
+      status: planned
 
     - field_name: x_area_max_cm2
       field_type: float
       string: 'Área máxima de impresión (cm²)'
+      status: planned
 
     - field_name: x_area_dimensiones
       field_type: char
       string: 'Dimensiones del área'
-      help: "Texto descriptivo, ej. '10x10 cm'"
+      help: "Texto descriptivo, ej. '10x10 cm'. Reconciliar con el legacy x_area_impresion"
+      status: planned
 
     - field_name: x_tiempo_produccion_dias
       field_type: integer
       string: 'Tiempo de producción (días hábiles)'
+      status: planned
 
     - field_name: x_requiere_cotizacion
       field_type: boolean
       string: 'Requiere cotización'
       default: true
+      status: planned
 
     - field_name: x_es_servicio_personalizacion
       field_type: boolean
       string: 'Es servicio de personalización'
+      status: planned
 
   crm.lead:
     # --- CREADOS EN PRODUCCIÓN (2026-06-02) ---

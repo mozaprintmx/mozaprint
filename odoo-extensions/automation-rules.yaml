@@ -195,7 +195,7 @@ rules:
     model: product.template
     trigger: on_create
     filter_domain: [
-      ['x_proveedor_id', '!=', false],
+      ['seller_ids', '!=', false],
       ['description_sale', '=', false]
     ]
     actions:
@@ -204,6 +204,8 @@ rules:
     notes: |
       Cuando llega producto nuevo del sync de proveedor sin descripción comercial,
       AI genera descripción atractiva basada en nombre y atributos.
+      El vínculo con proveedor es product.supplierinfo (seller_ids en la plantilla),
+      no un campo custom.
 
   # ===========================================================================
   # Mantenimiento

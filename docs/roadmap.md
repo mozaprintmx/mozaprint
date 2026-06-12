@@ -45,7 +45,8 @@
 - [ ] Cargar 8 técnicas seed (ver specs/data-model.md)
 - [ ] Migrar productos existentes para apuntar a técnicas (script)
 - [ ] Configurar `x_tecnicas_compatibles_ids` en productos clave
-- [ ] Migrar tabla de descuentos a Promotions (Discount & Loyalty)
+- [ ] (backlog) Auditar/arreglar los `loyalty.program` existentes con comportamiento extraño — los descuentos YA viven en `loyalty.program` (Tipo: Promociones, por compra mínima); NO hay que migrar nada (confirmado por audit 2026-06-11: 6 programas existentes)
+- [ ] (backlog) Limpiar pricelists de prueba no usadas, conservando solo Default — validar ANTES que ninguna esté referenciada por partners u órdenes (audit detectó 4: Default, Volant, GMC, Dólar)
 - [ ] Configurar filtros laterales en /shop
 - [ ] Cambiar color attribute a display_type=color con swatches
 - [ ] Configurar optional/accessory products por categoría

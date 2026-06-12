@@ -56,7 +56,9 @@ def backup_catalog(
         )
         if not suppliers:
             raise ValueError(f"Proveedor '{supplier_name}' no encontrado")
-        template_domain = [('x_proveedor_id', '=', suppliers[0]['id'])]
+        # El vínculo con proveedor es product.supplierinfo (seller_ids), no un
+        # campo custom. Filtra plantillas que tengan a este proveedor.
+        template_domain = [('seller_ids.partner_id', '=', suppliers[0]['id'])]
 
     print(f"→ Descargando product.template...")
     snapshot['product_templates'] = client.search_read_all(
@@ -64,15 +66,19 @@ def backup_catalog(
         domain=template_domain,
         fields=[
             'id', 'name', 'default_code', 'list_price', 'standard_price',
-            'type', 'categ_id', 'public_categ_ids',
+            'type', 'categ_id', 'public_categ_ids', 'seller_ids',
             'attribute_line_ids', 'optional_product_ids', 'accessory_product_ids',
-            'x_proveedor_id', 'x_proveedor_sku',
-            'x_tecnica_default', 'x_area_max_cm2', 'x_area_dimensiones',
-            'x_tiempo_produccion_dias', 'x_requiere_cotizacion',
+            # Campos custom legacy reales (verificados por audit 2026-06-11):
+            'x_tecnica_impresion', 'x_area_impresion', 'x_proveedor_carga',
+            'x_material', 'x_capacidad', 'x_medidas', 'x_imagen_url_principal',
             'active', 'write_date',
         ],
     )
     print(f"  {len(snapshot['product_templates'])} templates")
+
+    # TODO(mozaprint): capturar product.supplierinfo completo (partner_id,
+    # product_code, price, min_qty) — es la fuente de verdad del costo base por
+    # proveedor; hoy solo se guardan los seller_ids (referencias).
 
     print(f"→ Descargando product.product (variants)...")
     if template_domain:

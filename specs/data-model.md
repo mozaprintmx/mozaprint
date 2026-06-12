@@ -6,8 +6,8 @@
 
 - Todos los campos custom llevan prefijo `x_`
 - Nombre en snake_case
-- En español o inglés según contexto: `x_proveedor`, `x_tecnica_default`, `x_ai_score`
-- Si es many2one, sufijo `_id`: `x_proveedor_id`
+- En español o inglés según contexto: `x_tecnica_default`, `x_ai_score`
+- Si es many2one, sufijo `_id`: `x_tecnica_default_id`
 - Si es many2many, sufijo `_ids`: `x_servicios_compatibles_ids`
 - Si es boolean, prefijo conceptual: `x_es_personalizable`, `x_tiene_arte`
 
@@ -15,56 +15,149 @@
 
 ### product.template (extendido)
 
+> **Estado de los campos** (verificado por el audit del 2026-06-11, ver
+> `reports/catalog_audit_*` local):
+> - ✓ **Existen en producción** (todos `char` legacy de texto libre, ver más
+>   abajo): `x_tecnica_impresion`, `x_area_impresion`, `x_proveedor_carga`,
+>   `x_material`, `x_capacidad`, `x_medidas`, `x_imagen_url_principal`.
+> - ○ **Planificados, NO existen aún** — se crean en Fase 2: `x_tecnica_default_id`,
+>   `x_tecnicas_compatibles_ids`, `x_area_max_cm2`, `x_area_dimensiones`,
+>   `x_tiempo_produccion_dias`, `x_requiere_cotizacion`, `x_es_servicio_personalizacion`.
+> - ✗ **Descartados**: `x_proveedor_id`, `x_proveedor_sku` — el vínculo con
+>   proveedor usa el estándar `product.supplierinfo` (ver sección dedicada abajo),
+>   NO un campo custom. Ojo: `x_proveedor_carga` (char) SÍ existe pero es solo una
+>   **etiqueta legacy de texto libre** del proveedor que cargó el producto, NO el
+>   vínculo estructurado (ese es `product.supplierinfo`).
+
+#### Vínculo con proveedor — estándar `product.supplierinfo` (NO campo custom)
+
+La fuente de verdad del vínculo producto↔proveedor es el modelo **estándar de
+Odoo `product.supplierinfo`**, no un campo `x_`. El audit confirmó ~5275
+templates activos con `supplierinfo` (cobertura ~98%).
+
+| Campo de `product.supplierinfo` | Significado en Mozaprint |
+|---|---|
+| `partner_id` | Proveedor (`res.partner` con `supplier_rank > 0`) |
+| `product_code` | **SKU del proveedor** (reemplaza al descartado `x_proveedor_sku`) |
+| `product_name` | Nombre del producto en el sistema del proveedor |
+| `price` | **Costo base** del producto por proveedor (MXN, sin IVA) |
+| `min_qty` | Cantidad mínima de compra a ese proveedor |
+| `delay` | Lead time del proveedor (días) |
+
+> ⚠️ **`product.supplierinfo` es DISTINTO de `x_costo_personalizacion`** y se
+> complementan:
+> - `product.supplierinfo.price` = costo del **producto base** (lo que Mozaprint
+>   paga al proveedor por la pieza sin marcar).
+> - `x_costo_personalizacion.costo_unit` = costo de **aplicar la técnica** de
+>   personalización (por cantidad/tintas/posiciones), independiente del producto.
+>
+> El costo total al cliente combina ambos: precio del producto (derivado de
+> supplierinfo + markup) **más** el costo de personalización.
+>
+> **Hallazgo del audit (deuda de datos para Fase 6)**: de 5432 registros
+> `supplierinfo`, solo ~2076 apuntan a partners con `supplier_rank > 0`; ~3356
+> apuntan a partners sin rank de proveedor. El filtro de exclusión de proveedores
+> del agente (Fase 6) se basa en `supplier_rank > 0`, así que esos partners deben
+> marcarse correctamente.
+
+#### Campos legacy existentes (texto libre, a deprecar tras migración)
+
 ```yaml
-x_proveedor_id:
-  type: many2one
-  comodel: res.partner
-  string: "Proveedor"
-  help: "Proveedor del que se compra este producto (Promo Opción, 4Promotional, Innovation Line)"
-  domain: [['supplier_rank', '>', 0]]
-
-x_proveedor_sku:
+# ✓ EXISTE en producción. Texto libre, SIN normalizar.
+# 5227 productos con valor, 159 valores distintos (audit 2026-06-11).
+# Es la FUENTE de migración hacia x_tecnica_default_id + x_tecnicas_compatibles_ids.
+# Tratar como LEGACY / SOLO-LECTURA. NO borrar antes de validar la migración.
+x_tecnica_impresion:
   type: char
-  string: "SKU del proveedor"
-  help: "Código original del producto en el sistema del proveedor"
+  string: "Técnica de impresión"
+  status: legacy
+  help: "Técnica(s) en texto libre, muchas como combos ('Serigrafía-Tampografía'). Se migra al modelo x_tecnica_personalizacion en Fase 2."
 
+# ✓ EXISTE en producción. Texto libre, ej. "5x5 cm.".
+# Se reconciliará con los planeados x_area_dimensiones / x_area_max_cm2.
+x_area_impresion:
+  type: char
+  string: "Área de impresión"
+  status: legacy
+  help: "Dimensiones del área de impresión en texto libre. Antecede a x_area_dimensiones (planeado)."
+
+# ✓ EXISTE en producción. Etiqueta de texto libre del proveedor que cargó el
+# producto. NO es el vínculo estructurado (ese es product.supplierinfo).
+x_proveedor_carga:
+  type: char
+  string: "Proveedor Carga"
+  status: legacy
+  help: "Nombre del proveedor que cargó el producto (texto libre, metadato del sync)."
+
+# ✓ EXISTEN en producción. Metadatos de catálogo en texto libre.
+x_material:
+  type: char
+  string: "Material"
+  status: legacy
+
+x_capacidad:
+  type: char
+  string: "Capacidad"
+  status: legacy
+
+x_medidas:
+  type: char
+  string: "Medidas"
+  status: legacy
+
+x_imagen_url_principal:
+  type: char
+  string: "URL imagen principal"
+  status: legacy
+```
+
+#### Campos planificados (○ NO existen aún — se crean en Fase 2)
+
+```yaml
 x_tecnica_default_id:
   type: many2one
   comodel: x_tecnica_personalizacion
   string: "Técnica de personalización default"
   help: "Técnica de impresión sugerida por defecto para este producto"
+  # ○ Destino de migración desde x_tecnica_impresion (valor principal del combo)
 
 x_tecnicas_compatibles_ids:
   type: many2many
   comodel: x_tecnica_personalizacion
   string: "Técnicas compatibles"
   help: "Lista de técnicas que se pueden aplicar a este producto"
+  # ○ Destino de migración desde x_tecnica_impresion (combos parseados por -/,)
 
 x_area_max_cm2:
   type: float
   string: "Área máxima de impresión (cm²)"
   help: "Superficie máxima disponible para imprimir el logo"
+  # ○ Planificado
 
 x_area_dimensiones:
   type: char
   string: "Dimensiones del área"
   help: "Texto descriptivo, ej. '10x10 cm', útil para mostrar al cliente"
+  # ○ Planificado. Reconciliar con el legacy x_area_impresion (misma intención)
 
 x_tiempo_produccion_dias:
   type: integer
   string: "Tiempo de producción (días)"
   help: "Días hábiles desde aprobación de arte hasta producto terminado"
+  # ○ Planificado
 
 x_requiere_cotizacion:
   type: boolean
   string: "Requiere cotización"
   default: True
   help: "Si está marcado, el botón 'Agregar al carrito' se reemplaza por 'Solicitar cotización' en la ficha"
+  # ○ Planificado
 
 x_es_servicio_personalizacion:
   type: boolean
   string: "Es servicio de personalización"
   help: "Marcado para productos que son servicios de personalización (no productos físicos)"
+  # ○ Planificado
 ```
 
 ### product.product (variants, extendido)
@@ -699,7 +792,7 @@ sale.order ──→ x_approval_request (via x_approval_request_id)
 x_approval_request ──→ sale.order (via sale_order_id)
                   └──→ discuss.channel (via channel_id)
 
-product.template ──→ res.partner (proveedor, via x_proveedor_id)
+product.template ──→ res.partner (proveedor, via product.supplierinfo estándar)
 
 x_costo_personalizacion ──→ res.partner (via proveedor_id)
 ```
@@ -713,7 +806,8 @@ x_costo_personalizacion ──→ res.partner (via proveedor_id)
 
 ## Notas de migración
 
-- Si un producto cambia de proveedor (cambia `x_proveedor_id`), recalcular `x_costo_personalizacion` aplicable
+- Si un producto cambia de proveedor (cambia su `product.supplierinfo`), recalcular `x_costo_personalizacion` aplicable
+- Migración de técnica: `x_tecnica_impresion` (legacy, texto libre) → `x_tecnica_default_id` + `x_tecnicas_compatibles_ids`. NO borrar `x_tecnica_impresion` hasta validar la migración en producción
 - Si una técnica se renombra en la selection, hacer migración explícita; nunca cambiar valores en producción sin script
 - Los modelos `x_ai_interaction_log` se pueden purgar después de 12 meses (analytics)
 - Los modelos `x_approval_request` se conservan indefinidamente (auditoría)
