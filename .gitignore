@@ -137,3 +137,6 @@ anonymized/staging/
 snapshots/
 diffs/
 *.diff.json
+
+# Análisis local sensible — NO versionar
+analysis/
