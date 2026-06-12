@@ -398,148 +398,63 @@ x_origen_lead_id:
 
 ## Modelos nuevos (custom)
 
-### x_tecnica_personalizacion (nuevo modelo)
+### x_tecnica_personalizacion (modelo custom)
 
-Catálogo maestro de técnicas de personalización. Permite extender técnicas sin
-modificar selections en múltiples lugares.
+> **✓ CREADO EN PRODUCCIÓN** (verificado contra Odoo el 2026-06-12; 0 registros
+> aún — el seed se carga con `scripts/seed_tecnicas.py`, F4b). Catálogo maestro de
+> técnicas de personalización (lista plana, decisión D7).
+>
+> **Naming**: los campos llevan prefijo `x_` (no `x_studio_`) por ser un modelo
+> custom propio. Verificado en Odoo, NO asumir.
 
-```yaml
-name:
-  type: char
-  string: "Nombre"
-  required: True
-  # Ej: "Serigrafía", "Bordado", "DTF Textil", "DTF UV"
-
-code:
-  type: char
-  string: "Código técnico"
-  required: True
-  # Ej: "serigrafia", "bordado", "dtf_textil"
-  # Único, usado para referencias programáticas
-
-descripcion:
-  type: text
-  string: "Descripción para el cliente"
-  # Para mostrar en ficha de producto y para que el agente IA explique al cliente
-
-casos_uso_tipicos:
-  type: text
-  string: "Casos de uso típicos"
-  # Ej: "Bolsas, vasos, plumas con áreas planas"
-
-materiales_compatibles:
-  type: char
-  string: "Materiales compatibles"
-  # Ej: "Plástico, metal, vidrio"
-
-materiales_incompatibles:
-  type: char
-  string: "Materiales incompatibles"
-  # Ej: "Tela, cuero"
-
-max_tintas_default:
-  type: integer
-  string: "Máximo de tintas por default"
-  default: 4
-
-requiere_arte_vectorial:
-  type: boolean
-  string: "Requiere arte vectorial"
-  default: True
-
-tiempo_extra_dias:
-  type: integer
-  string: "Días extra de producción típicos"
-  default: 0
-
-active:
-  type: boolean
-  default: True
-
-sequence:
-  type: integer
-  string: "Orden de aparición"
-  default: 10
-```
-
-**Datos seed iniciales** (cargar al crear el modelo):
+Campos reales en producción:
 
 ```yaml
-- name: "Serigrafía"
-  code: "serigrafia"
-  descripcion: "Impresión de tinta sobre superficie. Ideal para producción a volumen."
-  casos_uso_tipicos: "Plumas, vasos, bolsas, libretas con superficie plana"
-  materiales_compatibles: "Plástico, metal, vidrio, tela rígida"
-  max_tintas_default: 4
-  requiere_arte_vectorial: True
-  sequence: 10
+x_code:
+  type: char
+  string: "Código"
+  # Llave estable, requerido. Ej: "serigrafia", "dtf", "laser"
 
-- name: "Tampografía"
-  code: "tampografia"
-  descripcion: "Similar a serigrafía pero para superficies pequeñas o curvas."
-  casos_uso_tipicos: "Plumas, llaveros, USB, productos pequeños"
-  materiales_compatibles: "Plástico, metal, cerámica"
-  max_tintas_default: 4
-  requiere_arte_vectorial: True
-  sequence: 20
+x_name:
+  type: char
+  string: "Name"
+  # Nombre de display. Ej: "Serigrafía", "Láser (Grabado Láser)"
 
-- name: "Bordado"
-  code: "bordado"
-  descripcion: "Hilo sobre tela. Acabado premium para productos textiles."
-  casos_uso_tipicos: "Gorras, polos, mochilas, toallas"
-  materiales_compatibles: "Textil"
-  materiales_incompatibles: "Plástico, metal"
-  max_tintas_default: 8
-  requiere_arte_vectorial: True
-  tiempo_extra_dias: 3
-  sequence: 30
+x_aliases:
+  type: text
+  string: "Aliases proveedor"
+  # Variantes crudas que mandan los proveedores, separadas por " | ".
+  # El sync hace match contra ellas para resolver la técnica canónica.
 
-- name: "DTF Textil"
-  code: "dtf_textil"
-  descripcion: "Transferencia digital sobre textil. Alta resolución, multicolor sin costo extra."
-  casos_uso_tipicos: "Playeras, sudaderas, mochilas con diseños complejos o fotografía"
-  materiales_compatibles: "Algodón, poliéster, mezclas textiles"
-  max_tintas_default: 999
-  requiere_arte_vectorial: False
-  sequence: 40
+x_orden:
+  type: integer
+  string: "Orden"
+  # Secuencia de despliegue (10, 20, 30, ...)
 
-- name: "DTF UV"
-  code: "dtf_uv"
-  descripcion: "Impresión UV de alta resolución sobre superficies rígidas."
-  casos_uso_tipicos: "Plumas, llaveros, USB, productos rígidos con diseños complejos"
-  materiales_compatibles: "Plástico, metal, madera, vidrio"
-  max_tintas_default: 999
-  requiere_arte_vectorial: False
-  sequence: 50
+x_activa:
+  type: boolean
+  string: "Activa"
+  # Se fija en True al cargar
 
-- name: "Sublimación"
-  code: "sublimacion"
-  descripcion: "Tinta que penetra el material con calor. Color permanente."
-  casos_uso_tipicos: "Tazas, playeras blancas/claras, mousepads"
-  materiales_compatibles: "Cerámica, poliéster, materiales sublimables"
-  materiales_incompatibles: "Algodón, materiales oscuros"
-  max_tintas_default: 999
-  requiere_arte_vectorial: False
-  sequence: 60
-
-- name: "Láser / Grabado"
-  code: "laser"
-  descripcion: "Grabado del material. Color del fondo. Acabado elegante y permanente."
-  casos_uso_tipicos: "Plumas metálicas, llaveros metal, productos premium"
-  materiales_compatibles: "Metal, madera, acrílico, cuero"
-  max_tintas_default: 1
-  requiere_arte_vectorial: True
-  sequence: 70
-
-- name: "Vinyl"
-  code: "vinyl"
-  descripcion: "Corte de vinil adhesivo aplicado con calor."
-  casos_uso_tipicos: "Textil simple, números, letras de tamaño grande"
-  materiales_compatibles: "Textil"
-  max_tintas_default: 3
-  requiere_arte_vectorial: True
-  sequence: 80
+x_descripcion:
+  type: text
+  string: "Descripción"
+  # Vacío al inicio; se llena después para mostrar en el sitio
 ```
+
+**Datos seed**: el catálogo canónico de 20 técnicas vive en
+[`data/tecnicas_seed.csv`](../data/tecnicas_seed.csv) (columnas `code`, `nombre`,
+`x_aliases`, `x_orden`). Su procedencia y reglas de limpieza están en
+[`data/tecnicas_seed.md`](../data/tecnicas_seed.md). El mapeo CSV → modelo:
+`code → x_code`, `nombre → x_name`, `x_aliases → x_aliases`, `x_orden → x_orden`;
+`x_activa` se fija True y `x_descripcion` queda vacío al cargar.
+
+> **Nota de diseño**: el diseño original de este modelo incluía atributos ricos
+> (`casos_uso_tipicos`, `materiales_compatibles`, `max_tintas_default`,
+> `requiere_arte_vectorial`, `tiempo_extra_dias`, etc.) que **NO se implementaron**.
+> Se optó por una lista plana (D7); cualquier metadata descriptiva va en
+> `x_descripcion`. Si más adelante se requieren esos atributos, se agregan vía
+> Studio y se documentan aquí.
 
 ### x_approval_request (nuevo modelo)
 

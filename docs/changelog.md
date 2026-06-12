@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-06-12 · data · patch (v8) — Modelo x_tecnica_personalizacion reconciliado con producción
+
+**Tipo**: `data`
+**Descripción**: El modelo `x_tecnica_personalizacion` ya fue creado en producción. Se reconcilian `specs/data-model.md` y `odoo-extensions/studio-fields.yaml` con los nombres de campo reales (verificados contra Odoo el 2026-06-12), resolviendo la divergencia de naming señalada al versionar el seed (v7).
+
+### Campos reales en producción
+
+`x_code` (char), `x_name` (char), `x_aliases` (text), `x_orden` (integer), `x_activa` (boolean), `x_descripcion` (text). 0 registros aún — el seed (`data/tecnicas_seed.csv`) se carga con `scripts/seed_tecnicas.py` (F4b, pendiente).
+
+### Cambios
+
+- **Naming**: campos con prefijo `x_` (NO `x_studio_`) por ser modelo custom propio. Documentado para no asumir la regla general.
+- **Diseño simplificado**: los atributos ricos del diseño original (`casos_uso_tipicos`, `materiales_compatibles`, `max_tintas_default`, `requiere_arte_vectorial`, `tiempo_extra_dias`, `sequence`) **NO se implementaron** (D7: lista plana). La metadata descriptiva va en `x_descripcion`.
+- `specs/data-model.md`: definición del modelo reemplazada por los 6 campos reales; el bloque inline de seed (8 técnicas) sustituido por un puntero a `data/tecnicas_seed.csv` (20 técnicas) y `data/tecnicas_seed.md`.
+- `odoo-extensions/studio-fields.yaml`: campos reales con `status: created`; versión 0.3.0 → 0.4.0.
+
+### Fuera de alcance (siguen ○ planificados)
+
+`x_costo_personalizacion` (Fase 3) y `x_tecnica_default_id` / `x_tecnicas_compatibles_ids` en `product.template` (Fase 2) — aún no están en producción.
+
+---
+
 ## 2026-06-12 · data · minor (v7) — Seed canónico de técnicas de personalización
 
 **Tipo**: `data`

@@ -17,8 +17,8 @@
 # - default: valor por defecto
 # - relation: solo para many2one/many2many/one2many
 
-version: '0.3.0'
-last_updated: 2026-06-11
+version: '0.4.0'
+last_updated: 2026-06-12
 
 # =============================================================================
 # NOTA IMPORTANTE — PREFIJO x_studio_ EN ODOO ONLINE
@@ -350,60 +350,44 @@ extensions:
 new_models:
   x_tecnica_personalizacion:
     display_name: 'Técnica de Personalización'
-    description: 'Catálogo maestro de técnicas. Permite extensión sin tocar selections'
+    description: 'Catálogo maestro de técnicas (lista plana, D7). CREADO en producción.'
+    status: created
+    # Verificado contra Odoo 2026-06-12. Campos con prefijo x_ (no x_studio_,
+    # por ser modelo custom propio). 0 registros aún; seed en data/tecnicas_seed.csv.
     fields:
-      - field_name: name
+      - field_name: x_code
         field_type: char
-        required: true
-        string: 'Nombre'
-        help: "Ej: 'Serigrafía', 'DTF Textil'"
+        string: 'Código'
+        status: created
+        help: "Llave estable. Ej: 'serigrafia', 'dtf', 'laser'"
 
-      - field_name: code
+      - field_name: x_name
         field_type: char
-        required: true
-        string: 'Código técnico'
-        help: "Ej: 'serigrafia', 'dtf_textil'. Único, para referencias programáticas"
+        string: 'Name'
+        status: created
+        help: "Display. Ej: 'Serigrafía', 'Láser (Grabado Láser)'"
 
-      - field_name: descripcion
+      - field_name: x_aliases
         field_type: text
-        string: 'Descripción para cliente'
+        string: 'Aliases proveedor'
+        status: created
+        help: 'Variantes crudas del proveedor, separadas por " | ". El sync hace match contra ellas.'
 
-      - field_name: casos_uso_tipicos
-        field_type: text
-        string: 'Casos de uso típicos'
-
-      - field_name: materiales_compatibles
-        field_type: char
-        string: 'Materiales compatibles'
-
-      - field_name: materiales_incompatibles
-        field_type: char
-        string: 'Materiales incompatibles'
-
-      - field_name: max_tintas_default
+      - field_name: x_orden
         field_type: integer
-        default: 4
-        string: 'Máximo de tintas default'
-
-      - field_name: requiere_arte_vectorial
-        field_type: boolean
-        default: true
-        string: 'Requiere arte vectorial'
-
-      - field_name: tiempo_extra_dias
-        field_type: integer
-        default: 0
-        string: 'Días extra de producción'
-
-      - field_name: active
-        field_type: boolean
-        default: true
-        string: 'Activo'
-
-      - field_name: sequence
-        field_type: integer
-        default: 10
         string: 'Orden'
+        status: created
+
+      - field_name: x_activa
+        field_type: boolean
+        string: 'Activa'
+        status: created
+
+      - field_name: x_descripcion
+        field_type: text
+        string: 'Descripción'
+        status: created
+        help: 'Vacío al inicio; se llena después para el sitio.'
 
   x_approval_request:
     display_name: 'Solicitud de Aprobación'
