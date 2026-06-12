@@ -151,7 +151,7 @@
 
 ### 3.1 Search & Read
 
-**Endpoint**: `POST /json2/<model>/search_read`
+**Endpoint**: `POST /json/2/<model>/search_read`
 
 **Request**:
 ```json
@@ -174,7 +174,7 @@
 
 ### 3.2 Create
 
-**Endpoint**: `POST /json2/<model>/create`
+**Endpoint**: `POST /json/2/<model>/create`
 
 **Request**:
 ```json
@@ -197,7 +197,7 @@
 
 ### 3.3 Write
 
-**Endpoint**: `POST /json2/<model>/write`
+**Endpoint**: `POST /json/2/<model>/write`
 
 **Request**:
 ```json
@@ -217,7 +217,7 @@
 
 ### 3.4 Call method
 
-**Endpoint**: `POST /json2/<model>/<method>`
+**Endpoint**: `POST /json/2/<model>/<method>`
 
 **Request**:
 ```json

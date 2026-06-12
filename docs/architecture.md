@@ -199,11 +199,11 @@ Claude **NO debe**:
 
 | Endpoint | Llamado por | Propósito |
 |---|---|---|
-| POST /json2/crm.lead/create | n8n (lead-intake) | Crear lead desde WA o web |
-| POST /json2/sale.order/create | n8n (ai-agent) | Crear cotización draft |
-| POST /json2/sale.order/{id}/action_quotation_send | n8n | Marcar cotización enviada |
-| GET /json2/product.product/search_read | n8n | Búsqueda de producto |
-| POST /json2/discuss.channel/{id}/message_post | n8n | Postear mensaje del AI en chatter |
+| POST /json/2/crm.lead/create | n8n (lead-intake) | Crear lead desde WA o web |
+| POST /json/2/sale.order/create | n8n (ai-agent) | Crear cotización draft |
+| POST /json/2/sale.order/{id}/action_quotation_send | n8n | Marcar cotización enviada |
+| GET /json/2/product.product/search_read | n8n | Búsqueda de producto |
+| POST /json/2/discuss.channel/{id}/message_post | n8n | Postear mensaje del AI en chatter |
 
 ## Variables de entorno necesarias
 

@@ -32,7 +32,10 @@ test/private/
 # Exports de Odoo con datos
 *_export_*.json
 *_export_*.csv
-catalog_*.json
+
+# Reportes de auditoría de catálogo (JSON + MD): repo público, contienen
+# nombres de pricelist tipo cliente y métricas de negocio. NO se commitean.
+reports/catalog_audit_*
 
 # =============================================================================
 # Python

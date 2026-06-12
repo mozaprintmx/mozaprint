@@ -21,7 +21,7 @@ paths:
 ## Odoo desde n8n
 
 - **JSON-2 API, no XML-RPC** (deprecación 2027). Patrón de auth (`Bearer` +
-  header `DATABASE`), endpoints `POST /json2/{model}/{method}` y retry con
+  header `DATABASE`), endpoints `POST /json/2/{model}/{method}` y retry con
   backoff: ver `specs/integrations.md`.
 - Rate limit empírico ~30 req/seg sostenido; usa `batch` en syncs masivos.
 - La instancia expone su modelo de datos en `GET /doc`; consúltalo cuando dudes

@@ -261,7 +261,7 @@ Cache vive 5 min por default. Repetir el system prompt en siguientes llamadas en
 ### Endpoints base
 
 ```http
-POST https://mozaprint.odoo.com/json2/{model}/{method}
+POST https://mozaprint.odoo.com/json/2/{model}/{method}
 Authorization: Bearer {api_key}
 Content-Type: application/json
 ```
@@ -270,7 +270,7 @@ Content-Type: application/json
 
 **Buscar y leer**:
 ```bash
-POST /json2/product.product/search_read
+POST /json/2/product.product/search_read
 {
   "domain": [
     ["default_code", "in", ["EX-086", "MTZ-100"]]
@@ -282,7 +282,7 @@ POST /json2/product.product/search_read
 
 **Crear**:
 ```bash
-POST /json2/crm.lead/create
+POST /json/2/crm.lead/create
 {
   "vals": {
     "name": "Cotización plumas - Empresa X",
@@ -297,7 +297,7 @@ POST /json2/crm.lead/create
 
 **Actualizar**:
 ```bash
-POST /json2/sale.order/write
+POST /json/2/sale.order/write
 {
   "ids": [1234],
   "vals": {"state": "sent"}
@@ -306,7 +306,7 @@ POST /json2/sale.order/write
 
 **Llamar método del modelo**:
 ```bash
-POST /json2/sale.order/action_quotation_send
+POST /json/2/sale.order/action_quotation_send
 {
   "ids": [1234]
 }
@@ -330,7 +330,7 @@ Muestra todos los modelos y campos disponibles con su tipo. Útil consultarla cu
 async function odooCall(model, method, payload, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(`${ODOO_URL}/json2/${model}/${method}`, {
+      const response = await fetch(`${ODOO_URL}/json/2/${model}/${method}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${API_KEY}`,

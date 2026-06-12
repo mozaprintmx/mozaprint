@@ -19,7 +19,7 @@ import json
 import os
 import sys
 from collections import Counter, defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -47,6 +47,13 @@ SPEC_TEMPLATE_FIELDS: list[tuple[str, str]] = [
 TECNICA_KEYWORDS = frozenset({
     'técnica', 'tecnica', 'impresión', 'impresion',
     'personaliz', 'technique', 'print', 'marcado',
+})
+
+# Señal fuerte de "método de marcado" (no de área/dimensiones), para priorizar
+# el campo correcto cuando hay varios candidatos (p.ej. x_area_impresion vs
+# x_tecnica_impresion, donde ambos contienen "impresion").
+TECNICA_STRONG = frozenset({
+    'técnica', 'tecnica', 'personaliz', 'technique', 'marcado',
 })
 
 TOP_N = 10  # top valores distintos para el campo técnica
@@ -260,6 +267,7 @@ def audit_suppliers(
                 count_by_sup_custom[val[0]] += 1
                 tmpl_with_custom.add(r['id'])
 
+    # Universo = templates ACTIVOS (search sin active_test => solo activos).
     all_tmpl_ids = {
         r['id']
         for r in (
@@ -270,7 +278,16 @@ def audit_suppliers(
             ) or []
         )
     }
-    covered = tmpl_with_si | tmpl_with_custom
+
+    # Restringir al universo activo: supplierinfo puede referir templates archivados.
+    tmpl_with_si_active = tmpl_with_si & all_tmpl_ids
+    tmpl_with_custom_active = tmpl_with_custom & all_tmpl_ids
+    covered = tmpl_with_si_active | tmpl_with_custom_active
+
+    # supplierinfo atribuido a partners SIN supplier_rank>0 (hallazgo de higiene).
+    known_supplier_ids = {p['id'] for p in suppliers}
+    si_to_known = sum(count_by_sup_si.get(i, 0) for i in known_supplier_ids)
+    si_to_other = len(supplierinfo) - si_to_known
 
     return {
         'known_suppliers_count': len(suppliers),
@@ -285,12 +302,15 @@ def audit_suppliers(
         ],
         'custom_proveedor_field': custom_field,
         'total_supplierinfo_records': len(supplierinfo),
-        'templates_with_supplierinfo': len(tmpl_with_si),
-        'templates_with_custom_field': len(tmpl_with_custom),
+        'supplierinfo_to_known_suppliers': si_to_known,
+        'supplierinfo_to_other_partners': si_to_other,
+        'templates_with_supplierinfo': len(tmpl_with_si_active),
+        'templates_with_supplierinfo_incl_archived': len(tmpl_with_si),
+        'templates_with_custom_field': len(tmpl_with_custom_active),
         'templates_without_any_supplier': len(all_tmpl_ids - covered),
         'total_active_templates_checked': len(all_tmpl_ids),
         'supplierinfo_coverage_pct': round(
-            len(tmpl_with_si) / max(len(all_tmpl_ids), 1) * 100, 1
+            len(tmpl_with_si_active) / max(len(all_tmpl_ids), 1) * 100, 1
         ),
     }
 
@@ -307,6 +327,13 @@ def audit_tecnica_field(
         f for f in tmpl_fields
         if any(kw in (f['name'] + ' ' + f['string']).lower() for kw in TECNICA_KEYWORDS)
     ]
+
+    # Priorizar el campo de "método" (técnica/personalización) sobre el de área.
+    def _priority(f: dict) -> int:
+        text = (f['name'] + ' ' + f['string']).lower()
+        return 0 if any(k in text for k in TECNICA_STRONG) else 1
+
+    candidates = sorted(candidates, key=_priority)
 
     # Verificar si el modelo custom x_tecnica_personalizacion ya existe
     tecnica_model_exists = False
@@ -639,10 +666,13 @@ def render_markdown(data: dict[str, Any]) -> str:
         f'- Proveedores conocidos (supplier_rank>0): {s.get("known_suppliers_count")}',
         f'- Campo custom proveedor en product.template: '
         f'`{s.get("custom_proveedor_field") or "no encontrado"}`',
-        f'- Templates con supplierinfo estándar: {s.get("templates_with_supplierinfo")} / '
+        f'- Templates activos con supplierinfo: {s.get("templates_with_supplierinfo")} / '
         f'{s.get("total_active_templates_checked")} ({s.get("supplierinfo_coverage_pct")}%)',
+        f'- Registros supplierinfo totales: {s.get("total_supplierinfo_records")} '
+        f'(a proveedores con rank>0: {s.get("supplierinfo_to_known_suppliers")}; '
+        f'**a partners SIN rank de proveedor: {s.get("supplierinfo_to_other_partners")}**)',
         f'- Templates con campo custom proveedor: {s.get("templates_with_custom_field")}',
-        f'- **Templates sin proveedor (ninguna vinculación): '
+        f'- **Templates activos sin proveedor (ninguna vinculación): '
         f'{s.get("templates_without_any_supplier")}**',
         '',
     ]
@@ -746,6 +776,12 @@ def render_markdown(data: dict[str, Any]) -> str:
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 def main() -> int:
+    # La consola de Windows (cp1252) no puede imprimir →/✓/⚠; forzar UTF-8.
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
     load_dotenv()
 
     parser = argparse.ArgumentParser(description='Auditoría de solo lectura del catálogo Odoo')
@@ -787,7 +823,7 @@ def main() -> int:
 
     data: dict[str, Any] = {
         'meta': {
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'odoo_url': odoo_url,
             'script_version': '1.0.0',
             'errors': errors,

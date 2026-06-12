@@ -27,24 +27,36 @@ class OdooClient:
         if database:
             self.headers['DATABASE'] = database
 
+    def _post(self, model: str, method: str, payload: dict[str, Any]) -> Any:
+        """
+        POST a /json/2/{model}/{method} y devuelve el resultado CRUDO.
+
+        La JSON-2 API devuelve directamente el valor de retorno del método
+        (una lista en search_read, un dict en fields_get, etc.), NO envuelto
+        en {"result": ...}. Los errores llegan como status HTTP no-2xx, que
+        raise_for_status() convierte en excepción.
+        """
+        response = requests.post(
+            f'{self.url}/json/2/{model}/{method}',
+            headers=self.headers,
+            json=payload,
+            timeout=60,
+        )
+        response.raise_for_status()
+        data = response.json()
+        # Respaldo: si la instancia envolviera un error en un 200.
+        if isinstance(data, dict) and isinstance(data.get('error'), dict):
+            raise RuntimeError(f'Odoo error en {model}/{method}: {data["error"]}')
+        return data
+
     def call(
         self,
         model: str,
         method: str,
         payload: dict[str, Any] | None = None,
     ) -> Any:
-        """Llamada genérica a /json2/{model}/{method}."""
-        response = requests.post(
-            f'{self.url}/json2/{model}/{method}',
-            headers=self.headers,
-            json=payload or {},
-            timeout=60,
-        )
-        response.raise_for_status()
-        data = response.json()
-        if 'error' in data:
-            raise RuntimeError(f'Odoo error en {model}/{method}: {data["error"]}')
-        return data.get('result', data)
+        """Llamada genérica a /json/2/{model}/{method}."""
+        return self._post(model, method, payload or {})
 
     def fields_get(
         self,
@@ -77,17 +89,8 @@ class OdooClient:
         if context:
             payload['context'] = context
 
-        response = requests.post(
-            f'{self.url}/json2/{model}/search_read',
-            headers=self.headers,
-            json=payload,
-            timeout=60,
-        )
-        response.raise_for_status()
-        data = response.json()
-        if 'error' in data:
-            raise RuntimeError(f'Odoo error en {model}/search_read: {data["error"]}')
-        return data.get('result', [])
+        data = self._post(model, 'search_read', payload)
+        return data if isinstance(data, list) else data.get('records', data)
 
     def search_read_all(
         self,

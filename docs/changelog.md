@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-06-11 · scripts · patch (v5) — Fixes audit_catalog + corrección de spec JSON-2
+
+**Tipo**: `scripts`
+**Descripción**: La primera corrida real de `scripts/audit_catalog.py` (con credenciales en `.env`) falló en todas las llamadas. Diagnóstico y 5 fixes; se corrige además el endpoint JSON-2 mal documentado en el repo.
+
+### 5 fixes en el audit
+
+1. **Endpoint `/json/2/`** (era `/json2/`): la ruta JSON-2 real de la instancia es `/json/2/{model}/{method}`. Todas las llamadas daban 404. Corregido en `scripts/odoo_client.py`.
+2. **stdout UTF-8**: la consola de Windows (cp1252) no podía imprimir `→`/`✓`/`⚠` y reventaba con `UnicodeEncodeError`. `audit_catalog.py` ahora hace `sys.stdout.reconfigure(encoding='utf-8')`.
+3. **Parseo de respuesta cruda**: la JSON-2 API devuelve el resultado directo (lista/dict), NO envuelto en `{"result": ...}`. `OdooClient._post()` devuelve el JSON crudo; los errores se detectan por status HTTP (`raise_for_status`).
+4. **Ranking de campo técnica**: existían dos candidatos (`x_area_impresion` y `x_tecnica_impresion`); el código tomaba el primero sin priorizar y reportaba el área en vez de la técnica. Se prioriza el campo con señal de "método" (`TECNICA_STRONG`). El campo real es `x_tecnica_impresion`.
+5. **Universo proveedor/activos**: la cobertura de `supplierinfo` daba >100% por mezclar templates archivados (numerador) con activos (denominador). Se intersecta con el universo de templates activos y se expone cuánto `supplierinfo` apunta a partners sin `supplier_rank>0`.
+
+### CORRECCIÓN DE SPEC — endpoint JSON-2
+
+El endpoint estaba documentado como `/json2/` en todo el repo, pero la instancia real usa **`/json/2/`** (verificado empíricamente). Es la "deuda histórica specs vs realidad" que advierte `CLAUDE.md`. Reemplazado `/json2/` → `/json/2/` en:
+- `specs/integrations.md`, `specs/api-shapes.md`, `docs/architecture.md`, `docs/glossary.md`
+- `.claude/rules/n8n-workflows.md` (regla de n8n)
+- `n8n-workflows/ai-agent-respond.json`
+
+> ⚠️ Pendiente (fuera de alcance de este cambio): `specs/api-shapes.md` aún documenta respuestas envueltas en `{"result": ...}`; la JSON-2 API las devuelve crudas (ver fix #3).
+
+### .gitignore
+
+Reemplazado el patrón `catalog_*.json` por `reports/catalog_audit_*` para ignorar AMBOS artefactos del audit (`.json` y `.md`). El `.md` no se commitea: repo público con nombres de pricelist tipo cliente y métricas de negocio.
+
+---
+
 ## 2026-06-03 · odoo · minor (v4) — Cierre Fase 1
 
 **Tipo**: `odoo`

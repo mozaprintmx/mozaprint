@@ -39,7 +39,7 @@
     },
     {
       "parameters": {
-        "url": "={{$env.ODOO_URL}}/json2/discuss.channel/search_read",
+        "url": "={{$env.ODOO_URL}}/json/2/discuss.channel/search_read",
         "method": "POST",
         "authentication": "headerAuth",
         "headerAuth": {
@@ -97,7 +97,7 @@
     },
     {
       "parameters": {
-        "url": "={{$env.ODOO_URL}}/json2/mail.message/search_read",
+        "url": "={{$env.ODOO_URL}}/json/2/mail.message/search_read",
         "method": "POST",
         "authentication": "headerAuth",
         "headerAuth": {
@@ -235,7 +235,7 @@
     },
     {
       "parameters": {
-        "url": "={{$env.ODOO_URL}}/json2/discuss.channel/message_post",
+        "url": "={{$env.ODOO_URL}}/json/2/discuss.channel/message_post",
         "method": "POST",
         "authentication": "headerAuth",
         "headerAuth": {

@@ -163,7 +163,7 @@
 
 **AI Field (Studio)**: campo computado por AI con prompt definido en Studio. Nuevo en Odoo 19.
 
-**JSON-2 API**: nueva API REST de Odoo, reemplazo de XML-RPC. Usa bearer token, endpoints `/json2/<model>/<method>`.
+**JSON-2 API**: nueva API REST de Odoo, reemplazo de XML-RPC. Usa bearer token, endpoints `/json/2/<model>/<method>`.
 
 **Sandbox Python**: entorno Python restringido donde corren Server Actions. Sin imports arbitrarios.
 
