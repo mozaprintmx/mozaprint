@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-06-12 · scripts · minor (v9) — Loader de seed de técnicas + escritura en OdooClient
+
+**Tipo**: `scripts`
+**Descripción**: Se carga el catálogo de técnicas en producción y se añade soporte de escritura al cliente JSON-2.
+
+### `scripts/seed_tecnicas.py` (nuevo)
+
+Carga idempotente del CSV `data/tecnicas_seed.csv` al modelo `x_tecnica_personalizacion`.
+
+- **Mapeo**: `code→x_code`, `nombre→x_name`, `x_aliases→x_aliases`, `x_orden` (del CSV o `(línea+1)*10`); fija `x_activa=True`, `x_descripcion=""`.
+- **Idempotente**: busca por `x_code`; si existe `write`, si no `create`. Re-correr no duplica.
+- **DRY-RUN por defecto**: sin `--apply` solo imprime el plan, no escribe.
+- **Validación previa**: `x_code` no vacío y único en el CSV; aborta con error claro si falla.
+- Logging por registro y manejo de errores explícito (cuenta fallos, exit ≠0 si hay).
+
+### `scripts/odoo_client.py`
+
+Agregados `create()`, `write()`, `unlink()` (antes solo lectura). Contratos JSON-2 verificados contra Odoo (2026-06-12) con un smoke test auto-limpiante:
+- `create`: `{'vals_list': [vals]}` (Odoo 19 `model_create_multi`), devuelve lista de ids.
+- `write`: `{'ids': [...], 'vals': {...}}`. `unlink`: `{'ids': [...]}`.
+
+### Resultado en producción
+
+20 técnicas creadas en `x_tecnica_personalizacion` (ids 4-23), todas activas, `x_orden` 10..200. Idempotencia confirmada (re-corrida dry-run reporta 20 UPDATE, 0 CREATE).
+
+> Pendiente F5 (sin cambios): asignar los 26 valores multi-componente y la regla de default en combos (ver `data/tecnicas_seed.md`).
+
+---
+
 ## 2026-06-12 · data · patch (v8) — Modelo x_tecnica_personalizacion reconciliado con producción
 
 **Tipo**: `data`

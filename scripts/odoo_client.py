@@ -110,3 +110,31 @@ class OdooClient:
                 break
             offset += batch_size
         return results
+
+    # --- Escritura (usar con cuidado; los scripts deben ser idempotentes) ---
+
+    def create(self, model: str, vals: dict[str, Any]) -> int:
+        """
+        Crea un registro y devuelve su id.
+
+        JSON-2 / Odoo 19 usa model_create_multi: el método es create(vals_list)
+        y devuelve la lista de ids creados. Verificado contra Odoo 2026-06-12.
+        """
+        result = self._post(model, 'create', {'vals_list': [vals]})
+        # Devuelve lista de ids (p. ej. [42]); tolerar int o dict por robustez.
+        if isinstance(result, list) and result:
+            first = result[0]
+            return first['id'] if isinstance(first, dict) else first
+        if isinstance(result, int):
+            return result
+        if isinstance(result, dict) and 'id' in result:
+            return result['id']
+        raise RuntimeError(f'Respuesta inesperada de create({model}): {result!r}')
+
+    def write(self, model: str, ids: list[int], vals: dict[str, Any]) -> bool:
+        """Actualiza registros existentes. JSON-2: write(ids, vals)."""
+        return self._post(model, 'write', {'ids': ids, 'vals': vals})
+
+    def unlink(self, model: str, ids: list[int]) -> bool:
+        """Elimina registros. JSON-2: unlink(ids)."""
+        return self._post(model, 'unlink', {'ids': ids})
