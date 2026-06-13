@@ -40,6 +40,9 @@ reports/catalog_audit_*
 # Dump de valores de técnica (CSV): dato de negocio, no va al repo público.
 reports/tecnica_values_*.csv
 
+# Derivación de técnica (CSV): nombres de producto + datos de negocio. No se commitea.
+reports/tecnica_derivacion_*
+
 # =============================================================================
 # Python
 # =============================================================================
@@ -138,5 +141,5 @@ snapshots/
 diffs/
 *.diff.json
 
-# An�lisis local sensible � NO versionar
+# An�lisis local sensible � NO versionar
 analysis/

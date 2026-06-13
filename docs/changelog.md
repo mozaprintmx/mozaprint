@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-06-13 · scripts · minor (v11) — derive_tecnicas.py: derivación de técnica canónica
+
+**Tipo**: `scripts`
+**Descripción**: Script que deriva la técnica canónica de cada producto desde el campo legacy `x_tecnica_impresion` (texto libre, read-only) hacia los campos estructurados `x_tecnica_default_id` (m2o) y `x_tecnicas_compatibles_ids` (m2m). Aplicado en producción.
+
+### `scripts/derive_tecnicas.py` (nuevo)
+
+- **Match raw→canónica** vía `x_aliases` del modelo `x_tecnica_personalizacion`. Normaliza (minúsculas + sin acentos + trim), segmenta el crudo por `- / , +` y `" y "`, limpia parentéticos/puntuación, y matchea cada segmento por: (1) igualdad exacta normalizada; (2) substring normalizado **más largo** (p. ej. `dtf uv` → DTF UV, no DTF).
+- **default** = primera técnica del crudo; **compatibles** = todas, en orden, dedup.
+- **Status**: FULL / PARTIAL / NONE / NULL. Marca para revisión PARTIAL + NONE + multi-componente (segmentos con palabra de producto, p. ej. bolígrafo/libreta — con límite de palabra para no confundir `termo` ⊂ `termograbado`).
+- **DRY-RUN por defecto**; `--apply` escribe. **Idempotente**: m2m con `[(6,0,[ids])]` y solo escribe si el valor calculado difiere del actual. Mini-test m2m auto-restaurado antes del lote. Errores por registro no abortan.
+- **NO escribe** `x_tecnica_impresion` (lo pisa el sync de proveedores; ver `analysis/supplier-sync/AUDITORIA_SYNC.md`).
+- Salida: `reports/tecnica_derivacion_YYYYMMDD.csv` (gitignored).
+
+### Resultado en producción (5227 templates con técnica)
+
+- **5203 escritos** (FULL 5196 + PARTIAL 7), NONE 0, NULL 24 sin tocar.
+- 0 errores tras reintento (2 fallos de red transitorios resueltos por idempotencia).
+- 15 marcados para revisión (kits multi-componente, asignación manual diferida a F5).
+
+### `.gitignore`
+
+- `reports/tecnica_derivacion_*` (nombres de producto + datos de negocio; no va al repo público).
+
+---
+
 ## 2026-06-13 · data · patch (v10) — 3 aliases de técnica tras dry-run de derivación
 
 **Tipo**: `data`
