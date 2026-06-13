@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-06-13 · data · patch (v10) — 3 aliases de técnica tras dry-run de derivación
+
+**Tipo**: `data`
+**Descripción**: El dry-run de `scripts/derive_tecnicas.py` (derivación raw→canónica de técnica desde `x_tecnica_impresion`) reveló variantes crudas frecuentes sin alias, que generaban PARTIAL/NONE. Se agregaron 3 aliases al seed y se propagaron a Odoo (`x_aliases` del modelo `x_tecnica_personalizacion`, vía `seed_tecnicas.py --apply`).
+
+### Aliases agregadas (`data/tecnicas_seed.csv`)
+
+| code | alias agregada | resolvía |
+|---|---|---|
+| `bajo_relieve` | `Grabado en bajo relieve` | PARTIAL de combos "Grabado en bajo relieve-…" |
+| `doming` | `Goteado en Resina` | NONE "Goteado en Resina" |
+| `sandblast` | `Grabado en Arena` | ~14 PARTIAL ("Grabado Arena" no matcheaba por la "en") |
+
+### Impacto en la derivación (dry-run, 5227 templates)
+
+- Antes: FULL 5110, PARTIAL 89, NONE 4.
+- Después: **FULL 5196, PARTIAL 7, NONE 0**, NULL 24. Revisión total: 15.
+- Los 7 PARTIAL restantes son kits **multi-componente** reales (asignación manual diferida a F5), no fixeables con alias.
+
+### Notas
+
+- Solo se versiona el dato del seed (`data/tecnicas_seed.csv` + `data/tecnicas_seed.md`). El cambio en `x_aliases` dentro de Odoo es dato de la instancia (no se commitea).
+- No se modificaron `derive_tecnicas.py` ni `seed_tecnicas.py`.
+
+---
+
 ## 2026-06-12 · scripts · minor (v9) — Loader de seed de técnicas + escritura en OdooClient
 
 **Tipo**: `scripts`

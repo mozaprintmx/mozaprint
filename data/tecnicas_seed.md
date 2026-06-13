@@ -44,6 +44,17 @@ La lista de aliases es un **punto de partida**, no exhaustiva. Por diseño (ver
 abajo), cualquier valor crudo que un proveedor mande y no esté en estas aliases
 se **marca para revisión** y se agrega manualmente desde Odoo (campo `x_aliases`).
 
+### Aliases agregadas tras el dry-run de derivación (2026-06-13)
+
+El dry-run de `scripts/derive_tecnicas.py` reveló 2 variantes crudas frecuentes
+sin alias. Se agregaron al seed (y se propagaron a Odoo):
+
+- `bajo_relieve`: + `Grabado en bajo relieve` (resolvía casos PARTIAL de combos
+  tipo "Grabado en bajo relieve-Grabado Láser-Serigrafía").
+- `doming`: + `Goteado en Resina` (resolvía los casos NONE "Goteado en Resina").
+- `sandblast`: + `Grabado en Arena` (el alias previo "Grabado Arena" no matcheaba
+  por la "en"; resolvía ~14 casos PARTIAL de combos con "Grabado en Arena").
+
 ## Cobertura al momento de derivar
 
 - ~98.6% de los productos con valor mapean automático a una o más canónicas.
