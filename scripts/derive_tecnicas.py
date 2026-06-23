@@ -271,7 +271,19 @@ def main() -> int:
     parser.add_argument('--apply', action='store_true', help='Escribe en Odoo. Sin esto, dry-run.')
     parser.add_argument('--output', '-o', help='Ruta del CSV de salida')
     parser.add_argument('--limit', type=int, default=0, help='Acota nº de templates (0 = todos)')
+    parser.add_argument(
+        '--since',
+        help='ISO8601 o YYYY-MM-DD: procesa solo templates con write_date >= since '
+             '(uso post-sync para reprocesar lo recién cambiado). Sin esto, todos.',
+    )
     args = parser.parse_args()
+
+    if args.since:
+        try:
+            datetime.fromisoformat(args.since)
+        except ValueError:
+            print(f'✗ --since inválido: {args.since!r} (usa YYYY-MM-DD o ISO8601)', file=sys.stderr)
+            return 1
 
     odoo_url = os.environ.get('ODOO_URL')
     api_key = os.environ.get('ODOO_API_KEY')
@@ -305,9 +317,13 @@ def main() -> int:
         _smoke_test_m2m(client, tecnicas)
 
     # 2. Templates con x_tecnica_impresion
+    domain = [('x_tecnica_impresion', '!=', False)]
+    if args.since:
+        domain.append(('write_date', '>=', args.since))
+        print(f'→ Filtro --since: write_date >= {args.since}')
     templates = client.search_read_all(
         TEMPLATE_MODEL,
-        domain=[('x_tecnica_impresion', '!=', False)],
+        domain=domain,
         fields=['id', 'name', 'x_tecnica_impresion',
                 'x_tecnica_default_id', 'x_tecnicas_compatibles_ids'],
     )
@@ -317,10 +333,14 @@ def main() -> int:
 
     counts = {'FULL': 0, 'PARTIAL': 0, 'NONE': 0, 'NULL': 0}
     revisar_count = 0
-    escritos = 0
-    sin_cambio = 0
     errores = 0
     filas: list[dict] = []
+
+    # Writes pendientes agrupados por derivación idéntica:
+    #   clave = (default_id, frozenset(compatibles_ids)) -> [template_ids]
+    # Un write de Odoo aplica los mismos vals a todos los ids del grupo; es seguro
+    # porque, por construcción, todos comparten exactamente la misma derivación.
+    pending: dict[tuple[int, frozenset[int]], list[int]] = {}
 
     for t in templates:
         try:
@@ -330,18 +350,10 @@ def main() -> int:
             if d.revisar:
                 revisar_count += 1
 
-            if args.apply and d.compatibles and _needs_write(t, d):
-                try:
-                    client.write(TEMPLATE_MODEL, [t['id']], {
-                        'x_tecnica_default_id': d.default.id,
-                        'x_tecnicas_compatibles_ids': [(6, 0, [x.id for x in d.compatibles])],
-                    })
-                    escritos += 1
-                except Exception as exc:
-                    errores += 1
-                    print(f'  ✗ write template {t["id"]} ({t.get("name","")[:40]}): {exc}')
-            elif args.apply:
-                sin_cambio += 1
+            # Mismo criterio de siempre (idempotencia intacta): hay match y difiere.
+            if d.compatibles and _needs_write(t, d):
+                key = (d.default.id, frozenset(x.id for x in d.compatibles))
+                pending.setdefault(key, []).append(t['id'])
 
             filas.append({
                 'template_id': t['id'],
@@ -356,7 +368,31 @@ def main() -> int:
             errores += 1
             print(f'  ✗ template {t.get("id")} ({t.get("name","")[:40]}): {exc}')
 
-    # 3. CSV
+    n_pending_templates = sum(len(ids) for ids in pending.values())
+    n_groups = len(pending)
+    sin_cambio = len(filas) - n_pending_templates  # procesados sin error que no requieren write
+
+    # 3. Escritura agrupada (solo --apply): un write por grupo.
+    escritos = 0
+    grupos_ok = 0
+    grupos_fallidos = 0
+    templates_fallidos = 0
+    if args.apply:
+        for (default_id, compat_set), ids in pending.items():
+            try:
+                client.write(TEMPLATE_MODEL, ids, {
+                    'x_tecnica_default_id': default_id,
+                    'x_tecnicas_compatibles_ids': [(6, 0, sorted(compat_set))],
+                })
+                escritos += len(ids)
+                grupos_ok += 1
+            except Exception as exc:
+                grupos_fallidos += 1
+                templates_fallidos += len(ids)
+                print(f'  ✗ grupo default={default_id} compat={sorted(compat_set)} '
+                      f'({len(ids)} templates): {exc}')
+
+    # 4. CSV
     with open(out_path, 'w', encoding='utf-8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=[
             'template_id', 'name', 'raw_tecnica', 'default_code',
@@ -365,19 +401,21 @@ def main() -> int:
         writer.writeheader()
         writer.writerows(filas)
 
-    # 4. Resumen
+    # 5. Resumen
     print(f'\n=== Resumen [{mode}] ===')
     print(f'  Total procesados : {len(templates)}')
     for st in ('FULL', 'PARTIAL', 'NONE', 'NULL'):
         print(f'  {st:<8}: {counts[st]}')
     print(f'  Marcados para revisión (PARTIAL+NONE+multicomponente): {revisar_count}')
     if args.apply:
-        print(f'  Escritos: {escritos} | Sin cambio: {sin_cambio} | Errores: {errores}')
+        print(f'  Escritos: {escritos} templates en {grupos_ok} grupos | '
+              f'Sin cambio: {sin_cambio} | '
+              f'Errores: {errores + templates_fallidos} ({grupos_fallidos} grupos)')
     else:
-        escribibles = sum(1 for fila in filas if fila['default_code'])
-        print(f'  (dry-run: se escribirían {escribibles} con match; NADA se escribió)')
+        print(f'  Se escribirían: {n_pending_templates} templates en {n_groups} grupos '
+              f'(NADA se escribió)')
     print(f'  CSV: {out_path}')
-    return 1 if errores else 0
+    return 1 if (errores or grupos_fallidos) else 0
 
 
 if __name__ == '__main__':

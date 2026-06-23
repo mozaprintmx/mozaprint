@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-06-22 · scripts · patch (v12) — derive_tecnicas.py: escritura agrupada + flag --since
+
+**Tipo**: `scripts`
+**Descripción**: Optimización de la fase de escritura de `derive_tecnicas.py` (la lectura ya era óptima: ~12 llamadas, sin N+1). No cambia la lógica de derivación validada.
+
+### Cambios
+
+- **Writes agrupados por derivación idéntica**: los templates que requieren cambio (`_needs_write`) se agrupan por `(x_tecnica_default_id, frozenset(compatibles_ids))` y se escribe **un `write` por grupo** con todos los ids. Como un `write` de Odoo aplica los mismos vals a todos los ids, es seguro (cada grupo comparte la misma derivación por construcción).
+  - Un `--apply` fresco pasa de **~5,203 writes a ~104** (un write por combinación distinta; reducción ~50×).
+- **Flag `--since <ISO8601|YYYY-MM-DD>`**: filtra la lectura con `write_date >= since` para reprocesar solo lo cambiado recientemente (uso post-sync). Sin el flag, comportamiento actual (todos).
+- **Reporte** ahora muestra "X templates en Y grupos" en ambos modos (dry-run y apply).
+
+### Invariantes preservadas
+
+- Sin cambios en `derive()`, parsing, matching de aliases, regla de default, `_needs_write` ni el mini-test m2m (sigue corriendo en `--apply` antes del lote).
+- **Idempotente**: re-correr no reescribe lo no cambiado; m2m con `[(6,0,[ids])]`.
+- Errores por grupo aislados (uno que falle no detiene los demás).
+
+### Validación
+
+DRY-RUN tras la derivación ya aplicada en producción: 5226 sin cambio, 1 pendiente (cambio real introducido por el sync de proveedores entre el 13 y el 22). `--apply`: 1 template escrito en 1 grupo, 0 errores. Confirmada la idempotencia y el camino de escritura agrupado end-to-end.
+
+---
+
 ## 2026-06-13 · scripts · minor (v11) — derive_tecnicas.py: derivación de técnica canónica
 
 **Tipo**: `scripts`
