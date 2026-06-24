@@ -103,6 +103,10 @@ logs/
 *.log
 *.log.*
 
+# Logs sueltos de corridas del sync (analysis/) redirigidas a la raíz
+log_exitos.txt
+log_fallas.txt
+
 # =============================================================================
 # Claude Code
 # =============================================================================

@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-06-24 · sync · minor (v13) — INN: técnicas multivalor completas + re-derivación
+
+**Tipo**: `sync`
+**Descripción**: El adaptador de InnovationLine en el sistema de sincronización de
+proveedores truncaba los productos multi-técnica a una sola técnica. Se corrige para
+que conserve todas las técnicas de cada producto, y se re-deriva la técnica canónica
+para propagar el cambio a los campos estructurados.
+
+> El código del sync de proveedores vive en un área de análisis local **no
+> versionada** (`analysis/`, gitignored): contiene detalle operativo sensible. Esta
+> entrada registra el cambio a alto nivel para la trazabilidad del proyecto.
+
+### Cambios
+
+- **Fix de truncación de técnicas (INN)**: los productos con varias técnicas de
+  personalización ahora conservan **todas** sus técnicas en el sync, no solo la
+  primera. Antes se perdía información de personalización en el catálogo.
+- **Re-derivación canónica aplicada**: tras refrescar el catálogo de INN, se corrió
+  `scripts/derive_tecnicas.py --apply` para propagar los combos completos a
+  `x_tecnica_default_id` y `x_tecnicas_compatibles_ids`. **~415 productos
+  actualizados**, 0 errores; idempotencia re-confirmada (corrida posterior: 0
+  pendientes).
+- **Endurecimiento de logging del sync**: se reforzó el manejo de logs para evitar
+  exponer credenciales en texto plano. (Detalle del mecanismo en el área de análisis
+  no versionada.)
+
+### Relacionado
+
+- La optimización de la fase de escritura de `derive_tecnicas.py` (writes agrupados
+  + flag `--since`) está documentada en la entrada v12 (2026-06-22).
+
+---
+
 ## 2026-06-22 · scripts · patch (v12) — derive_tecnicas.py: escritura agrupada + flag --since
 
 **Tipo**: `scripts`
