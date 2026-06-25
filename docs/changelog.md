@@ -4,6 +4,53 @@
 
 ---
 
+## 2026-06-25 · sync · minor (v14) — Endurecimiento del sync: imágenes, backup INN, derivación automática
+
+**Tipo**: `sync`
+**Descripción**: Tanda de mejoras de robustez al sistema de sincronización de
+proveedores, centradas en que una corrida no se bloquee por causas secundarias
+(imágenes) y en automatizar/respaldar pasos que antes eran manuales.
+
+> El código del sync vive en un área de análisis local **no versionada**
+> (`analysis/`, gitignored): contiene detalle operativo sensible. Esta entrada
+> registra los cambios a alto nivel para la trazabilidad del proyecto.
+
+### Cambios
+
+- **Manejo robusto de imágenes**: ante imágenes que Odoo rechazaba (formato AVIF,
+  entre otros), ahora el sync (1) **diagnostica** el problema real de cada imagen
+  (formato detectado por contenido, tamaño, tipo de respuesta), (2) **convierte**
+  los formatos recuperables (AVIF/WEBP) a uno que Odoo acepta, conservando la
+  imagen del producto, y (3) **desacopla** el fallo de imagen del conteo de errores
+  de producto. Resultado: una corrida donde solo fallan imágenes termina con 0
+  errores de producto y **ya no bloquea la derivación canónica posterior**.
+  - Las imágenes genuinamente inválidas (inexistentes, vacías, corruptas) se saltan
+    con un aviso detallado, sin reintentar; el resto del producto se sincroniza.
+  - El resumen final reporta cuántas imágenes se convirtieron y cuántas se saltaron.
+  - Nueva dependencia **opcional** en runtime: Pillow (≥11.3, AVIF/WEBP nativos).
+    Si no está instalado, esas imágenes simplemente se saltan (no rompe el sync).
+- **Derivación canónica automática post-sync**: al terminar un sync **sin errores**,
+  se dispara `scripts/derive_tecnicas.py` de forma incremental para mantener
+  actualizados `x_tecnica_default_id` / `x_tecnicas_compatibles_ids` sin paso manual.
+  Es un paso independiente: si falla, se avisa pero no afecta al sync.
+- **Backup con fecha de InnovationLine**: cada corrida exitosa de la API guarda la
+  respuesta cruda como respaldo fechado, y el fallback de lectura pasa a usar **el
+  respaldo más reciente** (antes leía un archivo fijo y desactualizado). Incluye
+  rotación de respaldos antiguos. Se migró el snapshot manual previo al nuevo esquema.
+- **Despliegue asistido análisis → producción**: utilidad que compara por contenido
+  los archivos del paquete y, con respaldo previo, copia solo los que cambiaron
+  (detección dinámica; evita olvidar archivos al desplegar). Vive en el área no
+  versionada.
+
+### Notas
+
+- Configuración nueva (rutas/flags de la derivación automática y del backup de INN)
+  documentada como variables opcionales con defaults sensatos.
+- Sin cambios en la lógica de técnica/precio/stock/categorías ni en
+  `scripts/derive_tecnicas.py` (repo principal).
+
+---
+
 ## 2026-06-24 · sync · minor (v13) — INN: técnicas multivalor completas + re-derivación
 
 **Tipo**: `sync`
