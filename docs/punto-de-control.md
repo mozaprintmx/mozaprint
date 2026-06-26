@@ -1,197 +1,50 @@
-# Punto de Control — Proyecto Mozaprint MX
+# Punto de control — Mozaprint MX
 
-> Documento de migración. Resume el estado completo del proyecto al momento de
-> cambiar de cuenta de Claude (personal → cuenta Mozaprint Pro).
-> Subir al knowledge del Proyecto nuevo para que Claude tenga contexto inmediato.
-> Fuente de verdad detallada: repo github.com/mozaprintmx/mozaprint
+Última actualización: 2026-06-26. Pegar/leer al iniciar un chat nuevo para retomar con contexto mínimo.
 
----
+## Cómo trabajar (para ahorrar tokens)
+- Un chat nuevo por pieza de trabajo; cortar al cerrar cada pieza, no a media tarea.
+- No pegar salidas completas de Claude Code: resumir ("aplicó OK, 3 archivos, 0 errores") + solo el dato para decidir.
+- Capturas solo cuando lo visual importa; si se puede decir el resultado en texto, mejor.
+- Pasos uno a uno con validación; no asumir herramientas/versiones; español MX; honestidad sobre trade-offs.
 
-## QUÉ ES EL PROYECTO
+## Stack
+- Odoo Online 19.0 Custom (db `mozaprintmx`, mozaprintmx.com). Extensión solo vía Studio / Ajustes→Técnico / Automation Rules / Server Actions. JSON-2 API (no XML-RPC) para integraciones nuevas.
+- Repo PÚBLICO `github.com/mozaprintmx/mozaprint`, local `D:\MozaPrint\Odoo\Proyectos\mozaprint`. NUNCA credenciales.
+- Sync de proveedores (4P, INN, PO): paquete Python `sync_odoo_paquete_v2`. Producción: `D:\MozaPrint\Odoo\Scripts PY\ProductSync\`. Copia de análisis (editable por Claude Code, gitignored): `analysis\supplier-sync\`. Usa XML-RPC + usuario/contraseña. Python global Python312.
+- Negocio: artículos promocionales personalizados B2B, CDMX. Operador único (Juan Carlos). Volumen bajo (~10-20 conversaciones/semana).
 
-Optimización del ecosistema digital de **Mozaprint MX**: empresa de artículos
-promocionales personalizados B2B en CDMX. Gestión integral: diseño,
-personalización, asesoría de producto, hasta entrega.
+## Modelo de datos de técnica (Fase 2) — COMPLETO
+- Modelo `x_tecnica_personalizacion`: campos `x_name`, `x_code` (req), `x_aliases` (text, variantes crudas sep " | "), `x_descripcion`, `x_orden`, `x_activa`. 20 técnicas cargadas (seed_tecnicas.py, idempotente). Permiso: grupo "Ventas/Usuario: todos los documentos".
+- En `product.template`: `x_tecnica_default_id` (m2o), `x_tecnicas_compatibles_ids` (m2m) → ambos a x_tecnica_personalizacion. Legacy `x_tecnica_impresion` (char) = fuente raw, lo pisa el sync.
+- Regla default en combos: primera técnica del string crudo; si hay una sola, esa.
+- Derivación: `scripts/derive_tecnicas.py` (raw→canónico vía aliases, dry-run/--apply/--since, writes agrupados por derivación idéntica ~50x, mini-test m2m antes del lote). Aplicada: 5,203 productos. Quedan 15 kits multicomponente marcados (cola opcional F5, no bloqueante).
+- Seed versionado: `data/tecnicas_seed.csv` + `data/tecnicas_seed.md` (procedencia). 3 aliases agregadas tras dry-runs: "Grabado en bajo relieve", "Goteado en Resina", "Grabado en Arena".
 
-**Objetivo**: automatizar actividades repetitivas para facilitar el trato con
-el cliente, empezando por captura de leads y, eventualmente, un agente IA de
-WhatsApp que atienda y cotice.
+## Desvío al SYNC — COMPLETO (en producción)
+Auditoría completa en `analysis/supplier-sync/AUDITORIA_SYNC.md` (local, gitignored). Piezas hechas:
+1. **Dry-run** en auto_sync/stock_sync (guard centralizado en OdooClient._call). --dry-run no escribe nada. Limitación: creates no enumeran variantes.
+2. **Fix truncación INN**: conserva TODAS las TecnicasImpresion[] (une con "-") y Materiales[] (une con ", "). Antes tomaba solo [0]. ~437 productos recuperaron multi-técnica. Verificado: TX-119, TX-311 con Serigrafía+Bordado.
+3. **Fuga de credenciales CORREGIDA**: la Clave de INN se escribía en claro en logs. Solución: redact() + RedactingFilter global en logger.py (cubre mensaje y traceback). Logs viejos purgados. Sync NO se respalda → no hace falta rotar clave.
+4. **Encadenamiento sync→derivación**: auto_sync, al terminar sin errores, invoca derive_tecnicas.py del repo (subprocess, --since hora_inicio-1h UTC, entorno sin heredar vars Odoo del sync). Config .env: DERIVE_ENABLED/DERIVE_SCRIPT_PATH/DERIVE_PYTHON_PATH.
+5. **Imágenes AVIF**: diagnóstico detallado + conversión AVIF→PNG/JPEG (Pillow) + saltar rotas. Fallo de imagen ya NO cuenta como error de producto (desacoplado) → ya no bloquea la derivación.
+6. **Backup diario INN**: cada respuesta exitosa guarda productos_INN_AAAAMMDD.json (rotación 14d) + actualiza fallback. Escritura atómica, solo si datos válidos.
+7. **Ajustes del usuario** (ya en prod): _PAGE_LIMIT INN 800→400 (API no respondía con 800). **Desactivación de sobrantes**: auto_sync desactiva productos que el proveedor ya no manda SI sobrantes <10% del catálogo DE ESE PROVEEDOR (confirmado); si ≥10% avisa "posible catálogo truncado" sin tocar. Config SURPLUS_AUTO_DEACTIVATE/SURPLUS_MAX_PCT.
 
-## STACK TÉCNICO
+Horarios reales (Task Scheduler, no en código): stock_sync INN 09:15/13:15/17:15; stock_sync PO+4P cada 4h; auto_sync productos INN 09:15 (ventana API 09:00–10:00), PO+4P 03:00.
 
-```
-Odoo Online 19.0 Custom (mozaprintmx.com / mozaprintmx.odoo.com)
-  - Sistema central: datos, CRM, ventas, catálogo, inventario, sitio web
-  - Extensiones vía Studio (campos x_studio_), Automation Rules, Server Actions
-  - Módulo IA nativo (tier incluido, sin API key propia necesaria)
+## Fase 2 — /shop filtros — COMPLETO (limpieza)
+- Audit: `scripts/audit_atributos.py` (reportes gitignored). 17 atributos, solo 2 reales: **Color** (204 valores, 5,444 productos, create_variant=always — NO TOCAR esa mecánica de variantes) y **Talla** (29 productos). Los otros 15 son basura (0 o 1 producto), con duplicados Brand/brand, color/Color.
+- El sidebar PÚBLICO ya estaba sano (solo Color/Talla/Precio); los filtros sucios solo se veían como ADMIN (productos no publicados).
+- **Hecho**: limpieza de atributos vía campo "Visibilidad del filtro de eCommerce" — todo lo que no es Color/Talla quedó Oculto. Validado: /shop público muestra solo Color, Talla, Precio.
+- **Filtro de técnica DESCARTADO/baja prioridad**: por experiencia del operador, el cliente busca producto y luego pregunta por personalización; no navega por técnica. (Odoo no tiene reporte de términos de búsqueda para confirmarlo con datos.)
+- Si se hiciera técnica-como-filtro algún día: requiere modelarla como product.attribute con create_variant="no_variant" (no se puede filtrar /shop por campo custom en Online sin tocar el controlador).
 
-n8n self-hosted en VPS (PLANEADO, espera aprobación de pago)
-  - Será el orquestador / router único del webhook de WhatsApp
-  - Conecta Odoo <-> Meta WhatsApp <-> LLM
-
-LLM (Claude vs OpenAI — decisión en piloto, Fase 7)
-  - Para el agente conversacional "Moza"
-
-GitHub: github.com/mozaprintmx/mozaprint (PÚBLICO)
-  - Todo el código, documentación y decisiones versionadas
-
-Claude Code: herramienta principal de trabajo técnico (conectada al repo)
-```
-
-## QUIÉN ES EL USUARIO
-
-- **Juan Carlos Asomoza Ponce**: ingeniero en computación, operador único,
-  persona física con actividad empresarial.
-- **Karina Asomoza**: Dirección de Marketing / Community Manager. Será dueña
-  del knowledge base del agente. Maneja redes (cuenta mozaprintmx@gmail.com).
-- **Rosy Ponce**: usuario administrativo de Odoo (reutilizado para API).
-- **Manager de Finanzas**: aprobador de costos no parametrizados (rol futuro).
-
-## ESTADO POR FASES
-
-| Fase | Estado | Resumen |
-|---|---|---|
-| 0 - Fundamentos | ✅ Completa* | DNS, usuario API Odoo, entorno dev, Meta validado |
-| 1 - Captura de leads | ✅ Completa | Formularios->CRM, campos custom, notificación, alertas |
-| 2 - Precios y catálogo | 🔵 SIGUIENTE | Técnicas, descuentos, /shop |
-| 3 - Motor de cotización | 🔴 Pendiente | Matriz de costos, parsear INN |
-| 4 - Setup WhatsApp + n8n | 🔴 Bloqueada por VPS | App Meta, Coexistence, webhooks |
-| 5 - Agente preparación | 🔴 Pendiente | KB, FAQs, tools 1-6, plantillas |
-| 6 - Bridge producción | 🔴 Pendiente | Tools 7-12, Server Action, x_ai_mode |
-| 7 - Piloto | 🔴 Pendiente | Off-hours, DECIDIR Claude vs OpenAI |
-| 8 - Proveedores | 🔴 Pendiente | Migrar sync a n8n, JSON-2 |
-| 9 - SEO + dashboard | 🔴 Pendiente | |
-| 10 - Expansión agente | 🔴 Pendiente | 24/7, proactivo |
-
-*Fase 0: solo falta desplegar VPS de n8n (espera aprobación de pago).
-Fases 1-3 son Odoo puro, NO requieren n8n. Fases 4+ sí.
-
-## LO QUE SE COMPLETÓ EN FASE 0
-
-- **DNS**: Cloudflare authoritative (migrado para SEO), Hostinger solo email +
-  registrar. Eliminado old.mozaprintmx.com. SPF reforzado a -all (estricto).
-  DKIM de Hostinger confirmado (3 selectores). DMARC en p=none.
-  ADVERTENCIA: SPF en -all estricto. Cuando Odoo envíe correo con servidor
-  propio, agregar su include o serán rechazados.
-- **Usuario API Odoo**: se reutiliza "Rosy Ponce" (rosy_ponce@mozaprintmx.com)
-  con permisos REDUCIDOS por seguridad (de casi-admin a: Ventas Usuario,
-  Inventario Usuario, Compras Usuario, Contabilidad Facturación, Productos Crear,
-  Contacto Creación; quitado Banco). API key "n8n-produccion" generada (en
-  gestor de secretos). Ruta futura: crear usuario integration@ dedicado al crecer.
-- **Entorno dev**: Windows 10, Git, Node, VS Code, GitHub CLI, Claude Code, todo
-  funcionando. Proyecto en D:\MozaPrint\Odoo\Proyectos\mozaprint.
-- **Meta Business**: portfolio mozaprint_mx (Business ID 100794159106337).
-  WABA "Moza Print" (ID 358071354051207) APROBADA. Número +52 1 56 3277 6277
-  registrado, estado "Sin conexión" (falta conectar a Cloud API vía Coexistence).
-  Verificación de negocio NO necesaria (Meta no la requiere para este caso).
-
-## LO QUE SE COMPLETÓ EN FASE 1
-
-### Campos custom en crm.lead (creados vía Studio, en producción)
-La instancia FUERZA prefijo x_studio_ (no editable). Campos:
-- x_studio_collected_qty (Integer) - cantidad
-- x_studio_collected_producto (Text) - producto
-- x_studio_collected_personalizacion (Selection: Sí/No/Aún no he decidido)
-- x_studio_origen_form (Text) - clasificador origen
-- x_studio_origen_url (Text) - URL exacta (PENDIENTE definir cómo se llena)
-
-### Formularios web conectados al CRM
-Los 3 formularios (/contactanos, /shop, ficha de producto) ahora crean LEADS
-(no Oportunidades) en el CRM en vez de solo mandar correo. Mapeo de campos
-estándar + custom. El campo Tipo oculto fija "Lead". Probados en producción.
-ACLARACIÓN: conectar al CRM NO impide responder por correo; se puede tener ambos.
-
-### Etapa "Leads" activada en CRM.
-
-### Automation Rule de notificación
-"Notificar nuevo lead de formulario web": al crear un lead con
-x_studio_origen_form establecido, envía correo a info@mozaprintmx.com.
-LECCIÓN: las variables en plantillas se insertan con comando /campo, NO escribir
-{{ object.campo }} a mano (se guarda literal). El correo "Enviar como" debe ser
-"Correo electrónico", no "Mensaje".
-
-### 3 Alertas de seguimiento (Automation Rules basadas en tiempo)
-1. Lead sin calificar 1 día -> actividad a Juan
-2. Oportunidad en "Nuevo lead" 1 día -> actividad + etiqueta "Urge contactar"
-3. Oportunidad en "Nuevo lead" 3 días -> actividad + etiqueta "Peligro, posible
-   pérdida" + correo a mozaprintmx@gmail.com
-Disparador por campo "Última actualización de etapa". Etiquetas acumulativas.
-PENDIENTE: validar que se disparen en funcionamiento real (esperar cron).
-
-### Pipeline limpiado.
-
-### REGLA DE PROCESO CRÍTICA
-Odoo NO está conectado al correo (se responde desde Gmail), así que Odoo solo
-detecta actividad cuando el vendedor MUEVE la tarjeta en el pipeline. El equipo
-DEBE mover las tarjetas al actuar, o las alertas darán falsos positivos. Esto se
-elimina con el correo bidireccional o la integración WhatsApp.
-
-## DECISIONES DE ARQUITECTURA CLAVE
-
-- **WhatsApp**: Coexistence Mode (app móvil + Cloud API mismo número).
-- **n8n es ROUTER ÚNICO** del webhook de WhatsApp (la Cloud API permite 1 solo
-  webhook por número). Odoo y todo lo demás reciben datos A TRAVÉS de n8n.
-- **Inbox multi-agente para escalar vendedores**: se construye sobre Odoo (no BSP),
-  en 3 etapas. NO conectar módulo WhatsApp nativo de Odoo al mismo número.
-- **Bridge custom** (no módulo Odoo nativo, no BSP) para flexibilidad del agente.
-- **Precios SIEMPRE de Odoo**: el agente NUNCA inventa montos.
-- **Human-in-the-loop** obligatorio para costos no parametrizados.
-- **LLM**: decisión Claude vs OpenAI se pospone al piloto (Fase 7).
-
-## HALLAZGOS IMPORTANTES (descubiertos en campo)
-
-1. **Contactos de WhatsApp**: hoy los clientes solo se ven por número (sin nombre)
-   porque guardar contactos es manual y la agenda de la app no tiene API. SOLUCIÓN
-   (Fase 4): la Cloud API entrega el nombre de perfil en cada mensaje; n8n
-   crea/actualiza contactos en Odoo automáticamente. Odoo se vuelve fuente de verdad.
-
-2. **Exclusión de proveedores**: el agente NO debe responder a proveedores (a
-   quienes Mozaprint COMPRA). Las etiquetas de la app no se exponen vía API.
-   SOLUCIÓN (Fase 4): filtro pre-respuesta en n8n que consulta Odoo: si es
-   proveedor (supplier_rank>0), o marcado "no atender", o número interno -> el
-   agente no responde, queda en modo manual. Preparar: registrar proveedores en
-   Odoo con su número de WhatsApp.
-
-## DATOS OPERATIVOS DEL NEGOCIO
-
-- Volumen: 10-20 conversaciones WhatsApp/semana, 1-2 operadores.
-- Horario: L-V 9-18, Sáb 10-13, Dom cerrado.
-- SLA: cotizaciones en menos de 24h (el sitio lo promociona).
-- Anticipo: 50% estándar / caso por caso en >$100k MXN.
-- Pago: transferencia (principal) + Mercado Pago.
-- Agente: tono tutea, español MX, nombre "Moza" (confirmar con Karina).
-- Comandos: /tomar, /reactivar, /pausar (alias inglés).
-- Proveedores: 4PROMOTIONAL (4P), PROMOOPCION (PO), INNOVATIONLINE (INN).
-  INN tiene lista de costos digital; 4P y PO no (construir desde histórico).
-
-## TAREAS PENDIENTES NO BLOQUEANTES
-
-- **VPS de n8n** - espera aprobación de pago. Desbloquea Fases 4-6.
-- **Correo bidireccional** desde @mozaprintmx.com (prioridad MEDIA): configurar
-  SMTP saliente + entrante en Odoo, ajustar SPF, DKIM. Mini-proyecto dedicado.
-- **x_studio_origen_url**: definir cómo capturar URL dinámica.
-- **Validar las 3 alertas** en funcionamiento real.
-
-## SIGUIENTE PASO: FASE 2 (precios y catálogo)
-
-Abarca: modelo de técnicas de personalización (x_tecnica_personalizacion + 8
-técnicas seed: Serigrafía, Tampografía, Bordado, DTF Textil, DTF UV, Sublimación,
-Láser, Vinyl), vincular productos con técnicas, migrar descuentos a Promotions,
-filtros en /shop, color swatches, optional/accessory products.
-
-ANTES de empezar Fase 2, se necesita conocer el estado del catálogo actual:
-cuántos productos, cómo se cargan (script de proveedores), cómo está hoy el campo
-"Técnica de impresión" en las tarjetas, si hay tabla de descuentos, estado de /shop.
-
-## CÓMO TRABAJAR (preferencias del usuario)
-
-- Pasos uno a uno con pausas de validación. No avanzar de golpe.
-- No asumir herramientas/versiones; preguntar o dar formulario de opciones.
-- Ser específico; cuando la decisión es clara, ser directo sin tantas vueltas.
-- UI (Odoo/Meta): el usuario ejecuta y manda capturas; Claude guía y valida.
-- Código: Claude Code construye, usuario revisa/aplica.
-- Documentar en el repo tras cada hito (prompts específicos para Claude Code).
-- Claude Code: plan -> revisar -> aprobar -> ejecutar -> validar -> commit+push.
-- Repo PÚBLICO: NUNCA credenciales en él. Secretos en Bitwarden.
-- Honestidad sobre trade-offs y riesgos; explicar brevemente el "por qué".
-- Español México.
+## PENDIENTES / próximas piezas (cada una = chat nuevo)
+- **Vigilar** primeras corridas: desactivación de sobrantes (riesgo API inestable bajo umbral 10%); que imágenes AVIF se conviertan/salten; que la derivación se dispare sola post-sync; que el backup productos_INN_*.json se genere. Revisar logs en ProductSync\logs\.
+- **Limpieza fina opcional** (higiene, sin prisa): borrar de verdad los atributos basura; limpiar valores de Color (10 huérfanos + 40 de-1-producto).
+- **Piezas de Fase 2 sin tocar**: swatches de color, optional/accessory products, **descripciones con AI Fields** (alto valor SEO; OJO: el sync reescribe description_ecommerce, mismo patrón "el sync lo pisa" que la técnica — diseñar con cuidado). Recomendación: saltar a descripciones AI por mayor impacto.
+- **15 kits multicomponente**: refinamiento manual de default (cosmético).
+- **Backlog del sync** (Fase 8 / mini-proyectos): XML-RPC→JSON-2; precio en pricelist en vez de ×1.5 en código; supplierinfo completo (product_code/min_qty para matriz de costos Fase 3); Materiales[] en PO/4P; tags de material palabra-completa vs primera palabra; "esperar 2-3 corridas antes de desactivar sobrantes".
+- **changelog.md** del repo: confirmar entrada de alto nivel del fix INN.
+- **Fases siguientes**: 3 (motor cotización / matriz de costos por técnica×área×cantidad×proveedor — el área viene en texto sin parsear en x_area_impresion/x_medidas), 4-6 (WhatsApp+n8n, agente), 7+ (SEO, expansión).
