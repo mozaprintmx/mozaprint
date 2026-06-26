@@ -4,6 +4,45 @@
 
 ---
 
+## 2026-06-25 · sync · minor (v15) — INN: página más chica (504) + auto-desactivación de sobrantes con tope
+
+**Tipo**: `sync`
+**Descripción**: Dos arreglos al sistema de sincronización de proveedores surgidos
+al validar el sync real: el de obtención de datos de InnovationLine y la
+desactivación de productos descontinuados.
+
+> El código del sync vive en un área de análisis local **no versionada**
+> (`analysis/`, gitignored). Esta entrada registra los cambios a alto nivel para
+> la trazabilidad del proyecto.
+
+### Cambios
+
+- **Fix de timeouts de InnovationLine (504)**: la API de INN empezó a responder
+  `504 Gateway Timeout` al pedir páginas grandes (su backend excede el límite de
+  ~29s del gateway). Se redujo el tamaño de página a un valor con margen cómodo,
+  de modo que el sync vuelve a traer datos **frescos** de la API en vez de caer al
+  respaldo local. Diagnóstico confirmado midiendo la API directamente (páginas
+  chicas responden en segundos; las grandes cortan a los 29s).
+- **Auto-desactivación de sobrantes con tope de seguridad**: la corrida automática
+  ahora **desactiva** los productos que ya no vienen en el catálogo del proveedor,
+  pero **solo si son menos del 10%** del total del proveedor en Odoo. Si se supera
+  ese tope (señal de un catálogo truncado por una API a medias), **no desactiva** y
+  avisa para revisión manual. Antes la corrida automática nunca desactivaba (solo
+  avisaba), por lo que los descontinuados se acumulaban; la desactivación solo
+  ocurría al correr el flujo interactivo a mano.
+  - Umbral configurable; por defecto 10% y activado.
+  - Se evalúa aun cuando no haya altas/actualizaciones (un descontinuado sin otros
+    cambios igual se desactiva). Los productos se marcan inactivos, no se borran.
+
+### Notas
+
+- Configuración nueva (activación y umbral de la auto-desactivación) documentada
+  como variables opcionales con defaults sensatos.
+- Validado en producción: corrida real de INN con datos frescos, imágenes AVIF/WEBP
+  convertidas, 0 errores de producto y derivación canónica disparada al cierre.
+
+---
+
 ## 2026-06-25 · sync · minor (v14) — Endurecimiento del sync: imágenes, backup INN, derivación automática
 
 **Tipo**: `sync`
