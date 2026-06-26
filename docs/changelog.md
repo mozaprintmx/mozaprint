@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-06-26 · scripts · patch (v16) — audit_atributos.py: auditoría de atributos para limpiar filtros de /shop
+
+**Tipo**: `scripts`
+**Descripción**: Script de **solo lectura** que fotografía los atributos de producto
+(`product.attribute`, `product.attribute.value`, `product.template.attribute.line`)
+para decidir qué filtros del sidebar de /shop quitar, consolidar o limpiar. No
+escribe nada en Odoo. Reutiliza el `OdooClient` JSON-2 y el `.env`.
+
+### `scripts/audit_atributos.py` (nuevo)
+
+- **Por atributo**: nº de valores, nº de productos que lo usan (distinct en las
+  líneas de atributo), tipo, modo de variante, visibilidad en web; banderas
+  `usado_por_1_producto` / `usado_por_pocos` (≤3) → candidatos a quitar del filtro.
+- **Valores huérfanos**: para atributos grandes (>50 valores), desglosa total vs
+  en uso vs huérfanos (definidos sin producto) y la cola de valores de 1 producto.
+- **Solapados**: señala pares de atributos con nombres similares (por substring o
+  primera palabra; solo marca, no asume) como candidatos a consolidar.
+- **Top valores** por nº de productos y **resumen accionable** (ELIMINAR /
+  CONSOLIDAR / LIMPIAR valores).
+- Salida: `reports/audit_atributos_YYYYMMDD.json` + `.md`. Paginado, idempotente,
+  manejo de errores por sección, sin PII (solo nombres de atributo/valor y conteos,
+  no nombres de producto).
+
+### Hallazgo de la primera corrida (alto nivel)
+
+- 17 atributos, pero solo **3 en uso real** (Color, Talla, Género). 14 son
+  candidatos a eliminar/ocultar (7 vacíos heredados + 7 creados para 1 producto).
+- `Color` concentra el catálogo (204 valores, ~10 huérfanos + ~40 de 1 producto):
+  cola larga depurable.
+
+### `.gitignore`
+
+- `reports/audit_atributos_*` (dato de negocio del catálogo; no va al repo público).
+
+---
+
 ## 2026-06-25 · sync · minor (v15) — INN: página más chica (504) + auto-desactivación de sobrantes con tope
 
 **Tipo**: `sync`

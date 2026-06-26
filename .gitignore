@@ -43,6 +43,9 @@ reports/tecnica_values_*.csv
 # Derivación de técnica (CSV): nombres de producto + datos de negocio. No se commitea.
 reports/tecnica_derivacion_*
 
+# Auditoría de atributos (JSON + MD): dato de negocio del catálogo. No se commitea.
+reports/audit_atributos_*
+
 # =============================================================================
 # Python
 # =============================================================================
