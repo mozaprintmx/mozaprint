@@ -85,9 +85,13 @@ Documentar cada campo nuevo de API en `specs/api-shapes.md`.
 - **Estilo de colaboración**: pasos uno a uno con pausas de validación, no
   avanzar de golpe. No asumir herramientas/versiones (preguntar o dar opciones).
   Honestidad sobre trade-offs y el "por qué". Español de México.
-- **Cuando termines**: actualiza `docs/changelog.md`; si hay modelo/campo nuevo
-  → `specs/data-model.md` + `odoo-extensions/studio-fields.yaml`; si hay
-  workflow n8n nuevo → exporta el JSON a `n8n-workflows/`.
+- **Cuando termines — mantén la doc en sync, en el MISMO commit**: SIEMPRE
+  `docs/changelog.md` (entrada de alto nivel). Según lo que cambió: modelo/campos
+  → `specs/data-model.md` + `odoo-extensions/studio-fields.yaml`; fases o tareas
+  completadas → `docs/roadmap.md`; scripts o `data/` nuevos → `README.md`; workflow
+  n8n nuevo → exporta el JSON a `n8n-workflows/`. **NUNCA** documentes en el repo
+  público detalle sensible del sync (endpoints, credenciales, lógica de proveedores,
+  horarios): eso vive en `analysis/` (gitignored).
 
 ## Proactivo
 
