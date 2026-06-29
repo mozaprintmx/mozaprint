@@ -21,10 +21,13 @@ es el contrato.
 
 ## Relaciones clave (técnicas de personalización)
 
-- `x_tecnica_personalizacion`: modelo propio (NO selection).
+- `x_tecnica_personalizacion`: modelo propio (NO selection). **Creado y poblado**
+  (20 técnicas, seed `data/tecnicas_seed.csv`).
 - Producto → técnica: `x_tecnica_default_id` (many2one),
-  `x_tecnicas_compatibles_ids` (many2many).
-- `x_costo_personalizacion`: costos por proveedor/cantidad, many2one a la técnica.
+  `x_tecnicas_compatibles_ids` (many2many). **Ya existen y están poblados** en
+  producción (derivados por `scripts/derive_tecnicas.py`); NO son planificados.
+- `x_costo_personalizacion`: costos por proveedor/cantidad, many2one a la técnica
+  (○ planificado, aún no creado).
 
 ## Al cambiar el modelo
 

@@ -4,6 +4,43 @@
 
 ---
 
+## 2026-06-28 · docs · patch (v17) — Reconciliación de documentación + limpieza de filtros /shop
+
+**Tipo**: `docs`
+**Descripción**: Tras varias sesiones de trabajo, la documentación del repo quedó
+atrasada respecto a la realidad. Se reconcilió a partir de un diagnóstico por
+archivo, y se registra un cambio en producción que faltaba documentar.
+
+### Documentación reconciliada
+
+- **Modelo de técnica = creado y poblado** (antes figuraba como "planificado"):
+  `x_tecnica_personalizacion` con 20 técnicas, y `x_tecnica_default_id` /
+  `x_tecnicas_compatibles_ids` en `product.template` poblados por
+  `scripts/derive_tecnicas.py` (~5,203 templates). Actualizados `docs/roadmap.md`
+  (Fase 2), `specs/data-model.md` y `odoo-extensions/studio-fields.yaml` (v0.5.0).
+- **Specs de API/integración corregidos**: la JSON-2 API devuelve respuestas
+  **crudas** (sin `{"result":...}`); `create` usa `vals_list`; usuario API = Rosy
+  Ponce; `ODOO_URL = mozaprintmx.odoo.com`. (`specs/api-shapes.md`,
+  `specs/integrations.md`, `docs/architecture.md`).
+- **README**: árbol de `scripts/` real + carpeta `data/`; historial apunta a este
+  changelog.
+- **Higiene**: `docs/decisiones-equipo-v1.md` se convirtió en puntero al ADR
+  `decisions/004` (fuente única); se contradecía la cuenta "8 vs 20 técnicas"
+  (queda 20 en toda la doc de estado).
+- **Detalle del sync de proveedores** se mantiene fuera del repo público (vive en
+  `analysis/AUDITORIA_SYNC.md`, gitignored); la doc pública queda a alto nivel.
+
+### Cambio en producción (catálogo)
+
+- **Filtros de /shop depurados**: se ocultaron como filtros los atributos que no
+  son **Color** ni **Talla** (campo "Visibilidad del filtro de eCommerce"), tras el
+  diagnóstico de `scripts/audit_atributos.py` (17 atributos, solo 2 en uso real). El
+  /shop público muestra ahora solo Color, Talla y Precio. El filtro por técnica se
+  **descartó** (el cliente busca producto, no técnica). No se borraron atributos ni
+  valores (limpieza fina queda como backlog opcional).
+
+---
+
 ## 2026-06-26 · scripts · patch (v16) — audit_atributos.py: auditoría de atributos para limpiar filtros de /shop
 
 **Tipo**: `scripts`

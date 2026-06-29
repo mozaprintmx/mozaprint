@@ -183,6 +183,11 @@ Claude **NO debe**:
 6. n8n loggea cualquier error para revisión
 ```
 
+> **Estado actual (no es n8n todavía)**: el sync de proveedores hoy corre como un
+> **script Python independiente** (XML-RPC), fuera de este repo. Su detalle de
+> integración vive en `analysis/AUDITORIA_SYNC.md` (local, gitignored — no público).
+> El flujo de arriba es el **diseño objetivo**; la migración a n8n/JSON-2 es Fase 8.
+
 ## Webhooks y eventos
 
 ### Salientes desde Odoo (configurar en Settings → Technical → Webhooks)
@@ -209,7 +214,7 @@ Claude **NO debe**:
 
 ### En n8n
 ```
-ODOO_URL=https://mozaprint.odoo.com
+ODOO_URL=https://mozaprintmx.odoo.com
 ODOO_API_KEY=<api key "n8n-produccion" — usuario Rosy Ponce, ver docs/usuarios-odoo.md>
 ODOO_DATABASE=<nombre db si multi-db>
 
@@ -227,7 +232,7 @@ PROVEEDOR_4PROMOTIONAL_API_KEY=<...>
 PROVEEDOR_INNOVATIONLINE_API_KEY=<...>
 
 LOG_LEVEL=info
-NOTIFICATION_EMAIL=ops@mozaprintmx.com
+NOTIFICATION_EMAIL=<TODO: confirmar buzón — no inventar. Fase 1 usa info@mozaprintmx.com para notificación de leads y mozaprintmx@gmail.com para alertas>
 ```
 
 ### En Odoo

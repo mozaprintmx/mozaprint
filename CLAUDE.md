@@ -110,6 +110,15 @@ python3 scripts/dns_audit.py --output reports/dns_$(date +%Y%m%d).json
 # Backup catálogo antes de sync masivo
 python3 scripts/backup_catalog.py --output backups/$(date +%Y%m%d).json
 
+# Auditar catálogo / atributos de /shop (solo lectura, JSON-2)
+python3 scripts/audit_catalog.py
+python3 scripts/audit_atributos.py
+
+# Técnica de personalización (dry-run por defecto; --apply escribe).
+# Seed de 20 técnicas en data/tecnicas_seed.csv.
+python3 scripts/seed_tecnicas.py --apply     # carga el seed (idempotente)
+python3 scripts/derive_tecnicas.py --apply   # deriva técnica canónica raw→modelo
+
 # Test Server Action localmente
 python3 scripts/test_server_action.py --action ai_handle_whatsapp_message \
   --input test/messages/sample_new_customer.json
@@ -121,7 +130,7 @@ python3 scripts/anonymize_whatsapp.py "exports/*.txt" --output-dir anonymized/
 ## Dónde está el resto del contexto
 
 - Decisiones del equipo (horarios, anticipo, pago, técnicas prioritarias):
-  `docs/decisiones-equipo-v1.md`
+  `decisions/004-decisiones-equipo-v1.md`
 - Términos del negocio: `docs/glossary.md`
 - Estado por fases: `docs/roadmap.md` y `docs/punto-de-control.md`
 - APIs externas y proveedores: `specs/integrations.md`
