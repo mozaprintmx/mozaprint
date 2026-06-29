@@ -5,7 +5,7 @@
 ## Fases
 
 ### FASE 0: Higiene de fundamentos
-**Estado**: 🟡 En curso (semana 2) · 3/9 tareas completadas
+**Estado**: 🟡 Casi completa · 4/9 tareas — pendientes: VPS n8n, cuentas Anthropic/OpenAI, subdominio n8n, rotar API key del sync, whitelist Googlebot
 **Decisiones tomadas**: Camino A WhatsApp · DNS Cloudflare confirmado · Roles asignados
 **Tareas**:
 - [x] Auditar DNS con `scripts/dns_audit.py` (Cloudflare + Hostinger) — 2026-05-28
@@ -39,15 +39,15 @@
 **Dependencia operativa documentada**: el equipo debe mover las tarjetas en el pipeline cada vez que actúa con un cliente (ver `docs/proceso-equipo-crm.md`). Se elimina con correo bidireccional o integración WhatsApp (Fase 4).
 
 ### FASE 2: Precios y catálogo
-**Estado**: 🔴 No iniciada (semana 5-6)
+**Estado**: 🟡 En curso — modelo de técnica y limpieza de /shop hechos; pendiente costos/swatches/optional/AI Fields
 **Tareas**:
-- [ ] Crear modelo `x_tecnica_personalizacion` vía Studio
-- [ ] Cargar 8 técnicas seed (ver specs/data-model.md)
-- [ ] Migrar productos existentes para apuntar a técnicas (script)
-- [ ] Configurar `x_tecnicas_compatibles_ids` en productos clave
+- [x] Crear modelo `x_tecnica_personalizacion` vía Studio — creado en producción
+- [x] Cargar 20 técnicas seed — `scripts/seed_tecnicas.py` (idempotente); ver `data/tecnicas_seed.csv`
+- [x] Migrar productos existentes para apuntar a técnicas (script) — `scripts/derive_tecnicas.py` derivó ~5,203 templates desde `x_tecnica_impresion`
+- [x] Configurar `x_tecnicas_compatibles_ids` en productos — poblado por la derivación (combos parseados); 15 kits multicomponente quedan para refinamiento manual (no bloqueante)
 - [ ] (backlog) Auditar/arreglar los `loyalty.program` existentes con comportamiento extraño — los descuentos YA viven en `loyalty.program` (Tipo: Promociones, por compra mínima); NO hay que migrar nada (confirmado por audit 2026-06-11: 6 programas existentes)
 - [ ] (backlog) Limpiar pricelists de prueba no usadas, conservando solo Default — validar ANTES que ninguna esté referenciada por partners u órdenes (audit detectó 4: Default, Volant, GMC, Dólar)
-- [ ] Configurar filtros laterales en /shop
+- [x] Configurar filtros laterales en /shop — limpieza hecha: ocultos los atributos no-Color/Talla (campo "Visibilidad del filtro de eCommerce"); /shop público muestra solo Color, Talla, Precio. Filtro por técnica DESCARTADO (el cliente busca producto, no técnica). Audit: `scripts/audit_atributos.py`
 - [ ] Cambiar color attribute a display_type=color con swatches
 - [ ] Configurar optional/accessory products por categoría
 - [ ] Generar descripciones de producto con AI Fields
@@ -168,6 +168,9 @@
 
 ### Lo que YA funciona en producción
 - Catálogo en sitio web con atributos y variantes
+- **Modelo de técnica de personalización** (`x_tecnica_personalizacion`, 20 técnicas) con la técnica canónica **derivada** en cada producto (`x_tecnica_default_id` + `x_tecnicas_compatibles_ids`, ~5,203 templates) desde el campo raw `x_tecnica_impresion`
+- **/shop depurado**: filtros laterales reducidos a Color, Talla y Precio (atributos basura ocultos)
+- **Scripts de catálogo** (solo lectura / migración): `audit_catalog.py`, `audit_atributos.py`, `dump_tecnica_values.py`, `seed_tecnicas.py`, `derive_tecnicas.py` (todos sobre JSON-2 vía `odoo_client.py`)
 - Integración con 3 proveedores vía script (XML-RPC actual)
 - Descuentos por monto visibles en ficha (manual)
 - Los tres formularios web conectados al CRM: /contactanos, /shop y ficha de producto (crean Lead con campos custom; origen diferenciado por x_studio_origen_form)

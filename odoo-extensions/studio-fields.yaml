@@ -17,8 +17,8 @@
 # - default: valor por defecto
 # - relation: solo para many2one/many2many/one2many
 
-version: '0.4.0'
-last_updated: 2026-06-12
+version: '0.5.0'
+last_updated: 2026-06-28
 
 # =============================================================================
 # NOTA IMPORTANTE — PREFIJO x_studio_ EN ODOO ONLINE
@@ -94,21 +94,24 @@ extensions:
       string: 'URL imagen principal'
       status: created
 
-    # --- PLANIFICADOS (NO existen aún, se crean en Fase 2) ---
+    # --- CREADOS Y POBLADOS EN FASE 2 (técnica canónica) ---
+    # Poblados por scripts/derive_tecnicas.py desde x_tecnica_impresion (~5,203 templates).
 
     - field_name: x_tecnica_default_id
       field_type: many2one
       relation: x_tecnica_personalizacion
       string: 'Técnica de personalización default'
-      help: 'Técnica sugerida por defecto'
-      status: planned
+      help: 'Técnica sugerida por defecto. Poblado por derive_tecnicas.py.'
+      status: created
 
     - field_name: x_tecnicas_compatibles_ids
       field_type: many2many
       relation: x_tecnica_personalizacion
       string: 'Técnicas compatibles'
-      help: 'Todas las técnicas posibles para este producto'
-      status: planned
+      help: 'Todas las técnicas posibles para este producto. Poblado por derive_tecnicas.py.'
+      status: created
+
+    # --- PLANIFICADOS (NO existen aún, se crean en Fase 2) ---
 
     - field_name: x_personalizacion_ninguna
       field_type: boolean
@@ -350,10 +353,11 @@ extensions:
 new_models:
   x_tecnica_personalizacion:
     display_name: 'Técnica de Personalización'
-    description: 'Catálogo maestro de técnicas (lista plana, D7). CREADO en producción.'
+    description: 'Catálogo maestro de técnicas (lista plana, D7). CREADO y POBLADO en producción.'
     status: created
-    # Verificado contra Odoo 2026-06-12. Campos con prefijo x_ (no x_studio_,
-    # por ser modelo custom propio). 0 registros aún; seed en data/tecnicas_seed.csv.
+    # Verificado contra Odoo. Campos con prefijo x_ (no x_studio_, por ser modelo
+    # custom propio). 20 técnicas cargadas (seed) vía scripts/seed_tecnicas.py;
+    # fuente del seed en data/tecnicas_seed.csv.
     fields:
       - field_name: x_code
         field_type: char

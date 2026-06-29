@@ -20,9 +20,12 @@
 > - ✓ **Existen en producción** (todos `char` legacy de texto libre, ver más
 >   abajo): `x_tecnica_impresion`, `x_area_impresion`, `x_proveedor_carga`,
 >   `x_material`, `x_capacidad`, `x_medidas`, `x_imagen_url_principal`.
-> - ○ **Planificados, NO existen aún** — se crean en Fase 2: `x_tecnica_default_id`,
->   `x_tecnicas_compatibles_ids`, `x_area_max_cm2`, `x_area_dimensiones`,
->   `x_tiempo_produccion_dias`, `x_requiere_cotizacion`, `x_es_servicio_personalizacion`.
+> - ✓ **Creados y poblados en Fase 2** (vía `scripts/derive_tecnicas.py`):
+>   `x_tecnica_default_id` (m2o) y `x_tecnicas_compatibles_ids` (m2m), ambos a
+>   `x_tecnica_personalizacion`. ~5,203 templates derivados desde `x_tecnica_impresion`.
+> - ○ **Planificados, NO existen aún** — se crean en Fase 2: `x_area_max_cm2`,
+>   `x_area_dimensiones`, `x_tiempo_produccion_dias`, `x_requiere_cotizacion`,
+>   `x_es_servicio_personalizacion`.
 > - ✗ **Descartados**: `x_proveedor_id`, `x_proveedor_sku` — el vínculo con
 >   proveedor usa el estándar `product.supplierinfo` (ver sección dedicada abajo),
 >   NO un campo custom. Ojo: `x_proveedor_carga` (char) SÍ existe pero es solo una
@@ -111,7 +114,12 @@ x_imagen_url_principal:
   status: legacy
 ```
 
-#### Campos planificados (○ NO existen aún — se crean en Fase 2)
+#### ✓ Campos de técnica creados y poblados en Fase 2
+
+> Creados vía Studio y **poblados** por `scripts/derive_tecnicas.py` (derivación
+> raw→canónica desde `x_tecnica_impresion` usando los `x_aliases` del modelo):
+> ~5,203 templates. El script es idempotente (`--apply` / `--since` / dry-run por
+> defecto) y agrupa los writes por derivación idéntica.
 
 ```yaml
 x_tecnica_default_id:
@@ -119,15 +127,19 @@ x_tecnica_default_id:
   comodel: x_tecnica_personalizacion
   string: "Técnica de personalización default"
   help: "Técnica de impresión sugerida por defecto para este producto"
-  # ○ Destino de migración desde x_tecnica_impresion (valor principal del combo)
+  # ✓ EXISTE y poblado. Valor principal del combo de x_tecnica_impresion.
 
 x_tecnicas_compatibles_ids:
   type: many2many
   comodel: x_tecnica_personalizacion
   string: "Técnicas compatibles"
   help: "Lista de técnicas que se pueden aplicar a este producto"
-  # ○ Destino de migración desde x_tecnica_impresion (combos parseados por -/,)
+  # ✓ EXISTE y poblado. Combos de x_tecnica_impresion parseados por -/,.
+```
 
+#### Campos planificados (○ NO existen aún — se crean en Fase 2)
+
+```yaml
 x_area_max_cm2:
   type: float
   string: "Área máxima de impresión (cm²)"
@@ -400,8 +412,8 @@ x_origen_lead_id:
 
 ### x_tecnica_personalizacion (modelo custom)
 
-> **✓ CREADO EN PRODUCCIÓN** (verificado contra Odoo el 2026-06-12; 0 registros
-> aún — el seed se carga con `scripts/seed_tecnicas.py`, F4b). Catálogo maestro de
+> **✓ CREADO Y POBLADO EN PRODUCCIÓN** (verificado contra Odoo; **20 técnicas
+> cargadas** vía `scripts/seed_tecnicas.py`, idempotente). Catálogo maestro de
 > técnicas de personalización (lista plana, decisión D7).
 >
 > **Naming**: los campos llevan prefijo `x_` (no `x_studio_`) por ser un modelo
@@ -722,7 +734,7 @@ x_costo_personalizacion ──→ res.partner (via proveedor_id)
 ## Notas de migración
 
 - Si un producto cambia de proveedor (cambia su `product.supplierinfo`), recalcular `x_costo_personalizacion` aplicable
-- Migración de técnica: `x_tecnica_impresion` (legacy, texto libre) → `x_tecnica_default_id` + `x_tecnicas_compatibles_ids`. NO borrar `x_tecnica_impresion` hasta validar la migración en producción
+- Migración de técnica: **YA REALIZADA** — `x_tecnica_impresion` (legacy, texto libre) → `x_tecnica_default_id` + `x_tecnicas_compatibles_ids` vía `scripts/derive_tecnicas.py` (~5,203 templates). ⚠️ **NO borrar `x_tecnica_impresion`**: sigue siendo la fuente raw y **el sync de proveedores la repisa en cada corrida**; mantener la técnica canónica al día = re-ejecutar `derive_tecnicas.py` (lo hace el sync automáticamente al terminar sin errores)
 - Si una técnica se renombra en la selection, hacer migración explícita; nunca cambiar valores en producción sin script
 - Los modelos `x_ai_interaction_log` se pueden purgar después de 12 meses (analytics)
 - Los modelos `x_approval_request` se conservan indefinidamente (auditoría)
