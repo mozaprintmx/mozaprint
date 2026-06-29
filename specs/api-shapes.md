@@ -149,6 +149,10 @@
 
 ## 3. n8n → Odoo JSON-2 API
 
+> ⚠️ **La JSON-2 API devuelve el resultado CRUDO** del método (una lista en
+> `search_read`, una lista de ids en `create`, un `bool` en `write`), **NO**
+> envuelto en `{"result": ...}`. Los errores llegan como status HTTP no-2xx.
+
 ### 3.1 Search & Read
 
 **Endpoint**: `POST /json/2/<model>/search_read`
@@ -163,36 +167,37 @@
 }
 ```
 
-**Response**:
+**Response** (lista directa, sin envoltura):
 ```json
-{
-  "result": [
-    {"id": 1234, "name": "S00123", "amount_total": 15094.93}
-  ]
-}
+[
+  {"id": 1234, "name": "S00123", "amount_total": 15094.93}
+]
 ```
 
 ### 3.2 Create
 
 **Endpoint**: `POST /json/2/<model>/create`
 
+> Odoo 19 usa `model_create_multi`: el payload es `vals_list` (una **lista** de
+> dicts) y la respuesta es la **lista de ids** creados.
+
 **Request**:
 ```json
 {
-  "vals": {
-    "name": "Lead nuevo",
-    "contact_name": "Juan Pérez",
-    "phone": "+525555555555",
-    "x_collected_qty": 500
-  }
+  "vals_list": [
+    {
+      "name": "Lead nuevo",
+      "contact_name": "Juan Pérez",
+      "phone": "+525555555555",
+      "x_studio_collected_qty": 500
+    }
+  ]
 }
 ```
 
-**Response**:
+**Response** (lista de ids cruda):
 ```json
-{
-  "result": [<new_id>]
-}
+[<new_id>]
 ```
 
 ### 3.3 Write
@@ -210,9 +215,9 @@
 }
 ```
 
-**Response**:
+**Response** (bool crudo):
 ```json
-{"result": true}
+true
 ```
 
 ### 3.4 Call method
@@ -376,7 +381,7 @@ Cada tool tiene su shape de respuesta. Claude Code consulta `specs/ai-agent-spec
         "parameters": [{
           "type": "document",
           "document": {
-            "link": "https://mozaprint.odoo.com/web/content/12345?access_token=abc&download=true",
+            "link": "https://mozaprintmx.odoo.com/web/content/12345?access_token=abc&download=true",
             "filename": "Cotizacion_S00123.pdf"
           }
         }]

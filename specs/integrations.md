@@ -58,7 +58,7 @@ POST https://graph.facebook.com/v18.0/{phone_number_id}/messages
         "parameters": [{
           "type": "document",
           "document": {
-            "link": "https://mozaprint.odoo.com/web/content/...",
+            "link": "https://mozaprintmx.odoo.com/web/content/...",
             "filename": "Cotizacion_S00123.pdf"
           }
         }]
@@ -254,14 +254,18 @@ Cache vive 5 min por default. Repetir el system prompt en siguientes llamadas en
 ## 3. Odoo JSON-2 API
 
 ### Auth
-- Bearer token de API key del usuario `integration@mozaprintmx.com`
+- Bearer token de API key del usuario **Rosy Ponce** (`rosy_ponce@mozaprintmx.com`,
+  permisos reducidos; ver `docs/usuarios-odoo.md`). NO existe un usuario `integration@`.
 - Header `Authorization: Bearer {key}`
 - Header `DATABASE: {db_name}` si la instancia tiene multi-db
+
+> ⚠️ Las respuestas de la JSON-2 API son **crudas** (lista/dict/bool), sin
+> envoltura `{"result": ...}`. Ver `specs/api-shapes.md` §3 para los shapes.
 
 ### Endpoints base
 
 ```http
-POST https://mozaprint.odoo.com/json/2/{model}/{method}
+POST https://mozaprintmx.odoo.com/json/2/{model}/{method}
 Authorization: Bearer {api_key}
 Content-Type: application/json
 ```
@@ -280,18 +284,19 @@ POST /json/2/product.product/search_read
 }
 ```
 
-**Crear**:
+**Crear** (Odoo 19 `model_create_multi`: `vals_list` es una lista; devuelve `[id]` crudo):
 ```bash
 POST /json/2/crm.lead/create
 {
-  "vals": {
-    "name": "Cotización plumas - Empresa X",
-    "contact_name": "Juan Pérez",
-    "email_from": "juan@empresax.com",
-    "phone": "+525555555555",
-    "x_collected_qty": 500,
-    "x_collected_tecnica": "serigrafia"
-  }
+  "vals_list": [
+    {
+      "name": "Cotización plumas - Empresa X",
+      "contact_name": "Juan Pérez",
+      "email_from": "juan@empresax.com",
+      "phone": "+525555555555",
+      "x_studio_collected_qty": 500
+    }
+  ]
 }
 ```
 
@@ -315,7 +320,7 @@ POST /json/2/sale.order/action_quotation_send
 ### Documentación dinámica
 La instancia expone su propia doc en:
 ```
-GET https://mozaprint.odoo.com/doc
+GET https://mozaprintmx.odoo.com/doc
 ```
 
 Muestra todos los modelos y campos disponibles con su tipo. Útil consultarla cuando se duda de un nombre de campo.
@@ -401,13 +406,13 @@ if (`sha256=${expected}` !== $input.headers['x-odoo-signature']) {
 
 ## 5. Proveedores
 
-### Patrón común
-Cada proveedor tiene su propia API. Tres patrones a documentar:
-- **Promo Opción**: REST con auth por API key en header
-- **4Promotional**: REST con auth basic (user:pass)
-- **Innovation Line**: REST con OAuth2
+Mozaprint sincroniza catálogo, precios y stock de tres proveedores:
+**4Promotional (4P)**, **Innovation Line (INN)** y **Promo Opción (PO)**.
 
-> ⚠️ **TODO**: completar especificaciones específicas de cada proveedor cuando se documenten sus APIs. Por ahora el script existente las maneja; este doc se completará al refactorizar.
+> 🔒 El **detalle de integración del sync** (endpoints, autenticación, paginación,
+> lógica por proveedor, cadencia/horarios) **NO se documenta en este repo público**.
+> Vive en `analysis/AUDITORIA_SYNC.md` (local, **gitignored**). Hoy el sync corre
+> como un paquete Python independiente (XML-RPC); su migración a n8n/JSON-2 es Fase 8.
 
 ### Interfaz común propuesta
 

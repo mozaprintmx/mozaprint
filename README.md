@@ -27,10 +27,21 @@ mozaprint-context/
 │   ├── 003-coexistence-whatsapp.md
 │   └── ...
 │
-├── scripts/                     ← Scripts ejecutables (Python, bash)
-│   ├── backup_catalog.py
-│   ├── anonymize_whatsapp.py
-│   └── test_server_action.py
+├── scripts/                     ← Scripts ejecutables (Python) sobre JSON-2
+│   ├── odoo_client.py           ← Cliente JSON-2 compartido (paginación)
+│   ├── audit_catalog.py         ← Auditoría de catálogo (solo lectura)
+│   ├── audit_atributos.py       ← Auditoría de atributos /shop (solo lectura)
+│   ├── dump_tecnica_values.py   ← Volcado de valores de x_tecnica_impresion
+│   ├── seed_tecnicas.py         ← Carga el seed de técnicas (idempotente)
+│   ├── derive_tecnicas.py       ← Deriva técnica canónica raw→modelo
+│   ├── backup_catalog.py        ← Backup del catálogo antes de sync masivo
+│   ├── dns_audit.py             ← Auditoría DNS
+│   ├── anonymize_whatsapp.py    ← Anonimiza exports de WhatsApp
+│   └── test_server_action.py    ← Prueba local de Server Actions
+│
+├── data/                        ← Datos seed versionados
+│   ├── tecnicas_seed.csv        ← 20 técnicas de personalización (seed)
+│   └── tecnicas_seed.md         ← Procedencia y reglas de limpieza del seed
 │
 ├── n8n-workflows/               ← Workflows exportados como JSON
 │   ├── ai-agent-respond.json
@@ -210,11 +221,8 @@ Cada trimestre, revisar:
 
 ---
 
-## Cambios en v0.2.0 (2026-05-24)
+## Historial de cambios
 
-- Consolidación de decisiones del equipo (ver `docs/decisiones-equipo-v1.md`)
-- Modelo de técnicas de personalización como entidad separada (no selection)
-- Script de auditoría DNS: `scripts/dns_audit.py`
-- Manual para Karina: `docs/manual-knowledge-base.md`
-- ADR 004 con decisiones consolidadas
-- ai-agent-spec ampliado con horarios, comandos español, anticipo, proactividad
+Ver `docs/changelog.md` — entradas fechadas por versión (la fuente de verdad del
+historial técnico). El estado actual por fases vive en `docs/roadmap.md` y el
+resumen de arranque rápido en `docs/punto-de-control.md`.
