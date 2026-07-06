@@ -39,7 +39,7 @@
 **Dependencia operativa documentada**: el equipo debe mover las tarjetas en el pipeline cada vez que actúa con un cliente (ver `docs/proceso-equipo-crm.md`). Se elimina con correo bidireccional o integración WhatsApp (Fase 4).
 
 ### FASE 2: Precios y catálogo
-**Estado**: 🟡 En curso — modelo de técnica y limpieza de /shop hechos; pendiente costos/swatches/optional/AI Fields
+**Estado**: 🟡 En curso — modelo de técnica y limpieza de /shop hechos; pendiente swatches/optional. Descripciones con IA DESCARTADAS de Fase 2 (reencuadradas a Fase 9)
 **Tareas**:
 - [x] Crear modelo `x_tecnica_personalizacion` vía Studio — creado en producción
 - [x] Cargar 20 técnicas seed — `scripts/seed_tecnicas.py` (idempotente); ver `data/tecnicas_seed.csv`
@@ -50,7 +50,7 @@
 - [x] Configurar filtros laterales en /shop — limpieza hecha: ocultos los atributos no-Color/Talla (campo "Visibilidad del filtro de eCommerce"); /shop público muestra solo Color, Talla, Precio. Filtro por técnica DESCARTADO (el cliente busca producto, no técnica). Audit: `scripts/audit_atributos.py`
 - [ ] Cambiar color attribute a display_type=color con swatches
 - [ ] Configurar optional/accessory products por categoría
-- [ ] Generar descripciones de producto con AI Fields
+- [ ] ~~Generar descripciones de producto con AI Fields (masivo)~~ → **DESCARTADO de Fase 2** (no bloquea el cierre). Reencuadrado como iniciativa SEO **dirigida** de Fase 9, condicionada a diagnóstico GSC. Ver Fase 9 y `decisions/006-descripciones-ia-seo-dirigido.md`
 
 ### FASE 3: Motor de cotización
 **Estado**: 🔴 No iniciada (semana 7-8)
@@ -125,9 +125,17 @@
 
 ### FASE 9: SEO + Home + Dashboard
 **Estado**: 🔴 No iniciada (paralelizable, semana 4+)
-**Tareas**:
-- [ ] Schema.org markup en productos
-- [ ] Open Graph para WhatsApp share
+
+**Contexto SEO (por qué importa)**: parte de la adquisición real llega de clientes que buscan un producto AGOTADO en otros revendedores. Mozaprint comparte catálogo (y por tanto la MISMA descripción duplicada) de los proveedores INN/4P/PO, así que Google deprioritiza las fichas por contenido duplicado justo en ese escenario. Hoy probablemente nos encuentran por nombre/SKU (title/H1), no por el cuerpo — por eso el body prose NO es la palanca de mayor leverage. Ver `decisions/006-descripciones-ia-seo-dirigido.md`.
+
+**Palancas SEO en orden de prioridad**:
+- [ ] 1. `title` / meta description / H1 **únicos** por producto (mayor leverage)
+- [ ] 2. Productos alternativos/accesorios para **linking interno** — automatiza la retención manual de "similar disponible"; conecta con Fase 2 (optional/accessory products)
+- [ ] 3. schema.org/Product markup + Open Graph (para WhatsApp share)
+- [ ] 4. Descripciones únicas **DIRIGIDAS** (top productos / categorías ancla), NO masivas — solo tras el diagnóstico GSC. Diseño en `decisions/006`
+- [ ] **Diagnóstico GSC previo** (condición para pasar de "targeted" a "hacer"): en Search Console → Performance filtrado a URLs de producto, medir impresiones totales vs por página, posición media (15-30 ≈ filtrado por duplicado) y si las queries son nombre/SKU vs genéricas
+
+**Otras tareas de fase**:
 - [ ] Optimizar Core Web Vitals
 - [ ] Home redesign con value props claras
 - [ ] Dashboard KPIs con Studio

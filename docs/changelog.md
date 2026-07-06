@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-07-06 · decision · patch (v18) — Descripciones con IA: descope de Fase 2, reencuadre SEO dirigido (Fase 9)
+
+**Tipo**: `decision`
+**Descripción**: Revisión de la Tarea 2 de Fase 2. La generación **masiva** de
+descripciones de producto con IA se **descarta de Fase 2** (no se hace ahora, no
+bloquea el cierre de la fase). La idea NO se mata: se **reencuadra** como iniciativa
+SEO **dirigida** (targeted) de Fase 9, condicionada a un diagnóstico de Google Search
+Console. Detalle y diseño en `decisions/006-descripciones-ia-seo-dirigido.md`.
+
+### Por qué (señal de negocio nueva)
+
+- Adquisición real: clientes que buscan un producto AGOTADO en otros revendedores
+  caen en Mozaprint, que comparte catálogo (y la MISMA descripción duplicada) de los
+  proveedores INN/4P/PO. Google deprioritiza el contenido duplicado justo en ese
+  escenario que hoy trae clientes.
+- Pero hoy probablemente nos encuentran por nombre/SKU (title/H1), no por el cuerpo:
+  el body prose no es la palanca de mayor leverage.
+
+### Prioridad SEO real (documentada en Fase 9)
+
+1. `title` / meta / H1 únicos por producto. 2. Alternativos/accesorios para linking
+interno (conecta con Tarea 3 de Fase 2). 3. schema.org/Product + Open Graph.
+4. Descripciones únicas **dirigidas** (no masivas), solo tras diagnóstico GSC.
+
+### Impacto en docs
+
+- `docs/roadmap.md`: Fase 2 marca la tarea de descripciones IA como descartada/diferida;
+  Fase 9 gana las 4 palancas priorizadas + descripciones dirigidas + diagnóstico GSC.
+- `docs/punto-de-control.md`: descripciones IA salen del alcance de cierre de Fase 2.
+- `decisions/006`: ADR con justificación ("buscador de agotados") y diseño si se implementa.
+
+---
+
 ## 2026-06-28 · docs · patch (v17) — Reconciliación de documentación + limpieza de filtros /shop
 
 **Tipo**: `docs`
