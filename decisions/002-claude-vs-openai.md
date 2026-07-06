@@ -4,6 +4,10 @@
 **Estado**: Aceptado
 **Decisores**: Equipo Mozaprint
 
+> **Nota (2026-07-06)**: la "generación de descripciones" citada abajo se **acotó** a
+> dirigida (no masiva) y se difirió a Fase 9 — ver `decisions/006`. No cambia esta
+> decisión (Claude sigue primario); solo baja el volumen anticipado de ese caso de uso.
+
 ## Contexto
 
 Necesitamos un proveedor de LLM para el agente conversacional, generación de descripciones, lead scoring y análisis de documentos. Las opciones evaluadas:

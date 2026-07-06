@@ -34,6 +34,8 @@ interno (conecta con Tarea 3 de Fase 2). 3. schema.org/Product + Open Graph.
   Fase 9 gana las 4 palancas priorizadas + descripciones dirigidas + diagnóstico GSC.
 - `docs/punto-de-control.md`: descripciones IA salen del alcance de cierre de Fase 2.
 - `decisions/006`: ADR con justificación ("buscador de agotados") y diseño si se implementa.
+- `specs/integrations.md` + `decisions/002`: coherencia — el caso de uso "generación
+  de descripciones" queda como DIRIGIDO (no masivo), sin cambiar la decisión de LLM.
 
 ---
 

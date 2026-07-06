@@ -188,7 +188,7 @@ Content-Type: application/json
 | FAQ y conversación general | `claude-haiku-4-5-20251001` | Más barato, latencia baja, suficiente para FAQ |
 | Cotización con tool use complejo | `claude-sonnet-4-6` | Mejor razonamiento, multi-step tool calls |
 | Análisis de listas de precios (PDFs) | `claude-sonnet-4-6` | Mejor extracción de datos estructurados |
-| Generación de descripciones de producto | `claude-haiku-4-5-20251001` | Volumen alto, suficiente calidad |
+| Generación de descripciones DIRIGIDAS (targeted, Fase 9) | `claude-haiku-4-5-20251001` | **No masivo** (masivo descartado — ver `decisions/006`). Volumen bajo: top productos / categorías ancla |
 
 ### Tool use loop
 Cuando Claude decide llamar un tool, devuelve:
