@@ -4,6 +4,52 @@
 
 ---
 
+## 2026-07-06 · feat (v19) — Swatches de color: dump + motor de derivación de html_color
+
+**Tipo**: `feat`
+**Descripción**: El sync crea los valores del atributo `Color` por string exacto y
+**sin `html_color`** (swatch), así que el swatch es 100% derivado. Se agregan dos
+scripts JSON-2 (solo lectura salvo `--apply`) para poblarlo:
+
+- `scripts/dump_color_values.py`: volcado de solo lectura de los 204 valores del
+  atributo Color (nombre, html_color, conteo de productos, `name_normalizado`) para
+  reconciliar el seed. Salida a `reports/color_values_*` (gitignored).
+- `scripts/derive_colores.py`: deriva `html_color` con un motor de reglas
+  **base + modificador**. Cascada `resolve()`: LEX → BICOLOR → NON_COLOR → MATERIAL
+  → STRIP (talla/género) → BASE+MOD (deltas HLS vía `colorsys`, stdlib) → sin_base.
+  Espejo arquitectónico de `derive_tecnicas.py`: `normalize()` idéntica, DRY-RUN por
+  defecto, escritura agrupada por hex e idempotente, reporte JSON+MD.
+
+**Insumos** (`data/`): `colores_seed.csv` (30 base + 24 lex curados),
+`colores_modifiers.csv` (11 modificadores HLS), `colores_noncolor.md`
+(STRIP/NON_COLOR/MATERIAL_APROX + inventario de contaminación del eje Color).
+
+### Cobertura (self-check offline sobre el dump de 204 valores)
+
+- **97.36%** de prod-hits reciben swatch (163/204 valores; 12,482/12,820 prod-hits).
+- **41 sin swatch**: 9 `especial` (intencional: transparente/multicolor/bicolor) +
+  32 `flag` (contaminación real: `UNICO`, tallas, patrones `TRICOLOR/MEXICO`, basura).
+- Afinación: `blanco ivory` agregado como alias de la LEX `Hueso` (rescata el único
+  color real que quedaba flagged).
+
+### Seguridad
+
+- **Escribe solo `html_color` de `product.attribute.value`.** Guardas duras que
+  abortan ante cualquier otro modelo (`product.product`, `.attribute.line`,
+  `product.attribute`) o cualquier clave ≠ `html_color`. Nunca toca `create_variant`
+  ni variantes.
+- Reportes `reports/derive_colores_*` gitignored (nombres de color + contaminación).
+- **Hook post-sync documentado, no cableado**: vars `DERIVE_COLORES_ENABLED/_SCRIPT_PATH/
+  _PYTHON_PATH` + snippet de invocación (entorno limpio) para copiar a `analysis/`.
+
+### Diferido (no en esta tarea)
+
+- De-contaminación del eje Color (tallas/basura/patrones que generan variantes bajo
+  `create_variant=always`): migración con backup y preservación de SKU/stock/imagen.
+  Documentado en `data/colores_noncolor.md`.
+
+---
+
 ## 2026-07-06 · decision · patch (v18) — Descripciones con IA: descope de Fase 2, reencuadre SEO dirigido (Fase 9)
 
 **Tipo**: `decision`

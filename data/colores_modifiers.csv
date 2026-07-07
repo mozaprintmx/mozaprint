@@ -1,0 +1,16 @@
+modificador,delta_l,delta_s,fuerza_tipo,aliases,nota
+# Se aplican sobre el hex de un color 'base' del seed, en espacio HLS.
+# delta_l: +/- luminosidad (0..1). delta_s: +/- saturacion (0..1). Ambos con clamp a [0,1].
+# fuerza_tipo: si no vacio, fuerza el 'tipo' del resultado (ej. metalico). Vacio = hereda del base.
+# El motor aplica en cadena si hay varios modificadores (raro). Afina aqui y re-deriva; no toques el script.
+claro,0.18,-0.05,,claro|light|clara,Sube luminosidad; leve baja de saturacion para que no chille
+oscuro,-0.18,0.00,,oscuro|dark|obscuro|oscura,Baja luminosidad manteniendo saturacion
+pastel,0.15,-0.25,,pastel,Claro y lavado: sube luz, baja saturacion
+palido,0.22,-0.30,,palido|pale,Mas lavado que pastel
+medio,0.00,0.00,,medio|media|medium,Cualificador neutro: sin cambio de color (medium aqui es tono, no talla)
+solido,0.00,0.00,,solido|solida|solid,Acabado, no color: sin cambio
+mate,0.00,0.00,,mate|matte,Acabado mate: sin cambio de hex
+neon,-0.02,0.35,,neon|fluor|fluorescente|fosforescente,Maxima saturacion, ligeramente mas oscuro para vivar
+metalico,0.00,-0.10,metalico,metalico|metalica|metallic,Ligera baja de saturacion; marca tipo=metalico para render
+translucido,0.30,-0.12,especial,translucido|traslucido|translucida|traslucida,Aproxima translucidez subiendo mucho la luz; tipo especial
+frost,0.16,-0.12,,frost|frosty|escarcha,Efecto escarchado: claro y desaturado

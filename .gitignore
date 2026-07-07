@@ -46,6 +46,12 @@ reports/tecnica_derivacion_*
 # Auditoría de atributos (JSON + MD): dato de negocio del catálogo. No se commitea.
 reports/audit_atributos_*
 
+# Dump de valores de color (CSV): nombres de color + conteos. No va al repo público.
+reports/color_values_*
+
+# Derivación de swatches (JSON + MD): nombres de color + inventario de contaminación. No se commitea.
+reports/derive_colores_*
+
 # =============================================================================
 # Python
 # =============================================================================

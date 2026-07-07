@@ -32,8 +32,10 @@ mozaprint-context/
 │   ├── audit_catalog.py         ← Auditoría de catálogo (solo lectura)
 │   ├── audit_atributos.py       ← Auditoría de atributos /shop (solo lectura)
 │   ├── dump_tecnica_values.py   ← Volcado de valores de x_tecnica_impresion
+│   ├── dump_color_values.py     ← Volcado de valores del atributo Color (solo lectura)
 │   ├── seed_tecnicas.py         ← Carga el seed de técnicas (idempotente)
 │   ├── derive_tecnicas.py       ← Deriva técnica canónica raw→modelo
+│   ├── derive_colores.py        ← Deriva swatches html_color del atributo Color
 │   ├── backup_catalog.py        ← Backup del catálogo antes de sync masivo
 │   ├── dns_audit.py             ← Auditoría DNS
 │   ├── anonymize_whatsapp.py    ← Anonimiza exports de WhatsApp
@@ -41,7 +43,10 @@ mozaprint-context/
 │
 ├── data/                        ← Datos seed versionados
 │   ├── tecnicas_seed.csv        ← 20 técnicas de personalización (seed)
-│   └── tecnicas_seed.md         ← Procedencia y reglas de limpieza del seed
+│   ├── tecnicas_seed.md         ← Procedencia y reglas de limpieza del seed
+│   ├── colores_seed.csv         ← Colores curados (base + lex) para swatches
+│   ├── colores_modifiers.csv    ← Modificadores HLS (claro/oscuro/pastel/…)
+│   └── colores_noncolor.md      ← STRIP/NON_COLOR/MATERIAL + inventario de contaminación
 │
 ├── n8n-workflows/               ← Workflows exportados como JSON
 │   ├── ai-agent-respond.json
