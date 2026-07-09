@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-07-09 · audit (v21) — Product Tags: estado en Odoo + escritura del sync
+
+**Tipo**: `audit` (solo lectura; no modifica Odoo, código ni sync)
+
+**Descripción**: auditoría previa a agregar tags de familia de color. Nuevo script
+`scripts/audit_tags.py` (JSON-2, read-only, sin PII: solo nombres de tag y conteos)
+que fotografía `product.tag`: campos reales, uso por templates/variantes, huérfanos,
+duplicados por nombre normalizado, prefijos y colisiones con las 14 familias.
+
+### Hallazgos clave
+
+- Campos reales: `product.tag.color` es **char con hex** (no índice de paleta);
+  `visible_to_customers` (bool) controla visibilidad al cliente.
+- 154 tags · 9 huérfanos · 11 grupos duplicados por acento/case (`Poliéster`/`Poliester`/
+  `Políester`, `Cartón`/`Carton`, …) · **0 colisiones** con nombres de familia.
+- **Sync (crítico)**: escribe los tags de **template** con `[(6,0,[material])]` = REPLACE
+  TOTAL → pisaría cualquier tag de color-familia. El de **variante** es read-modify-write
+  (aditivo). `get_or_create_tag` no normaliza (dedup exacto) → misma fragmentación que Color.
+- **Convivencia**: para meter color en `product_tag_ids` hay que arreglar primero el write
+  de template del sync a read-modify-write (o usar un mecanismo dedicado fuera de la bolsa
+  compartida). Detalle en `analysis/supplier-sync/AUDITORIA_TAGS.md` (gitignored).
+
+### Impacto en repo
+
+- `scripts/audit_tags.py` (nuevo). `.gitignore`: `reports/audit_tags_*`.
+- Reportes y análisis del sync viven en `reports/` y `analysis/` (gitignored).
+
+---
+
 ## 2026-07-09 · feat + revert (v20) — Color (familia): motor compartido, derivación y rollback
 
 **Tipo**: `feat` (código conservado) + `revert` (efecto en Odoo revertido)

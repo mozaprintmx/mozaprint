@@ -46,6 +46,9 @@ reports/tecnica_derivacion_*
 # Auditoría de atributos (JSON + MD): dato de negocio del catálogo. No se commitea.
 reports/audit_atributos_*
 
+# Auditoría de product tags (JSON + MD): nombres de tag + conteos de catálogo. No se commitea.
+reports/audit_tags_*
+
 # Dump de valores de color (CSV): nombres de color + conteos. No va al repo público.
 reports/color_values_*
 
