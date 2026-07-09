@@ -35,7 +35,10 @@ mozaprint-context/
 │   ├── dump_color_values.py     ← Volcado de valores del atributo Color (solo lectura)
 │   ├── seed_tecnicas.py         ← Carga el seed de técnicas (idempotente)
 │   ├── derive_tecnicas.py       ← Deriva técnica canónica raw→modelo
+│   ├── colores_engine.py        ← Motor de color compartido (normalize/resolve/familia)
 │   ├── derive_colores.py        ← Deriva swatches html_color del atributo Color
+│   ├── derive_color_familia.py  ← Deriva atributo no_variant "Color (familia)" (revertido)
+│   ├── rollback_color_familia.py ← Rollback seguro de "Color (familia)"
 │   ├── backup_catalog.py        ← Backup del catálogo antes de sync masivo
 │   ├── dns_audit.py             ← Auditoría DNS
 │   ├── anonymize_whatsapp.py    ← Anonimiza exports de WhatsApp
@@ -44,9 +47,10 @@ mozaprint-context/
 ├── data/                        ← Datos seed versionados
 │   ├── tecnicas_seed.csv        ← 20 técnicas de personalización (seed)
 │   ├── tecnicas_seed.md         ← Procedencia y reglas de limpieza del seed
-│   ├── colores_seed.csv         ← Colores curados (base + lex) para swatches
+│   ├── colores_seed.csv         ← Colores curados (base + lex, con familia) para swatches
 │   ├── colores_modifiers.csv    ← Modificadores HLS (claro/oscuro/pastel/…)
-│   └── colores_noncolor.md      ← STRIP/NON_COLOR/MATERIAL + inventario de contaminación
+│   ├── colores_familias.csv     ← 14 familias de color para filtro de /shop
+│   └── colores_noncolor.md      ← STRIP/NON_COLOR/MATERIAL + familias + contaminación
 │
 ├── n8n-workflows/               ← Workflows exportados como JSON
 │   ├── ai-agent-respond.json

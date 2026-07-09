@@ -4,6 +4,58 @@
 
 ---
 
+## 2026-07-09 · feat + revert (v20) — Color (familia): motor compartido, derivación y rollback
+
+**Tipo**: `feat` (código conservado) + `revert` (efecto en Odoo revertido)
+
+**Qué se hizo y por qué se revirtió**: se implementó un atributo `no_variant`
+**"Color (familia)"** para un filtro limpio de color en `/shop` (agrupa los 204 valores
+crudos del atributo Color en 14 familias). Se derivó y aplicó sobre 5290 templates. Se
+**revirtió en Odoo** porque un atributo `no_variant` se renderiza como **selector
+seleccionable en la ficha de producto** (comportamiento nativo), duplicando el selector
+del Color REAL. El **código se conserva** (la lógica es correcta; el problema fue el
+render del `no_variant`, no la derivación) para un futuro filtro de `/shop` bien montado.
+
+### Refactor — `scripts/colores_engine.py` (motor compartido)
+
+- Se extrajo `normalize()` / `resolve()` + carga del seed de `derive_colores.py` a
+  `colores_engine.py`. `derive_colores.py` ahora lo importa **sin cambiar comportamiento**
+  (swatch sigue en 97.36%; verificado con `--self-check`).
+- El motor expone además `familia(name) -> str | None`, **más laxo** que `resolve()`:
+  agrupa por color base/lex dominante aunque el modificador sea desconocido
+  (`ROJO JASPEADO`→Rojo), y trata `tricolor`/`mexico`/`arcoiris`/`/`/`con` como Multicolor.
+  Cobertura de familia: **98.25% de prod-hits, 26 valores sin familia**.
+
+### Scripts nuevos
+
+- `scripts/derive_color_familia.py`: deriva la línea 'Color (familia)' por template desde
+  sus valores reales de Color. Incremental (`--since`, idempotente), dry-run por defecto,
+  `--self-check`, `--published-only`. Guardas: crea el atributo con
+  `create_variant='no_variant'` (aborta si difiere); escribe solo
+  `product.template.attribute_line_ids` con `(0,0)`/`(1,…)`; nunca toca `product.product`,
+  `create_variant`, ni el atributo Color real.
+- `scripts/rollback_color_familia.py`: rollback **seguro** del atributo. Guardas duras
+  (objetivo debe ser `no_variant`; id ≠ Color real `always`); elimina líneas → valores →
+  atributo (o `--archive-only`); tolerante a fallos por-línea. Se usó para revertir
+  (5290 líneas + 14 valores + atributo, 0 errores).
+
+### Datos / docs
+
+- `data/colores_seed.csv`: **columna `familia`** por color (+ se restauró el alias
+  `blanco ivory` de Hueso perdido en una regeneración). `data/colores_familias.csv`:
+  14 familias (name, hex, orden, tipo; Multicolor sin hex). `data/colores_noncolor.md`:
+  mapeo material→familia (carton/corcho/madera/periodico→Café, bambú/cebada/caña→Beige,
+  coco→Blanco, caoba→Rojo) + estrategia de `familia()`.
+- `.gitignore`: `reports/derive_familia_*` y `reports/rollback_familia_*`.
+
+### Auditoría de soporte (analysis/, gitignored)
+
+- Se confirmó que el sync opera por-línea sobre `attribute_line_ids` (solo Color/Talla,
+  sin `(5,0,0)`), así que una línea `no_variant` externa **sobreviviría** sus corridas —
+  base del diseño incremental + hook. (Auditoría 2 en `AUDITORIA_COLORES.md`.)
+
+---
+
 ## 2026-07-06 · feat (v19) — Swatches de color: dump + motor de derivación de html_color
 
 **Tipo**: `feat`

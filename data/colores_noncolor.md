@@ -52,17 +52,35 @@ ni se tocan aquí** — su limpieza es el proyecto diferido de de-contaminación
 Materiales que sí tienen un color visual razonable; se les da un hex aproximado en vez de
 marcarlos. Decisión de UX: en promocionales el comprador reconoce el tono del material.
 
-| Valor | Hex aprox | Nota |
-|---|---|---|
-| carton | #C8A97E | tono kraft |
-| corcho | #C6A664 | |
-| madera | #A0522D | |
-| bambu / bambú | #E3C888 | (unifica la única fragmentación real BAMBU/BAMBÚ) |
-| coco | #8B5A2B | |
-| caoba | #6A342A | |
-| cebada | #D8C89A | |
-| caña / cana | #DAB86A | |
-| periodico | #D9D2C5 | gris papel |
+La columna **Familia** alimenta a `colores_engine.MATERIAL_FAMILIA` (filtro de /shop);
+el hex alimenta a `MATERIAL_APROX` (swatch). Son mapeos independientes.
+
+| Valor | Hex aprox (swatch) | Familia (/shop) | Nota |
+|---|---|---|---|
+| carton | #C8A97E | Cafe | tono kraft |
+| corcho | #C6A664 | Cafe | |
+| madera | #A0522D | Cafe | |
+| periodico | #D9D2C5 | Cafe | gris papel, pero familia Café |
+| bambu / bambú | #E3C888 | Beige | (unifica la única fragmentación real BAMBU/BAMBÚ) |
+| cebada | #D8C89A | Beige | |
+| caña / cana | #DAB86A | Beige | |
+| coco | #8B5A2B | Blanco | pulpa de coco |
+| caoba | #6A342A | Rojo | "tinto" → familia Rojo (Vino) |
+
+## Color (familia) — filtro no_variant de /shop (`derive_color_familia.py`)
+
+Atributo aparte **"Color (familia)"** (`create_variant='no_variant'`, `display_type='color'`),
+14 valores en `colores_familias.csv`, poblado por `derive_color_familia.py` a partir de los
+valores reales de Color de cada template. `colores_engine.familia(name)` es **más laxo** que
+`resolve()` (swatch): agrupa por el color base/lex dominante aunque el modificador sea
+desconocido (ej. `ROJO JASPEADO`→Rojo, `BLANCO FIESTA`→Blanco), y trata
+`tricolor`/`mexico`/`arcoiris`/`surtido` y todo `/`|`con` como **Multicolor**. Un filtro
+tolera "cercano"; el swatch exige exactitud.
+
+Cobertura de familia: **98.3% de prod-hits**, **26 valores sin familia** (contaminación pura
++ Transparente). El sync **no** gestiona este atributo, así que la línea sobrevive sus corridas
+(ver `analysis/supplier-sync/AUDITORIA_COLORES.md`, Auditoría 2) y la derivación corre
+**incremental** (`--since`) encadenada al sync.
 
 ## HALLAZGO — contaminación del atributo `Color` (proyecto diferido, NO en Fase 2)
 

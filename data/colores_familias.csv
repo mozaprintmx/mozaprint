@@ -1,0 +1,18 @@
+# Valores del atributo no_variant "Color (familia)" para el filtro de /shop.
+# hex vacio + tipo=especial -> requiere imagen de patron (Multicolor).
+# El nombre debe coincidir con la columna familia de colores_seed.csv.
+familia,hex,orden,tipo
+Negro,#000000,1,flat
+Gris,#808080,2,flat
+Blanco,#FFFFFF,3,flat
+Beige,#E8D9B5,4,flat
+Cafe,#6F4E37,5,flat
+Rojo,#E30613,6,flat
+Rosa,#EC4899,7,flat
+Naranja,#F7941E,8,flat
+Amarillo,#FFD400,9,flat
+Verde,#009640,10,flat
+Azul,#0057B8,11,flat
+Morado,#6B21A8,12,flat
+Metalico,#C0C0C0,13,metalico
+Multicolor,,14,especial

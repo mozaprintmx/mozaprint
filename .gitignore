@@ -52,6 +52,12 @@ reports/color_values_*
 # Derivación de swatches (JSON + MD): nombres de color + inventario de contaminación. No se commitea.
 reports/derive_colores_*
 
+# Derivación de Color (familia) (JSON + MD): distribución de catálogo. No se commitea.
+reports/derive_familia_*
+
+# Rollback de Color (familia) (MD): ids + conteos de catálogo. No se commitea.
+reports/rollback_familia_*
+
 # =============================================================================
 # Python
 # =============================================================================
