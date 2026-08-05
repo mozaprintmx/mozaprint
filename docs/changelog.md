@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-08-05 · feat (v22) — Limpieza de product tags (material/técnicas/huérfanos)
+
+**Tipo**: `feat` (script de repo) + limpieza de datos en Odoo
+
+**Descripción**: tras poner en producción el fix del sync que deja de generar tags de
+material (cambio en la copia de análisis, gitignored), se depuran los tags que ya no se
+quieren. Nuevo `scripts/cleanup_tags.py` (JSON-2, dry-run por defecto) que borra por
+REGLA: elimina todo `product.tag` cuyo nombre normalizado NO esté en una **lista blanca**
+de 9 tags que el sync regenera (proveedor 4P/PO/INN + gama Normal/Promo/Unico/Outlet/
+Economico/Premium).
+
+### Resultado (aplicado en Odoo)
+
+- **155 → 9 tags**: borrados **146** (material + técnicas coladas + basura + 11 huérfanos),
+  0 fallidos. Conservados exactamente los 9 de la lista blanca.
+- Solo `product.tag` (unlink); productos y variantes intactos (el m2m se desasocia solo).
+
+### Salvaguardas del script
+
+- `--apply` exige `--confirmar-fix-en-produccion` (borrar antes del fix haría que el sync
+  regenere el material).
+- Aborta si la lista blanca no matchea Odoo (grafía cambiada) o si el nº a borrar supera
+  un umbral (default 160). Imprime ambas listas antes de borrar; borra por lotes
+  (huérfanos primero) con aislamiento de fallos por-tag. Prohibido tocar
+  product.template/product/attribute*.
+
+### Impacto en repo
+
+- `scripts/cleanup_tags.py` (nuevo). `.gitignore`: `reports/cleanup_tags_*`.
+- Canario: si tras la próxima corrida del sync reaparece un tag de material, el fix no
+  quedó en producción.
+
+---
+
 ## 2026-07-09 · audit (v21) — Product Tags: estado en Odoo + escritura del sync
 
 **Tipo**: `audit` (solo lectura; no modifica Odoo, código ni sync)

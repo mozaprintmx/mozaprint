@@ -31,6 +31,8 @@ mozaprint-context/
 │   ├── odoo_client.py           ← Cliente JSON-2 compartido (paginación)
 │   ├── audit_catalog.py         ← Auditoría de catálogo (solo lectura)
 │   ├── audit_atributos.py       ← Auditoría de atributos /shop (solo lectura)
+│   ├── audit_tags.py            ← Auditoría de product tags (solo lectura)
+│   ├── cleanup_tags.py         ← Borrado por reglas de product tags (lista blanca)
 │   ├── dump_tecnica_values.py   ← Volcado de valores de x_tecnica_impresion
 │   ├── dump_color_values.py     ← Volcado de valores del atributo Color (solo lectura)
 │   ├── seed_tecnicas.py         ← Carga el seed de técnicas (idempotente)

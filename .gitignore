@@ -49,6 +49,9 @@ reports/audit_atributos_*
 # Auditoría de product tags (JSON + MD): nombres de tag + conteos de catálogo. No se commitea.
 reports/audit_tags_*
 
+# Limpieza de product tags (MD): nombres de tag + conteos. No se commitea.
+reports/cleanup_tags_*
+
 # Dump de valores de color (CSV): nombres de color + conteos. No va al repo público.
 reports/color_values_*
 
