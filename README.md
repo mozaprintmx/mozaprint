@@ -36,6 +36,7 @@ mozaprint-context/
 │   ├── dump_tecnica_values.py   ← Volcado de valores de x_tecnica_impresion
 │   ├── dump_color_values.py     ← Volcado de valores del atributo Color (solo lectura)
 │   ├── seed_tecnicas.py         ← Carga el seed de técnicas (idempotente)
+│   ├── seed_costos.py          ← Carga costos de personalización (idempotente)
 │   ├── derive_tecnicas.py       ← Deriva técnica canónica raw→modelo
 │   ├── colores_engine.py        ← Motor de color compartido (normalize/resolve/familia)
 │   ├── derive_colores.py        ← Deriva swatches html_color del atributo Color

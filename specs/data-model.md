@@ -546,78 +546,131 @@ assigned_user_id:
 
 ### x_costo_personalizacion (nuevo modelo)
 
-Matriz de costos de personalización por proveedor / técnica / cantidad.
+> **✓ CREADO en Odoo el 2026-08-05** (17 campos, vía Ajustes → Técnico →
+> Estructura de BD). Nombres técnicos confirmados con prefijo `x_` (no
+> `x_studio_`) — mismo patrón que `x_tecnica_personalizacion`. Los dos many2one
+> requeridos (`x_tecnica_id`, `x_proveedor_id`) usan `ondelete='restrict'`.
+> `x_name` confirmado `required=True`. Permisos del grupo "Ventas/Usuario:
+> todos los documentos" replicados (mismo grupo que `x_tecnica_personalizacion`),
+> confirmado 2026-08-05. **Aún no poblado** — siguiente pieza: CSV + `seed_costos.py`.
+>
+> Rediseñado tras leer
+> las listas de costos reales de INN (`analysis/costos-personalizacion/COSTOS_INN_20260805.md`,
+> gitignored) y PO (`analysis/costos-personalizacion/COSTOS_PO_20260805.md`, gitignored).
+> El diseño original (una sola tabla técnica×proveedor×cantidad con `costo_unit`
+> en $/pieza) no alcanzaba: **la unidad de cobro y si el costo escala por
+> cantidad/tintas son propiedades de la fila (técnica + proveedor), no de la
+> técnica sola** — ej. INN cobra serigrafía por LOTE (hasta 1000 pzas) por
+> tinta, mientras PO cobra la misma técnica genuinamente por pieza con curva de
+> cantidad. 4P queda pendiente (sin lista documentada; se construirá empírico
+> desde histórico de WhatsApp/cotizaciones, pieza aparte).
+>
+> **Naming**: mismo patrón que `x_tecnica_personalizacion` — todos los campos
+> con prefijo `x_` (no `x_studio_`) por ser modelo custom propio. Se crea vía
+> **Ajustes → Técnico → Estructura de BD → Modelos/Campos** (no Studio visual),
+> lo que da control exacto del nombre técnico al escribirlo directamente.
+> Verificar el nombre real tras crear cada campo, igual que se hizo con
+> `x_tecnica_personalizacion` (D8).
+
+Matriz de costos de personalización por proveedor / técnica / alcance / cantidad / área.
 
 ```yaml
-name:
+x_name:
   type: char
   string: "Descripción"
   required: True
-  # Ej: "Promo Opción - Serigrafía 1 tinta - 100-499 pzas"
+  # Ej: "PO - Serigrafía Bolsas ≤603cm² - 400-599 pzas"
 
-tecnica_id:
+x_tecnica_id:
   type: many2one
   comodel: x_tecnica_personalizacion
   required: True
   string: "Técnica"
 
-proveedor_id:
+x_proveedor_id:
   type: many2one
   comodel: res.partner
   string: "Proveedor"
   required: True
 
-qty_from:
+x_alcance_producto:
+  type: char
+  string: "Alcance (categoría/SKU)"
+  help: "Categoría de producto o SKU específico al que aplica esta fila, ej. 'Bolsas ≤603cm²' (PO) o 'TE-146' (INN Sublimado). Vacío = aplica genérico a la técnica. Texto libre (D7: sin modelar categorías ricas); si la matching automática a producto se vuelve necesaria para el Server Action de auto-populado, revisar entonces."
+
+x_qty_from:
   type: integer
   string: "Cantidad mínima"
   required: True
 
-qty_to:
+x_qty_to:
   type: integer
   string: "Cantidad máxima"
-  # null = sin límite
+  # null = sin límite. Curvas de proveedor con muchos escalones (PO: hasta 10
+  # por técnica) son solo más filas, no requieren cambio de esquema.
 
-tintas:
+x_area_from_cm2:
+  type: float
+  string: "Área mínima (cm²)"
+  help: "Reemplaza al x_area_max_cm2 original (un solo tope). Para técnicas donde el precio varía por tamaño de diseño (Full Color, Vinil, Termograbado PO) es un tramo real de precio. Para técnicas con tamaño base fijo (Bordado INN: 7x7cm) es simplemente ese valor único; tamaños mayores sin fila → cae a cotización manual por ausencia de match (mismo mecanismo que técnicas sin tabla, ej. Sand Blast)."
+
+x_area_to_cm2:
+  type: float
+  string: "Área máxima (cm²)"
+
+x_tintas:
   type: integer
   string: "Número de tintas"
   default: 1
+  help: "Número de tintas que asume esta fila."
 
-posiciones:
+x_escala_por_tinta:
+  type: boolean
+  string: "Escala linealmente por tinta"
+  default: False
+  help: "Si True, el costo (x_costo_unit o x_costo_lote según x_unidad_cobro) se multiplica por el número de tintas solicitadas en la cotización. Confirmado True para INN serigrafía/tampografía/láser ('costo por tinta', ver manual). PO NO publica esta regla (sus T&C solo dicen 'precio a 1 tinta') — dejar False ahí hasta confirmar con el proveedor; 2+ tintas en PO cae a cotización manual por diseño, no por descuido."
+
+x_posiciones:
   type: integer
   string: "Número de posiciones"
   default: 1
+  help: "Ambos proveedores (INN, PO) publican precios asumiendo 1 sola posición de impresión/grabado. Más de 1 posición no está tabulado → cae a cotización manual por ausencia de fila, igual que el área fuera de rango."
 
-area_max_cm2:
-  type: float
-  string: "Área máxima soportada (cm²)"
-
-costo_unit:
-  type: float
-  string: "Costo unitario (MXN)"
+x_unidad_cobro:
+  type: selection
+  selection:
+    - [pieza, "Por pieza"]
+    - [lote, "Por lote (x_qty_from–x_qty_to completo)"]
+  string: "Unidad de cobro"
   required: True
+  default: pieza
+  help: "CRÍTICO para no sobrecotizar: INN serigrafía/tampografía cobran x_costo_unit como precio del LOTE completo (hasta 1000 pzas), no por pieza. PO cobra todo genuinamente por pieza. El motor de cotización debe multiplicar por cantidad SOLO si x_unidad_cobro='pieza'."
 
-costo_setup:
+x_costo_unit:
+  type: float
+  string: "Costo (MXN)"
+  required: True
+  help: "Costo por pieza o por lote completo, según x_unidad_cobro."
+
+x_costo_setup:
   type: float
   string: "Costo de setup único (MXN)"
   default: 0
+  help: "Placa/ponchado/cliché cuando el monto está publicado (ej. INN tampografía $220/color/placa). Si el proveedor no publica el monto (ej. cliché de termograbado PO, 'consultar con ejecutivo'), se deja en 0 y se documenta en x_notas — NO se inventa el monto. Para setup condicional (ej. ponchado de bordado INN exento en pedidos >200 pzas) se modela con dos filas de x_qty_from/x_qty_to, no un campo nuevo."
 
-fecha_vigencia:
+x_fecha_vigencia:
   type: date
   string: "Vigente hasta"
 
-notas:
+x_notas:
   type: text
   string: "Notas internas"
-  # Ej: "Validado con María el 15/04/2026 vía WhatsApp"
+  # Ej: restricciones de los T&C del proveedor que aplican a la fila:
+  # "No aplica en acabados metálicos/rubber/vidrio/cristal (T&C PO #3)"
 
-ultima_actualizacion:
-  type: datetime
-  string: "Última actualización"
-  auto: True
-
-active:
+x_activa:
   type: boolean
-  string: "Activo"
+  string: "Activa"
   default: True
 ```
 
@@ -721,12 +774,15 @@ x_approval_request ──→ sale.order (via sale_order_id)
 
 product.template ──→ res.partner (proveedor, via product.supplierinfo estándar)
 
-x_costo_personalizacion ──→ res.partner (via proveedor_id)
+x_costo_personalizacion ──→ res.partner (via x_proveedor_id)
+                        └──→ x_tecnica_personalizacion (via x_tecnica_id)
 ```
 
 ## Reglas de validación
 
-- `x_costo_personalizacion`: `qty_from < qty_to` siempre (o `qty_to = NULL` para infinito)
+- `x_costo_personalizacion`: `x_qty_from < x_qty_to` siempre (o `x_qty_to = NULL` para infinito);
+  `x_area_from_cm2 <= x_area_to_cm2` cuando ambos tienen valor; si `x_unidad_cobro='lote'`, el motor
+  de cotización NO debe multiplicar `x_costo_unit` por cantidad
 - `x_approval_request`: si `status='approved'`, debe tener `approved_cost_unit > 0` y `responded_by_id`
 - `sale.order` con `x_generated_by_ai = True` debe tener `x_origen_lead_id`
 - `discuss.channel` con `x_ai_mode='paused'`: requiere `x_ai_paused_by_id`, `x_ai_paused_at`, `x_ai_paused_reason`

@@ -53,14 +53,15 @@
 - [ ] ~~Generar descripciones de producto con AI Fields (masivo)~~ → **DESCARTADO de Fase 2** (no bloquea el cierre). Reencuadrado como iniciativa SEO **dirigida** de Fase 9, condicionada a diagnóstico GSC. Ver Fase 9 y `decisions/006-descripciones-ia-seo-dirigido.md`
 
 ### FASE 3: Motor de cotización
-**Estado**: 🔴 No iniciada (semana 7-8)
+**Estado**: 🟡 En progreso (semana 7-8) — arrancó la matriz de costos
 **Notas**:
 - INN tiene lista digital de costos: parsear desde https://online.flippingbook.com/view/291441550/4/
 - 4P y PO no tienen lista digital, construir desde histórico + HITL
 **Tareas**:
-- [ ] Crear modelo `x_costo_personalizacion` vía Studio (referencia a x_tecnica_personalizacion)
+- [x] Crear modelo `x_costo_personalizacion` vía Técnico/Estructura de BD (2026-08-05, 17 campos `x_`)
 - [ ] Modelar servicios de personalización como product.product type=service
-- [ ] Script para parsear lista costos INN y cargar al modelo
+- [x] Script `seed_costos.py` + carga de costos INN y PO (2026-08-05, **127 costos** cargados y validados)
+- [ ] Costos de 4P (sin lista digital; construir desde histórico WhatsApp/cotizaciones)
 - [ ] Extraer top 20 combinaciones técnica×qty del histórico 4P y PO
 - [ ] Activar Quote Subsections en Sales
 - [ ] Implementar Server Action de auto-populado de servicios

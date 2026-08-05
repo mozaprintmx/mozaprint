@@ -17,8 +17,8 @@
 # - default: valor por defecto
 # - relation: solo para many2one/many2many/one2many
 
-version: '0.5.0'
-last_updated: 2026-06-28
+version: '0.6.1'
+last_updated: 2026-08-05
 
 # =============================================================================
 # NOTA IMPORTANTE — PREFIJO x_studio_ EN ODOO ONLINE
@@ -467,70 +467,143 @@ new_models:
 
   x_costo_personalizacion:
     display_name: 'Costo de Personalización'
-    description: 'Matriz de costos por proveedor/técnica/cantidad'
+    description: >
+      Matriz de costos por proveedor/técnica/alcance/cantidad/área. Diseño
+      finalizado 2026-08-05 tras leer listas reales de INN y PO (ver
+      analysis/costos-personalizacion/, gitignored). Creado vía Ajustes →
+      Técnico → Estructura de BD (no Studio visual) para controlar el nombre
+      técnico exacto de cada campo.
+    status: created
+    created_date: 2026-08-05
+    # Naming: prefijo x_ (no x_studio_), confirmado — mismo patrón que
+    # x_tecnica_personalizacion. Los 2 m2o requeridos (x_tecnica_id,
+    # x_proveedor_id) usan ondelete='restrict' (no 'set null', ver v24 changelog).
+    # Permisos: grupo "Ventas/Usuario: todos los documentos" replicado desde
+    # x_tecnica_personalizacion, confirmado 2026-08-05.
     fields:
-      - field_name: name
+      - field_name: x_name
         field_type: char
         required: true
         string: 'Descripción'
+        status: created
+        created_date: 2026-08-05
 
-      - field_name: tecnica_id
+      - field_name: x_tecnica_id
         field_type: many2one
         relation: x_tecnica_personalizacion
         required: true
-        string: 'Técnica' 
+        string: 'Técnica'
+        status: created
+        created_date: 2026-08-05
 
-      - field_name: proveedor_id
+      - field_name: x_proveedor_id
         field_type: many2one
         relation: res.partner
         required: true
         string: 'Proveedor'
+        status: created
+        created_date: 2026-08-05
 
-      - field_name: qty_from
+      - field_name: x_alcance_producto
+        field_type: char
+        string: 'Alcance (categoría/SKU)'
+        help: "Categoría o SKU al que aplica la fila (ej. 'Bolsas ≤603cm²', 'TE-146'). Vacío = genérico a la técnica."
+        status: created
+        created_date: 2026-08-05
+
+      - field_name: x_qty_from
         field_type: integer
         required: true
         string: 'Cantidad mínima'
+        status: created
+        created_date: 2026-08-05
 
-      - field_name: qty_to
+      - field_name: x_qty_to
         field_type: integer
         string: 'Cantidad máxima'
+        help: 'Vacío = sin límite superior.'
+        status: created
+        created_date: 2026-08-05
 
-      - field_name: tintas
+      - field_name: x_area_from_cm2
+        field_type: float
+        string: 'Área mínima (cm²)'
+        status: created
+        created_date: 2026-08-05
+
+      - field_name: x_area_to_cm2
+        field_type: float
+        string: 'Área máxima (cm²)'
+        status: created
+        created_date: 2026-08-05
+
+      - field_name: x_tintas
         field_type: integer
         default: 1
         string: 'Tintas'
+        status: created
+        created_date: 2026-08-05
 
-      - field_name: posiciones
+      - field_name: x_escala_por_tinta
+        field_type: boolean
+        default: false
+        string: 'Escala linealmente por tinta'
+        help: 'Confirmado true para INN serigrafía/tampografía/láser. Falso por defecto para PO (no publica la regla).'
+        status: created
+        created_date: 2026-08-05
+
+      - field_name: x_posiciones
         field_type: integer
         default: 1
         string: 'Posiciones'
+        status: created
+        created_date: 2026-08-05
 
-      - field_name: area_max_cm2
-        field_type: float
-        string: 'Área máxima soportada (cm²)'
+      - field_name: x_unidad_cobro
+        field_type: selection
+        required: true
+        default: pieza
+        string: 'Unidad de cobro'
+        selection:
+          - [pieza, 'Por pieza']
+          - [lote, 'Por lote completo']
+        help: 'Crítico: INN serigrafía/tampografía cobran por lote (x_costo_unit = precio del lote, no multiplicar por cantidad). PO cobra por pieza.'
+        status: created
+        created_date: 2026-08-05
 
-      - field_name: costo_unit
+      - field_name: x_costo_unit
         field_type: float
         required: true
-        string: 'Costo unitario (MXN)'
+        string: 'Costo (MXN)'
+        status: created
+        created_date: 2026-08-05
 
-      - field_name: costo_setup
+      - field_name: x_costo_setup
         field_type: float
         default: 0
         string: 'Costo de setup'
+        help: 'Placa/ponchado/cliché cuando el proveedor publica el monto. 0 + nota si no lo publica (no se inventa).'
+        status: created
+        created_date: 2026-08-05
 
-      - field_name: fecha_vigencia
+      - field_name: x_fecha_vigencia
         field_type: date
         string: 'Vigente hasta'
+        status: created
+        created_date: 2026-08-05
 
-      - field_name: notas
+      - field_name: x_notas
         field_type: text
         string: 'Notas'
+        status: created
+        created_date: 2026-08-05
 
-      - field_name: active
+      - field_name: x_activa
         field_type: boolean
         default: true
-        string: 'Activo'
+        string: 'Activa'
+        status: created
+        created_date: 2026-08-05
 
   x_ai_interaction_log:
     display_name: 'Log de Interacción AI'

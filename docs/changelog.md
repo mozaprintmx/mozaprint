@@ -4,6 +4,115 @@
 
 ---
 
+## 2026-08-05 · scripts + data (v25) — seed_costos.py + costos_seed.csv (INN+PO, 127 filas)
+
+**Tipo**: `scripts` (nuevo loader) + `data` (seed gitignored, dato de proveedor)
+
+**Descripción**: `scripts/seed_costos.py` (dry-run/--apply, idempotente, mismo patrón que
+`seed_tecnicas.py`) para cargar `x_costo_personalizacion` desde
+`analysis/costos-personalizacion/costos_seed.csv` (127 filas: 47 INN + 80 PO, gitignored —
+dato comercial de proveedor, ver `costos_seed.md` para procedencia y filas marcadas para
+revisión).
+
+- Idempotencia por llave compuesta (técnica+proveedor+alcance+qty+área+tintas), no por código
+  único — no existe un "código" natural para una fila de costo.
+- Resuelve `tecnica_code → x_tecnica_id` (por `x_code`) y `proveedor_nombre → x_proveedor_id`
+  (`res.partner` por **`name` EXACTO (`=`)**, alineado con `get_or_create_supplier` del sync;
+  **aborta si no matchea exactamente 1** — evita adivinar el proveedor correcto).
+- `x_name` se arma automáticamente (proveedor + técnica + alcance + rango de cantidad), no se
+  captura a mano en el CSV.
+- **Ejecutado y validado contra Odoo real (2026-08-05)**. El dry-run local destapó que el
+  match de proveedor original (`name ilike`) era **ambiguo**: hay partners duplicados por
+  proveedor (ej. `INNOVATIONLINE` id 82 vs `(InnovationLine) INNOVA PROMOCIONALES…` id 32;
+  `PROMOOPCION` id 11 vs `(PROMOOPCION) Promocionales de Occidente…` id 8), y ambos contienen
+  el token → `ilike` nunca resolvía a 1. **Corrección (opción A)**: match exacto `name =` +
+  `proveedor_nombre` del CSV a los nombres canónicos (`INNOVATIONLINE`/`PROMOOPCION`, los que
+  usa el `supplierinfo` del sync). Tras la corrección, `--apply` creó **127 registros**
+  (47 INN → partner 82, 80 PO → partner 11), 0 errores; validado (total, distribución por
+  técnica/proveedor, spot-check de valores contra el CSV) y **re-dry-run idempotente
+  (0 crear / 127 actualizar)** — confirma que la llave natural se guardó bien.
+- Deuda anotada (aparte): los partners de proveedor **duplicados** (id 32/8, con el nombre
+  legal) son higiene pendiente; el costo se ancló al partner canónico del sync (82/11).
+
+### Impacto en repo
+
+- `scripts/seed_costos.py` (nuevo; match de proveedor por `name =`).
+- `analysis/costos-personalizacion/costos_seed.csv` + `costos_seed.md` (nuevos, gitignored;
+  `proveedor_nombre` = nombres canónicos exactos).
+
+---
+
+## 2026-08-05 · odoo (v24) — x_costo_personalizacion creado en producción
+
+**Tipo**: `odoo` (creación de modelo/campos, sin datos aún)
+
+**Descripción**: Juan Carlos creó el modelo `x_costo_personalizacion` y sus 17 campos en
+Odoo vía Ajustes → Técnico → Estructura de BD, siguiendo `docs/guia-creacion-x_costo_personalizacion.md`
+(diseño de v23). Nombres técnicos confirmados con prefijo `x_` (no `x_studio_`).
+
+- Los dos many2one requeridos (`x_tecnica_id`, `x_proveedor_id`) dispararon el error de
+  validación de Odoo "campo m2o obligatorio con política 'set null'" — se corrigieron a
+  `ondelete='restrict'` (evita borrado en cascada silencioso de costos si se borra una
+  técnica o proveedor).
+- **Pendiente de confirmar**: `x_name` quedó sin el checkbox "Requerido" marcado (la spec
+  pide `required=True`) — falta corregirlo o confirmar que ya se hizo.
+- **Pendiente**: configurar permisos del grupo "Ventas/Usuario: todos los documentos"
+  (mismo grupo que `x_tecnica_personalizacion`) — sin esto el equipo de ventas no puede
+  consultar la tabla al cotizar.
+- Modelo sin datos todavía. Siguiente pieza: CSV seed + `scripts/seed_costos.py`.
+
+### Impacto en repo
+
+- `odoo-extensions/studio-fields.yaml`: v0.6.0 → v0.6.1, 17 campos `status: planned` → `created`.
+- `specs/data-model.md`: sección `x_costo_personalizacion` marcada como creada, con las 2
+  pendientes anotadas.
+
+---
+
+## 2026-08-05 · design (v23) — x_costo_personalizacion: diseño final (Fase 3, arranque)
+
+**Tipo**: `design` (solo specs/docs; NADA se creó todavía en Odoo)
+
+**Descripción**: arranque de Fase 3 (motor de cotización). Se leyeron las listas de costos
+reales de personalización de INN (`MANUAL-SI-OK.pdf`, 10 págs.) y PO (4 tabuladores PDF) y se
+descubrió que el diseño original de `x_costo_personalizacion` (specs desde Fase 0) no alcanza:
+la unidad de cobro (por pieza vs. por lote completo) y si el costo escala por tinta son
+propiedades de la fila técnica+proveedor, no de la técnica sola. Ej.: INN cobra serigrafía como
+lote fijo (1-1000 pzas) por tinta; PO cobra la misma técnica genuinamente por pieza con curva de
+cantidad de hasta 10 escalones.
+
+### Cambios al modelo
+
+`x_costo_personalizacion` pasa de 12 a 16 campos. Nuevos: `x_alcance_producto` (categoría/SKU
+en texto libre), `x_unidad_cobro` (pieza/lote — crítico para no sobrecotizar), `x_escala_por_tinta`
+(bool). `area_max_cm2` se parte en `x_area_from_cm2`/`x_area_to_cm2` (tramo, no tope único). Todos
+los campos se renombran con prefijo `x_` (el diseño original no lo tenía, inconsistente con
+`x_tecnica_personalizacion`). Se decide crear el modelo vía **Ajustes → Técnico → Estructura de
+BD** (no Studio visual) para controlar el nombre técnico exacto de cada campo — mismo resultado
+que se verificó para `x_tecnica_personalizacion` (D8).
+
+### Datos de proveedor recopilados (gitignored, NO en repo público)
+
+- `analysis/costos-personalizacion/COSTOS_INN_20260805.md` — transcripción completa (9 técnicas).
+- `analysis/costos-personalizacion/COSTOS_PO_20260805.md` — transcripción completa (4 técnicas)
+  + comparación INN vs PO por técnica.
+- `analysis/costos-personalizacion/fuentes/` — PDFs originales (INN, PO).
+
+### Pendiente
+
+- 4P no tiene lista documentada — se construirá empírico desde histórico de WhatsApp/cotizaciones
+  (pieza separada, no bloquea la creación del modelo con lo que ya se sabe de INN+PO).
+- Crear el modelo y sus 16 campos en Odoo (guía paso a paso, siguiente pieza).
+- CSV seed + script loader idempotente (dry-run/--apply, patrón `seed_tecnicas.py`).
+
+### Impacto en repo
+
+- `specs/data-model.md`: sección `x_costo_personalizacion` reescrita.
+- `odoo-extensions/studio-fields.yaml`: v0.5.0 → v0.6.0, 16 campos con prefijo `x_`.
+- `analysis/costos-personalizacion/` (nuevo, gitignored): transcripciones + PDFs fuente.
+
+---
+
 ## 2026-08-05 · feat (v22) — Limpieza de product tags (material/técnicas/huérfanos)
 
 **Tipo**: `feat` (script de repo) + limpieza de datos en Odoo
