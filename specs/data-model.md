@@ -552,8 +552,14 @@ assigned_user_id:
 > requeridos (`x_tecnica_id`, `x_proveedor_id`) usan `ondelete='restrict'`.
 > `x_name` confirmado `required=True`. Permisos del grupo "Ventas/Usuario:
 > todos los documentos" replicados (mismo grupo que `x_tecnica_personalizacion`),
-> confirmado 2026-08-05. **Aún no poblado** — siguiente pieza: CSV + `seed_costos.py`.
+> confirmado 2026-08-05.
 >
+> **✓ POBLADO 2026-08-05** vía `scripts/seed_costos.py --apply`: **127 filas**
+> (47 INN, 80 PO), 0 errores, idempotencia confirmada en un segundo dry-run.
+> `x_proveedor_id` resuelve por nombre EXACTO de partner (no `ilike` — hay
+> partners de proveedor duplicados en Odoo, ver `docs/changelog.md` v25 y
+> `analysis/costos-personalizacion/costos_seed.md`). 4P pendiente (sin lista
+> documentada, requiere extracción empírica de histórico).
 > Rediseñado tras leer
 > las listas de costos reales de INN (`analysis/costos-personalizacion/COSTOS_INN_20260805.md`,
 > gitignored) y PO (`analysis/costos-personalizacion/COSTOS_PO_20260805.md`, gitignored).

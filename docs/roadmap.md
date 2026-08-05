@@ -53,16 +53,24 @@
 - [ ] ~~Generar descripciones de producto con AI Fields (masivo)~~ → **DESCARTADO de Fase 2** (no bloquea el cierre). Reencuadrado como iniciativa SEO **dirigida** de Fase 9, condicionada a diagnóstico GSC. Ver Fase 9 y `decisions/006-descripciones-ia-seo-dirigido.md`
 
 ### FASE 3: Motor de cotización
-**Estado**: 🟡 En progreso (semana 7-8) — arrancó la matriz de costos
+**Estado**: 🟡 En progreso (semana 7-8) — modelo creado y poblado con INN+PO; falta 4P y el resto del motor
 **Notas**:
-- INN tiene lista digital de costos: parsear desde https://online.flippingbook.com/view/291441550/4/
-- 4P y PO no tienen lista digital, construir desde histórico + HITL
+- INN: manual de costos por PDF (`MANUAL-SI-OK.pdf`, no el flippingbook — el visor JS del link
+  público no se pudo leer, se usó el PDF exportado). Ver `analysis/costos-personalizacion/COSTOS_INN_20260805.md`.
+- PO: 4 tabuladores PDF por técnica (láser, serigrafía, tampografía, termograbado). Ver
+  `analysis/costos-personalizacion/COSTOS_PO_20260805.md`.
+- 4P: **sin lista documentada** — es el único proveedor que requiere construir el tabulador
+  desde histórico de WhatsApp/cotizaciones + HITL.
 **Tareas**:
 - [x] Crear modelo `x_costo_personalizacion` vía Técnico/Estructura de BD (2026-08-05, 17 campos `x_`)
 - [ ] Modelar servicios de personalización como product.product type=service
-- [x] Script `seed_costos.py` + carga de costos INN y PO (2026-08-05, **127 costos** cargados y validados)
+- [x] Script `seed_costos.py` + carga de costos INN y PO (2026-08-05, **127 costos** cargados,
+      validados y confirmados idempotentes en un segundo dry-run — ver `docs/changelog.md` v25)
 - [ ] Costos de 4P (sin lista digital; construir desde histórico WhatsApp/cotizaciones)
-- [ ] Extraer top 20 combinaciones técnica×qty del histórico 4P y PO
+- [ ] Extraer top 20 combinaciones técnica×qty del histórico de 4P
+- [ ] (backlog, higiene) Partners de proveedor duplicados en Odoo (INN: id 82 vs 32; PO: id 11
+      vs 8) — el costo se ancló a los ids canónicos (82/11, los que usa el sync), pero conviene
+      fusionar o desactivar los duplicados
 - [ ] Activar Quote Subsections en Sales
 - [ ] Implementar Server Action de auto-populado de servicios
 - [ ] Crear AI Cotizador asistente para vendedor
