@@ -23,9 +23,11 @@
 > - ✓ **Creados y poblados en Fase 2** (vía `scripts/derive_tecnicas.py`):
 >   `x_tecnica_default_id` (m2o) y `x_tecnicas_compatibles_ids` (m2m), ambos a
 >   `x_tecnica_personalizacion`. ~5,203 templates derivados desde `x_tecnica_impresion`.
+> - ✓ **Creados en Fase 3** (2026-08-06, manual vía Técnico, nombre plano `x_` sin `x_studio_`):
+>   `x_es_servicio_personalizacion` (bool) y `x_tecnica_servicio_id` (m2o a
+>   `x_tecnica_personalizacion`) — servicios de personalización (ver sección dedicada).
 > - ○ **Planificados, NO existen aún** — se crean en Fase 2: `x_area_max_cm2`,
->   `x_area_dimensiones`, `x_tiempo_produccion_dias`, `x_requiere_cotizacion`,
->   `x_es_servicio_personalizacion`.
+>   `x_area_dimensiones`, `x_tiempo_produccion_dias`, `x_requiere_cotizacion`.
 > - ✗ **Descartados**: `x_proveedor_id`, `x_proveedor_sku` — el vínculo con
 >   proveedor usa el estándar `product.supplierinfo` (ver sección dedicada abajo),
 >   NO un campo custom. Ojo: `x_proveedor_carga` (char) SÍ existe pero es solo una
@@ -168,9 +170,61 @@ x_requiere_cotizacion:
 x_es_servicio_personalizacion:
   type: boolean
   string: "Es servicio de personalización"
-  help: "Marcado para productos que son servicios de personalización (no productos físicos)"
-  # ○ Planificado
+  default: false
+  help: "Marcado para productos que son servicios de personalización (no productos físicos). Ver sección dedicada abajo."
+  # ✓ CREADO 2026-08-06 (manual, vía Ajustes → Técnico → Estructura de BD). Nombre técnico REAL
+  #   sin prefijo x_studio_ (verificado por fields_get): Técnico conserva el x_ que escribes;
+  #   solo Studio UI fuerza x_studio_.
+
+x_tecnica_servicio_id:
+  type: many2one
+  comodel: x_tecnica_personalizacion
+  string: "Técnica que representa este servicio"
+  help: "SOLO para productos con x_es_servicio_personalizacion=True. Distinto de x_tecnica_default_id (que vive en productos FÍSICOS e indica su técnica sugerida). Llave de idempotencia de scripts/seed_servicios_personalizacion.py."
+  # ✓ CREADO 2026-08-06 (manual, vía Técnico). Nombre real sin x_studio_ (verificado por fields_get).
 ```
+
+#### Servicios de personalización — 1 `product.template` por técnica (Fase 3)
+
+> Decisión 2026-08-05: granularidad "uno por técnica" (no un servicio genérico, no uno por
+> técnica×proveedor). Motivo: mejor reporte de ingresos/margen por técnica en Ventas/Contabilidad,
+> cotizaciones con nombre de línea real (no genérico), y encaja con `x_approval_request.approved_servicio_id`
+> que ya asumía un conjunto acotado de servicios para elegir. El proveedor NO es un eje del
+> catálogo de servicios — es un detalle de costeo interno que vive en `x_costo_personalizacion`.
+
+> **Estado de setup (2026-08-06)** — ✓ ambos pasos listos. **PASO 1** (por API): categoría
+> `Servicios de Personalización` creada (`product.category` **id=435**) con cuenta de ingresos
+> **104** ("Sales and/or services taxed at the general rate") y gasto **121**, copiadas de las
+> categorías de productos físicos (todas usan la misma). El IVA no es campo de categoría → lo
+> hereda el producto del default de la compañía (16%). **PASO 2** (manual por JC, tras 403 en API):
+> los 2 campos creados vía Ajustes → Técnico → Estructura de BD con nombre técnico REAL
+> **`x_es_servicio_personalizacion`** y **`x_tecnica_servicio_id`** — **sin** `x_studio_`
+> (verificado por `fields_get`). Lección: crear por Técnico conserva el `x_` que escribes; solo
+> **Studio UI** fuerza `x_studio_`. Siguiente: correr `scripts/seed_servicios_personalizacion.py`.
+
+Se crea **un `product.template` por cada técnica activa** en `x_tecnica_personalizacion`
+(20 hoy, puede crecer). Convención:
+
+| Campo | Valor |
+|---|---|
+| `name` | `"Servicio de {x_name de la técnica}"` (ej. "Servicio de Serigrafía") |
+| `type` | `service` (no controla inventario) |
+| `sale_ok` | `True` |
+| `purchase_ok` | `False` — el costo real NO vive en el producto, vive en `x_costo_personalizacion` (varía por proveedor/cantidad/área; un solo `standard_price` por producto no lo puede representar) |
+| `invoice_policy` | `order` (cantidades ordenadas) — no hay flujo de entrega/almacén que dispare la facturación |
+| `list_price` | `0` — el precio real lo calcula el motor de cotización fila por fila desde `x_costo_personalizacion` y se escribe directo en `price_unit` de la línea, NUNCA se lee del catálogo |
+| `categ_id` | `"Servicios de Personalización"` (categoría de producto dedicada, a crear una vez — así los 20 heredan cuenta contable de ingresos e impuestos por default, sin hardcodear cuentas en el script) |
+| `x_es_servicio_personalizacion` | `True` |
+| `x_tecnica_servicio_id` | la técnica correspondiente (m2o) — llave de idempotencia |
+
+**Limitación conocida**: el `standard_price` estándar de Odoo asume un costo único por producto;
+como el costo real varía por fila de `x_costo_personalizacion`, el margen de personalización
+NO se puede leer de la contabilidad de costos nativa de Odoo — hay que calcularlo aparte
+(cruzando `sale.order.line` contra `x_costo_personalizacion`) si se necesita ese reporte.
+
+**Script**: `scripts/seed_servicios_personalizacion.py` (dry-run/--apply, idempotente por
+`x_tecnica_servicio_id`, ver `docs/guia-creacion-servicios-personalizacion.md` para el setup
+previo en Odoo).
 
 ### product.product (variants, extendido)
 

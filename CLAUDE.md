@@ -92,6 +92,13 @@ Documentar cada campo nuevo de API en `specs/api-shapes.md`.
   n8n nuevo → exporta el JSON a `n8n-workflows/`. **NUNCA** documentes en el repo
   público detalle sensible del sync (endpoints, credenciales, lógica de proveedores,
   horarios): eso vive en `analysis/` (gitignored).
+- **Scripts nuevos, generados por Claude Code (no por Cowork)**: cuando la pieza
+  de trabajo requiere un script nuevo, Juan Carlos prefiere recibir el prompt
+  (requisitos, spec de referencia, patrón a seguir) para pegarlo en Claude Code y
+  que Claude Code lo genere, pruebe contra Odoo real y corrija ahí mismo — no que
+  se entregue el código ya escrito desde otra herramienta sin acceso de red real
+  a `mozaprintmx.odoo.com` (esa es la limitación de Cowork: puede diseñar/spec
+  pero no probar).
 
 ## Proactivo
 

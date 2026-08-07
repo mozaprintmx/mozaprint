@@ -145,7 +145,21 @@ extensions:
     - field_name: x_es_servicio_personalizacion
       field_type: boolean
       string: 'Es servicio de personalización'
-      status: planned
+      default: false
+      status: created
+      created_date: 2026-08-06
+      # Creado MANUALMENTE vía Ajustes → Técnico → Estructura de BD. Nombre técnico REAL sin
+      # prefijo x_studio_ (verificado por fields_get): Técnico conserva el nombre x_ que se
+      # escribe; SOLO Studio UI fuerza x_studio_ (igual que x_costo_personalizacion).
+
+    - field_name: x_tecnica_servicio_id
+      field_type: many2one
+      relation: x_tecnica_personalizacion
+      string: 'Técnica que representa este servicio'
+      help: 'Solo para productos con x_es_servicio_personalizacion=True. Llave de idempotencia de seed_servicios_personalizacion.py.'
+      status: created
+      created_date: 2026-08-06
+      # Creado manualmente vía Técnico. Nombre real sin x_studio_ (verificado por fields_get).
 
   crm.lead:
     # --- CREADOS EN PRODUCCIÓN (2026-06-02) ---

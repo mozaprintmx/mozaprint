@@ -4,6 +4,80 @@
 
 ---
 
+## 2026-08-06 · odoo (v27) — Servicios de personalización: setup previo (categoría + 2 campos)
+
+**Tipo**: `odoo` (config) — ambos prerrequisitos listos (categoría por API, campos manual)
+
+**Descripción**: los 2 prerrequisitos en Odoo para `seed_servicios_personalizacion.py`, hechos
+lo más por API posible (script temporal, no permanente).
+
+### PASO 1 — categoría ✓ (por API)
+
+- Se investigaron las categorías de productos físicos: **todas** usan la misma cuenta de ingresos
+  `id=104` ("Sales and/or services taxed at the general rate", que cubre servicios) y gasto `id=121`.
+- Creada `product.category` **"Servicios de Personalización" (id=435)** copiando esas cuentas
+  (income=104, expense=121), verificado. **El IVA NO es campo de categoría** (`product.category`
+  solo tiene cuentas, no impuesto de cliente) → el 16% lo hereda el producto del default de la
+  compañía; el `seed_servicios` no setea `taxes_id`.
+
+### PASO 2 — campos en product.template ✓ (manual, tras bloqueo de API)
+
+- Crear vía API `ir.model.fields` dio **403 AccessError** (*"permitido para: Access Rights"*): el
+  usuario API (Rosy Ponce) no está en el grupo `Access Rights` (`base.group_erp_manager`). No se
+  elevó el usuario de integración (decisión de seguridad) → los creó **Juan Carlos manualmente**
+  vía Ajustes → Técnico → Estructura de BD.
+- **Nombres técnicos REALES (verificados por `fields_get`)**: `x_es_servicio_personalizacion`
+  (boolean) y `x_tecnica_servicio_id` (m2o a `x_tecnica_personalizacion`) — **SIN** prefijo
+  `x_studio_`.
+- **Lección (corrige la guía y `.claude/rules/data-model.md`)**: crear campos vía **Técnico →
+  Estructura de BD** conserva el nombre `x_` que escribes; **solo Studio UI** fuerza `x_studio_`.
+  El script/guía originales asumían `x_studio_` para `product.template` (modelo estándar) — falso:
+  lo que fuerza el prefijo es Studio, no que el modelo sea estándar (igual que `x_costo_personalizacion`,
+  también plano vía Técnico). Se revirtieron script/specs a los nombres reales.
+
+### Impacto en repo
+
+- `scripts/seed_servicios_personalizacion.py`: usa los nombres reales `x_es_servicio_personalizacion`
+  / `x_tecnica_servicio_id` (se quitó el `x_studio_` erróneo).
+- `specs/data-model.md` + `odoo-extensions/studio-fields.yaml`: 2 campos `status: created`
+  (2026-08-06), nombres reales; categoría documentada (id 435).
+- `docs/guia-creacion-servicios-personalizacion.md` y `.claude/rules/data-model.md`: corregida la
+  regla del prefijo (`x_studio_` lo fuerza Studio, no Técnico).
+- `docs/roadmap.md`: prerrequisitos listos; falta correr el seed (siguiente paso).
+
+---
+
+## 2026-08-05 · design + scripts (v26) — Servicios de personalización: 1 product.template por técnica
+
+**Tipo**: `design` (specs) + `scripts` (nuevo loader) — NADA creado todavía en Odoo
+
+**Descripción**: siguiente pieza de Fase 3. Decisión de granularidad: **1 `product.template`
+type=service por técnica** (20 hoy, no un servicio genérico ni uno por técnica×proveedor) —
+mejor reporte de ingresos/margen por técnica y encaja con `x_approval_request.approved_servicio_id`.
+El proveedor no es eje del catálogo de servicios, sigue viviendo solo en `x_costo_personalizacion`.
+
+- 2 campos nuevos planificados en `product.template`: `x_es_servicio_personalizacion` (bool) y
+  `x_tecnica_servicio_id` (m2o a `x_tecnica_personalizacion`, llave de idempotencia). (Nota: el
+  diseño original asumió prefijo `x_studio_`; **resultó falso** al crearlos vía Técnico — ver v27.)
+- Categoría de producto dedicada "Servicios de Personalización" (a crear por Juan Carlos) para
+  heredar cuenta de ingresos e IVA por default, sin hardcodear cuentas contables en el script.
+- `scripts/seed_servicios_personalizacion.py` (dry-run/--apply, idempotente por
+  `x_tecnica_servicio_id`): lee el catálogo de técnicas **en vivo** de Odoo (no CSV) —
+  si se agregan técnicas después, re-correr solo crea las nuevas. Validado offline con las 20
+  técnicas de `data/tecnicas_seed.csv` (20 nombres únicos generados correctamente).
+- **Limitación documentada**: `standard_price` no puede representar el costo real (varía por
+  fila de `x_costo_personalizacion`) — margen de personalización se calcula aparte, no vía
+  contabilidad de costos nativa de Odoo.
+
+### Impacto en repo
+
+- `specs/data-model.md`: nueva sección "Servicios de personalización" + 2 campos planificados.
+- `odoo-extensions/studio-fields.yaml`: 2 campos nuevos en `product.template`.
+- `docs/guia-creacion-servicios-personalizacion.md` (nuevo).
+- `scripts/seed_servicios_personalizacion.py` (nuevo).
+
+---
+
 ## 2026-08-05 · scripts + data (v25) — seed_costos.py + costos_seed.csv (INN+PO, 127 filas)
 
 **Tipo**: `scripts` (nuevo loader) + `data` (seed gitignored, dato de proveedor)

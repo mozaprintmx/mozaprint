@@ -63,7 +63,11 @@
   desde histórico de WhatsApp/cotizaciones + HITL.
 **Tareas**:
 - [x] Crear modelo `x_costo_personalizacion` vía Técnico/Estructura de BD (2026-08-05, 17 campos `x_`)
-- [ ] Modelar servicios de personalización como product.product type=service
+- [x] Modelar servicios de personalización como product.product type=service (2026-08-06):
+      categoría `Servicios de Personalización` (id=435, por API) + 2 campos en `product.template`
+      (`x_es_servicio_personalizacion`, `x_tecnica_servicio_id`, creados manual por JC, sin
+      `x_studio_` — Técnico no lo fuerza, solo Studio) + **20 servicios creados** (ids 5985–6004,
+      1 por técnica) vía `scripts/seed_servicios_personalizacion.py`, validado e idempotente.
 - [x] Script `seed_costos.py` + carga de costos INN y PO (2026-08-05, **127 costos** cargados,
       validados y confirmados idempotentes en un segundo dry-run — ver `docs/changelog.md` v25)
 - [ ] Costos de 4P (sin lista digital; construir desde histórico WhatsApp/cotizaciones)
