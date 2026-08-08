@@ -25,9 +25,13 @@ Entorno: **sandbox Python de Odoo Online**, restringido. No es Python completo.
 
 ## Antes de tocar campos custom
 
-Lee `specs/data-model.md`. No inventes nombres `x_`. Recuerda: campos custom
-llevan prefijo `x_studio_` forzado por la instancia; verifica el nombre real en
-Odoo antes de referenciarlo.
+Lee `specs/data-model.md`. No inventes nombres `x_`. El prefijo depende de CÓMO
+se creó el campo, NO del modelo (confirmado 2026-08-06, ver CLAUDE.md y
+`specs/data-model.md`): **Studio UI** fuerza `x_studio_`; crear vía **Ajustes →
+Técnico → Estructura de BD** (`ir.model.fields`) conserva el nombre `x_` plano
+que escribes — incluso en modelos estándar como `product.template`
+(ej. `x_es_servicio_personalizacion`, `x_costo_personalizacion`). Verifica
+siempre el nombre real en Odoo (`fields_get`) antes de referenciarlo.
 
 ## Seguridad
 

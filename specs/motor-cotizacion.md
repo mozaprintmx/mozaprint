@@ -105,3 +105,47 @@ conservar nombre plano `x_`, ver lección documentada en
   "Producto"/"Personalización" (ej. un vendedor que agregó una nota manual) —
   el Server Action solo garantiza que sus propias líneas caigan en la sección
   correcta, no reorganiza lo que ya había.
+
+## 6. Estado de implementación (✓ probado en STAGING 2026-08-08)
+
+Implementado y probado end-to-end contra `ODOO_TEST_URL` (admin XML-RPC).
+**Pendiente de replicar a producción** (espera visto bueno). Artefactos versionados:
+`odoo-extensions/server-actions/agregar_personalizacion.py` (Aplicar) y
+`.../abrir_wizard_personalizacion.py` (abridor). Guía de replicación:
+`docs/guia-motor-cotizacion.md`. Modelos/campos: `odoo-extensions/studio-fields.yaml`
+(status `staging`).
+
+**Pruebas (§2 casos):** (a) 1 candidato → auto-pobla; (b) N candidatos → UserError
+lista los alcances y el vendedor elige `x_candidato_elegido_id`; (c) 0 candidatos →
+crea `x_approval_request` y NO inventa precio. Idempotencia: re-ejecutar sobre la
+misma línea actualiza (no duplica), vía `sale.order.line.x_source_line_id`.
+
+### Correcciones a esta spec (verificadas contra datos reales)
+
+1. **`x_qty_to == 0` = "sin límite"** (no `False`/null como decía §2 paso 2). El
+   dominio real es `'|', ('x_qty_to','=',0), ('x_qty_to','>=',qty)`.
+2. **Filtro de tintas**: no se filtra en el dominio (depende de `x_escala_por_tinta`);
+   se filtra en Python: se conserva la fila si `x_escala_por_tinta` **o**
+   `x_tintas == tintas`.
+3. **Semántica de área** cuando el wizard no la especifica (`area=0`): matchea filas
+   cuyo rango inicia en 0 (`x_area_from_cm2 == 0`) y excluye las de área mínima > 0
+   (ej. "Bolsas >603 cm²"). Si dos filas `[0, X]` compiten → cae al caso N (elegir).
+4. **`x_approval_request` es modelo manual → sus campos llevan prefijo `x_`**
+   (`x_sale_order_id`, `x_reason`, `x_context_json`, `x_status`, ...). Los nombres sin
+   prefijo de `specs/data-model.md` NO son creables en un modelo custom manual.
+5. **Prerequisitos que no existían** y se crearon en staging: el modelo
+   `x_approval_request` y los campos `sale.order.x_requires_human_approval /
+   x_approval_request_id / x_customization_cost_source`.
+6. **Precio de la línea = costo de `x_costo_personalizacion`** (§2 paso 6, sin markup
+   adicional sobre la personalización). Si se quiere margen sobre personalización,
+   es una decisión aparte — hoy se factura al costo parametrizado.
+
+### Disparador (§1) — realidad de Odoo 19
+
+El botón **por línea** de la spec §1 no es posible solo por API: en Odoo 19 el
+`order_line` usa el widget OWL `sol_o2m` (sin `<list>`/`<tree>` en el arch donde
+inyectar un botón de fila). Se implementó un botón de **encabezado** "Agregar
+personalización" (robusto, versión-estable) que abre el wizard precargando la línea
+cuando la cotización tiene una sola línea de producto; con varias, el vendedor elige
+la línea en el wizard. El botón por línea exacto de la spec puede añadirse en
+**Studio** (que sí se engancha al widget) si se prefiere esa UX.

@@ -425,6 +425,12 @@ x_studio_no_agente:
 
 ### sale.order (extendido)
 
+> **Estado**: `x_requires_human_approval`, `x_approval_request_id` y
+> `x_customization_cost_source` fueron **creados en STAGING el 2026-08-08** (motor de
+> cotización, vía Técnico, nombre `x_` sin `x_studio_`) — **pendientes de replicar a
+> producción**. Los demás (`x_generated_by_ai`, `x_approval_status`, `x_origen_lead_id`)
+> siguen planificados. Ver `docs/guia-motor-cotizacion.md` y `odoo-extensions/studio-fields.yaml`.
+
 ```yaml
 x_generated_by_ai:
   type: boolean
@@ -464,6 +470,17 @@ x_origen_lead_id:
   type: many2one
   comodel: crm.lead
   string: "Lead origen"
+```
+
+### sale.order.line (extendido)
+
+```yaml
+x_source_line_id:
+  type: many2one
+  comodel: sale.order.line
+  string: "Línea de producto origen (personalización)"
+  help: "En una línea de servicio de personalización, apunta a la línea de producto que la originó. Da idempotencia al Server Action del motor de cotización (re-ejecutar actualiza, no duplica) y trazabilidad. Creado en STAGING 2026-08-08, pendiente de prod."
+  # ✓ CREADO en STAGING (motor de cotización). on_delete='cascade'.
 ```
 
 ## Modelos nuevos (custom)
@@ -529,6 +546,18 @@ x_descripcion:
 ### x_approval_request (nuevo modelo)
 
 Solicitudes de aprobación humana para costos no parametrizados.
+
+> **✓ CREADO en STAGING el 2026-08-08** (motor de cotización), pendiente de prod.
+> **⚠ Nombres reales con prefijo `x_`**: por ser **modelo custom manual**, Odoo exige
+> que los campos manuales lleven prefijo `x_` — los nombres sin prefijo de abajo NO son
+> creables. Mapeo real: `name→x_name` (rec_name auto), `sale_order_id→x_sale_order_id`
+> (on_delete=cascade), `channel_id→x_channel_id`, `reason→x_reason`,
+> `context_json→x_context_json`, `requested_at→x_requested_at`,
+> `responded_at→x_responded_at`, `responded_by_id→x_responded_by_id`,
+> `status→x_status`, `approved_cost_unit→x_approved_cost_unit`,
+> `approved_setup_cost→x_approved_setup_cost`, `approved_servicio_id→x_approved_servicio_id`,
+> `notes→x_notes`, `assigned_user_id→x_assigned_user_id`. Registro completo con estado en
+> `odoo-extensions/studio-fields.yaml`. Referenciar SIEMPRE los nombres `x_` reales.
 
 ```yaml
 name:

@@ -17,27 +17,28 @@
 # - default: valor por defecto
 # - relation: solo para many2one/many2many/one2many
 
-version: '0.6.1'
-last_updated: 2026-08-05
+version: '0.7.0'
+last_updated: 2026-08-08
 
 # =============================================================================
-# NOTA IMPORTANTE — PREFIJO x_studio_ EN ODOO ONLINE
+# NOTA IMPORTANTE — PREFIJO x_studio_ (depende de CÓMO se crea el campo)
 # =============================================================================
 #
-# La instancia de Odoo Online de este proyecto fuerza el prefijo "x_studio_"
-# en TODOS los campos creados vía Studio (no es editable por el operador).
-# Los campos planeados originalmente con prefijo "x_" tienen nombres técnicos
-# reales "x_studio_<nombre>" en producción.
+# El prefijo "x_studio_" lo fuerza la UI de STUDIO, NO la instancia ni el modelo
+# (corregido 2026-08-06, ver CLAUDE.md y specs/data-model.md):
+# - Creado vía Studio UI      → Odoo fuerza "x_studio_<nombre>" (no editable).
+# - Creado vía Ajustes → Técnico → Estructura de BD (ir.model / ir.model.fields):
+#   conserva el nombre "x_<nombre>" que escribes, aun en modelos estándar
+#   (ej. x_es_servicio_personalizacion en product.template; x_source_line_id
+#   en sale.order.line; los campos de x_costo_personalizacion).
 #
-# Considerar esto al:
-# - Referenciar campos en formularios y vistas de Studio
-# - Escribir Server Actions (usar x_studio_<nombre>, no x_<nombre>)
-# - Configurar workflows en n8n que lean/escriban estos campos vía JSON-2 API
-# - Crear nuevos campos: siempre tendrán prefijo x_studio_ automáticamente
+# Considerar esto al referenciar campos en vistas/Server Actions/n8n: NO asumir
+# el prefijo — verificar el nombre real en Odoo (fields_get) antes de integrar.
 #
 # En este archivo:
-#   status: created   → campo existe en producción (nombre técnico real)
-#   status: planned   → campo planeado, aún no creado en Odoo
+#   status: created   → campo existe en PRODUCCIÓN (nombre técnico real)
+#   status: staging   → creado en STAGING (ODOO_TEST_URL), pendiente de replicar a prod
+#   status: planned   → planeado, aún no creado en ningún entorno
 # =============================================================================
 
 # =============================================================================
@@ -326,14 +327,17 @@ extensions:
       field_type: boolean
       string: 'Generado por AI'
 
+    # Creados en STAGING 2026-08-08 (motor de cotización, vía Técnico, sin x_studio_).
     - field_name: x_requires_human_approval
       field_type: boolean
       string: 'Requiere aprobación humana'
+      status: staging
 
     - field_name: x_approval_request_id
       field_type: many2one
       relation: x_approval_request
       string: 'Solicitud de aprobación'
+      status: staging
 
     - field_name: x_approval_status
       field_type: selection
@@ -350,6 +354,7 @@ extensions:
       field_type: selection
       string: 'Fuente del costo de personalización'
       default: no_aplica
+      status: staging
       selection:
         - [parametrized, 'Parametrizado en sistema']
         - [manually_approved, 'Aprobado manualmente']
@@ -359,6 +364,16 @@ extensions:
       field_type: many2one
       relation: crm.lead
       string: 'Lead origen'
+
+  sale.order.line:
+    # Creado en STAGING 2026-08-08 (motor de cotización). Vincula la línea de
+    # personalización (servicio) con la línea de producto que la originó —
+    # idempotencia del Server Action y trazabilidad. NO existe en producción aún.
+    - field_name: x_source_line_id
+      field_type: many2one
+      relation: sale.order.line
+      string: 'Línea de producto origen (personalización)'
+      status: staging
 
 # =============================================================================
 # MODELOS NUEVOS
@@ -410,74 +425,146 @@ new_models:
   x_approval_request:
     display_name: 'Solicitud de Aprobación'
     description: 'Solicitudes humanas para costos no parametrizados'
+    status: staging
+    # ⚠ Creado en STAGING 2026-08-08 (motor de cotización). Modelo manual → sus
+    # campos LLEVAN prefijo x_ (Odoo exige x_ en campos manuales de modelos custom);
+    # los nombres sin prefijo de la spec original NO son posibles. Nombres reales:
     fields:
-      - field_name: name
+      - field_name: x_name       # rec_name auto del modelo manual, usado como "Descripción"
         field_type: char
         required: true
         string: 'Descripción'
+        status: staging
 
-      - field_name: sale_order_id
+      - field_name: x_sale_order_id
         field_type: many2one
         relation: sale.order
         required: true
+        on_delete: cascade
         string: 'Cotización'
+        status: staging
 
-      - field_name: channel_id
+      - field_name: x_channel_id
         field_type: many2one
         relation: discuss.channel
         string: 'Conversación WA'
+        status: staging
 
-      - field_name: reason
+      - field_name: x_reason
         field_type: text
         string: 'Razón'
+        status: staging
 
-      - field_name: context_json
+      - field_name: x_context_json
         field_type: text
         string: 'Contexto (JSON)'
+        status: staging
 
-      - field_name: requested_at
+      - field_name: x_requested_at
         field_type: datetime
         string: 'Solicitado en'
+        status: staging
 
-      - field_name: responded_at
+      - field_name: x_responded_at
         field_type: datetime
         string: 'Respondido en'
+        status: staging
 
-      - field_name: responded_by_id
+      - field_name: x_responded_by_id
         field_type: many2one
         relation: res.users
         string: 'Respondido por'
+        status: staging
 
-      - field_name: status
+      - field_name: x_status
         field_type: selection
-        default: pending
         string: 'Estado'
+        status: staging
         selection:
           - [pending, 'Pendiente']
           - [approved, 'Aprobada']
           - [rejected, 'Rechazada']
 
-      - field_name: approved_cost_unit
+      - field_name: x_approved_cost_unit
         field_type: float
         string: 'Costo unitario aprobado'
+        status: staging
 
-      - field_name: approved_setup_cost
+      - field_name: x_approved_setup_cost
         field_type: float
         string: 'Costo de setup aprobado'
+        status: staging
 
-      - field_name: approved_servicio_id
+      - field_name: x_approved_servicio_id
         field_type: many2one
         relation: product.product
         string: 'Servicio aplicado'
+        status: staging
 
-      - field_name: notes
+      - field_name: x_notes
         field_type: text
         string: 'Notas internas'
+        status: staging
 
-      - field_name: assigned_user_id
+      - field_name: x_assigned_user_id
         field_type: many2one
         relation: res.users
         string: 'Asignado a'
+        status: staging
+
+  # -------------------------------------------------------------------------
+  # Modelo TRANSITORIO del wizard del motor de cotización (Fase 3).
+  # Creado en STAGING 2026-08-08 (transient=True, vía Técnico). Ver
+  # specs/motor-cotizacion.md §3 y docs/guia-motor-cotizacion.md.
+  # -------------------------------------------------------------------------
+  x_wizard_personalizacion:
+    display_name: 'Wizard personalización'
+    description: 'Wizard transitorio: agrega personalización a una línea de cotización'
+    transient: true
+    status: staging
+    fields:
+      - field_name: x_order_id
+        field_type: many2one
+        relation: sale.order
+        on_delete: cascade
+        string: 'Cotización'
+        status: staging
+      - field_name: x_sale_order_line_id
+        field_type: many2one
+        relation: sale.order.line
+        required: true
+        on_delete: cascade
+        string: 'Línea de cotización'
+        status: staging
+      - field_name: x_tecnica_id
+        field_type: many2one
+        relation: x_tecnica_personalizacion
+        required: true
+        on_delete: cascade
+        string: 'Técnica'
+        status: staging
+      - field_name: x_qty
+        field_type: integer
+        string: 'Cantidad'
+        status: staging
+      - field_name: x_tintas
+        field_type: integer
+        string: 'Número de tintas'
+        status: staging
+      - field_name: x_posiciones
+        field_type: integer
+        string: 'Número de posiciones'
+        status: staging
+      - field_name: x_area_cm2
+        field_type: float
+        string: 'Área (cm²)'
+        status: staging
+      - field_name: x_candidato_elegido_id
+        field_type: many2one
+        relation: x_costo_personalizacion
+        on_delete: set null
+        string: 'Candidato elegido'
+        status: staging
 
   x_costo_personalizacion:
     display_name: 'Costo de Personalización'

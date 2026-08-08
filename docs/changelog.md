@@ -4,6 +4,62 @@
 
 ---
 
+## 2026-08-08 · feat (v32) — Motor de cotización (Server Action + wizard) probado en STAGING
+
+**Tipo**: `feat` (lógica + metadata) — construido y probado **solo en STAGING**
+(`ODOO_TEST_URL`), **pendiente de replicar a producción** (espera visto bueno).
+Nada tocó producción.
+
+**Qué es**: implementación de `specs/motor-cotizacion.md` — el "matching" entre lo que
+pide el cliente (técnica, cantidad, tintas, área) y `x_costo_personalizacion`, que agrega
+la línea de personalización a la cotización o la manda a aprobación humana si no hay costo
+parametrizado.
+
+**Construido en staging (admin XML-RPC, porque el usuario JSON-2 reducido no crea metadata)**:
+- **Modelos**: `x_approval_request` (solicitudes de aprobación; **prerequisito que NO existía**)
+  y `x_wizard_personalizacion` (transitorio, el wizard). ACLs para ambos (grupo usuario interno).
+- **Campos**: `sale.order` → `x_requires_human_approval`, `x_approval_request_id`,
+  `x_customization_cost_source` (**no existían**); `sale.order.line` → `x_source_line_id`
+  (idempotencia/trazabilidad de la línea de personalización).
+- **Server Actions**: `agregar_personalizacion` (Aplicar) y `abrir_wizard_personalizacion`
+  (abridor desde el encabezado). Versionados en `odoo-extensions/server-actions/`.
+- **UI**: vista form del wizard + botón "Agregar personalización" en el **encabezado** de
+  `sale.order` (ver nota de disparador abajo).
+
+**Pruebas end-to-end (3 casos de la spec + idempotencia + flujo UI)**:
+- (a) 1 candidato → auto-pobla el precio desde `x_costo_personalizacion`, crea secciones
+  "Producto"/"Personalización".
+- (b) N candidatos (mismo técnica+proveedor+qty, distinto alcance) → el wizard pide elegir
+  `x_candidato_elegido_id`; tras elegir, aplica.
+- (c) 0 candidatos → crea `x_approval_request` (pending, con `context_json`) y **NO inventa
+  precio** (`x_customization_cost_source = manually_approved`).
+- Idempotencia: 3 corridas sobre la misma línea → 1 sola línea de personalización.
+- Distinta cantidad → distinto tramo de costo (curva por `x_qty_from/x_qty_to` funcionando).
+
+**Correcciones a las specs (verificadas con datos reales)**:
+- `x_costo_personalizacion.x_qty_to == 0` significa **"sin límite"** (no `False`/null).
+- `x_approval_request` es **modelo manual → campos con prefijo `x_`** (los nombres sin
+  prefijo de la spec original no son creables). `specs/data-model.md` y `studio-fields.yaml`
+  actualizados con los nombres reales.
+- Semántica de área sin especificar (`area=0`): matchea filas con rango desde 0.
+- Precio de la línea = **costo parametrizado** (sin markup adicional sobre personalización).
+
+**Nota de disparador (UI)**: la spec §1 pedía un botón **por línea**. En Odoo 19 el
+`order_line` usa el widget OWL `sol_o2m` (sin `<list>`/`<tree>` en el arch), así que un
+botón de fila NO es inyectable solo por API. Se usó un botón de **encabezado** robusto;
+el botón por línea exacto puede añadirse en **Studio**. Un primer intento de vista heredada
+sobre el `order_line` rompió el form y se revirtió (desactivado/eliminado) de inmediato.
+
+**Fix previo (bloqueante)**: corregido `.claude/rules/odoo-server-actions.md` y la nota de
+`odoo-extensions/studio-fields.yaml` que afirmaban que "la instancia fuerza `x_studio_`" —
+lo fuerza **Studio UI**, no la instancia; crear vía Técnico conserva el `x_` plano.
+
+**Docs**: `specs/motor-cotizacion.md` (§6 estado + correcciones), `specs/data-model.md`,
+`odoo-extensions/studio-fields.yaml` (status `staging`), `docs/roadmap.md`,
+`docs/guia-motor-cotizacion.md` (guía de replicación a prod).
+
+---
+
 ## 2026-08-07 · perf (v31) — /shop de 5,041 KB a 913 KB: imágenes de categoría optimizadas
 
 **Tipo**: `perf` (datos en Odoo) — 41 registros de `product.public.category` reescritos.
