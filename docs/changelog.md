@@ -65,6 +65,80 @@ cuenta**, no de quien ejecuta. Detalle de la cuenta en `analysis/` (gitignored).
 
 ---
 
+## 2026-08-06 · design (v30) — Motor de cotización: diseño del Server Action de auto-populado
+
+**Tipo**: `design` (spec nueva) — NADA implementado todavía en Odoo
+
+**Descripción**: diseño completo del Server Action de Fase 3 en `specs/motor-cotizacion.md`
+(spec nueva, referenciada desde `CLAUDE.md`). Reutilizable después por el tool `create_quote_draft`
+del agente AI (Fase 4-6) — mismo algoritmo, disparado por WhatsApp en vez de un botón.
+
+- **Disparador**: botón "Agregar personalización" en la línea de producto → wizard.
+- **Wizard nuevo**: `x_wizard_personalizacion` (modelo transitorio, campos en la spec).
+- **Algoritmo**: resuelve proveedor por `product.supplierinfo` (menor `sequence`), busca en
+  `x_costo_personalizacion` por técnica+proveedor+cantidad+área+tintas, respeta
+  `x_unidad_cobro` (pieza vs lote — NO multiplicar por cantidad si es lote) y
+  `x_escala_por_tinta`.
+- **Ambigüedad por categoría** (varias filas difieren solo en `x_alcance_producto`, común en
+  PO): el vendedor elige de una lista corta con 1 clic — decisión 2026-08-06, se prefirió esto
+  sobre mandar a aprobación humana (ya está parametrizado, solo falta 1 dato que el humano
+  reconoce a simple vista).
+- **Sin match**: crea `x_approval_request` + `sale.order.x_requires_human_approval=True` — nunca
+  inventa un precio (regla de `CLAUDE.md`).
+- Sandbox de Server Actions no bloquea nada de esto (es solo ORM, sin librerías externas).
+
+### Impacto en repo
+
+- `specs/motor-cotizacion.md` (nuevo).
+- `CLAUDE.md`: referencia agregada.
+- `docs/roadmap.md`: tarea en progreso (diseño listo, falta implementar).
+
+---
+
+## 2026-08-06 · design (v29) — Quote Subsections: convención de secciones decidida
+
+**Tipo**: `design` (specs) — NADA que crear en Odoo, es una feature nativa de Sales
+
+**Descripción**: siguiente pieza de Fase 3. "Quote Subsections" = feature nativa de Odoo Sales
+("Sections and Notes"): líneas `sale.order.line` con `display_type='line_section'`, sin producto
+ni precio propio, que agrupan visualmente las demás líneas con subtotal automático. No requiere
+campos custom ni Studio.
+
+- **Convención decidida**: 2 secciones fijas por cotización — "Producto" (líneas de producto
+  físico) y "Personalización" (líneas de los 20 servicios de la Fase 3 anterior) — en vez de una
+  sección por cada producto distinto. Documentado en `specs/ai-agent-spec.md`, tool
+  `create_quote_draft`.
+- **Confirmado por Juan Carlos en la instancia real (2026-08-06)**: el botón "Agregar una
+  sección" ya está disponible en las cotizaciones, sin toggle que activar — coincide con la
+  documentación oficial. Tarea de Fase 3 cerrada.
+
+### Impacto en repo
+
+- `specs/ai-agent-spec.md`: nueva sección "Estructura de líneas (secciones)" en `create_quote_draft`.
+- `docs/roadmap.md`: tarea marcada en progreso, pendiente confirmación de UI.
+
+### Fuentes
+
+- [Create quotations — Odoo 19.0 documentation](https://www.odoo.com/documentation/19.0/applications/sales/sales/sales_quotations/create_quotations.html)
+
+---
+
+## 2026-08-06 · odoo (v28) — Servicios de personalización: 20 product.template creados
+
+**Tipo**: `odoo` (datos) — `scripts/seed_servicios_personalizacion.py --apply` ejecutado
+
+**Descripción**: con los 2 prerrequisitos de v27 listos (categoría id 435, campos
+`x_es_servicio_personalizacion`/`x_tecnica_servicio_id` confirmados sin `x_studio_`), se corrió
+el seed contra Odoo real. **Los 20 `product.template` de servicio existen**, uno por cada técnica
+activa de `x_tecnica_personalizacion` (type=service, categ_id=435, x_tecnica_servicio_id poblado).
+
+### Impacto en repo
+
+- `specs/data-model.md`: sección "Servicios de personalización" marcada como poblada.
+- `docs/roadmap.md`: tarea de Fase 3 "Modelar servicios de personalización" completada.
+
+---
+
 ## 2026-08-06 · odoo (v27) — Servicios de personalización: setup previo (categoría + 2 campos)
 
 **Tipo**: `odoo` (config) — ambos prerrequisitos listos (categoría por API, campos manual)

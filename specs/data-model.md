@@ -200,7 +200,11 @@ x_tecnica_servicio_id:
 > los 2 campos creados vía Ajustes → Técnico → Estructura de BD con nombre técnico REAL
 > **`x_es_servicio_personalizacion`** y **`x_tecnica_servicio_id`** — **sin** `x_studio_`
 > (verificado por `fields_get`). Lección: crear por Técnico conserva el `x_` que escribes; solo
-> **Studio UI** fuerza `x_studio_`. Siguiente: correr `scripts/seed_servicios_personalizacion.py`.
+> **Studio UI** fuerza `x_studio_`.
+>
+> **✓ POBLADO 2026-08-06** vía `scripts/seed_servicios_personalizacion.py --apply`: **20
+> `product.template`** creados (ids 5985–6004), uno por técnica activa, `categ_id=435`,
+> `x_tecnica_servicio_id` poblado. Fase 3 "modelar servicios" completa — ver `docs/roadmap.md`.
 
 Se crea **un `product.template` por cada técnica activa** en `x_tecnica_personalizacion`
 (20 hoy, puede crecer). Convención:

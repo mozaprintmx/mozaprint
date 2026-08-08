@@ -32,7 +32,10 @@ Karina Asomoza (Marketing) será dueña del knowledge base del agente "Moza".
   lógica requiere librerías externas o HTTP saliente → va a **n8n**, no a Server
   Action.
 - **No despliegues directos a producción**: validar primero en staging o en un
-  entorno duplicado.
+  entorno duplicado. Ambiente de pruebas: `ODOO_TEST_URL` en
+  `analysis/supplier-sync/.env` (mismas credenciales, solo cambia la URL —
+  agregado 2026-08-06 para probar el Server Action de cotización antes de
+  tocar producción, ver `specs/motor-cotizacion.md`).
 
 ## Modelo de datos (detalle en `specs/data-model.md` — léelo antes de crear campos)
 
@@ -40,10 +43,15 @@ Karina Asomoza (Marketing) será dueña del knowledge base del agente "Moza".
   (NO selection). Producto → técnica por `x_tecnica_default_id` (m2o) y
   `x_tecnicas_compatibles_ids` (m2m). Costos en `x_costo_personalizacion`
   (m2o a la técnica).
-- **Cuidado con el prefijo**: la instancia FUERZA `x_studio_` en CAMPOS custom
-  (ej. `x_studio_collected_qty`). Los MODELOS custom salen como `x_<nombre>`.
-  NO asumas nombres desde las specs — verifica el nombre real en Odoo antes de
-  integrar (hay deuda histórica donde specs y realidad divergen).
+- **Cuidado con el prefijo**: lo que fuerza `x_studio_` es la **UI de Studio**,
+  NO que el modelo sea estándar (`crm.lead`) vs. custom propio. Creando el campo
+  vía **Ajustes → Técnico → Estructura de BD** (en cualquier modelo, estándar o
+  custom) el nombre técnico queda tal cual se escribe, sin prefijo forzado — así
+  quedaron `x_tecnica_servicio_id`/`x_es_servicio_personalizacion` en
+  `product.template` (confirmado 2026-08-06, ver changelog v27; corrige la
+  suposición original). Los MODELOS custom salen como `x_<nombre>`. NO asumas
+  nombres desde las specs — verifica el nombre real en Odoo antes de integrar
+  (hay deuda histórica donde specs y realidad divergen).
 
 ## Convenciones de código
 
@@ -152,6 +160,7 @@ python3 scripts/rollback_category_images.py --from backups/category_images_AAAAM
 - Estado por fases: `docs/roadmap.md` y `docs/punto-de-control.md`
 - APIs externas y proveedores: `specs/integrations.md`
 - Agente "Moza" (identidad, prompts, tools): `specs/ai-agent-spec.md`
+- Motor de cotización (matriz de costos → línea de cotización, wizard, Server Action): `specs/motor-cotizacion.md`
 
 <!-- Único import always-on. glossary.md ayuda a la adherencia de terminología
      en toda sesión. Si crece mucho (>~150 líneas), conviértelo también en

@@ -75,8 +75,16 @@
 - [ ] (backlog, higiene) Partners de proveedor duplicados en Odoo (INN: id 82 vs 32; PO: id 11
       vs 8) — el costo se ancló a los ids canónicos (82/11, los que usa el sync), pero conviene
       fusionar o desactivar los duplicados
-- [ ] Activar Quote Subsections en Sales
-- [ ] Implementar Server Action de auto-populado de servicios
+- [x] Activar Quote Subsections en Sales — confirmado 2026-08-06: nativo en la instancia, sin
+      toggle que activar. Convención: 2 secciones fijas "Producto" / "Personalización"
+      (`sale.order.line.display_type='line_section'`). Documentado en `specs/ai-agent-spec.md`
+      (tool `create_quote_draft`)
+- [~] Implementar Server Action de auto-populado de servicios — diseño completo en
+      `specs/motor-cotizacion.md` (2026-08-06): wizard `x_wizard_personalizacion`
+      (modelo transitorio nuevo) + algoritmo de matching contra `x_costo_personalizacion`
+      + resolución de ambigüedad por categoría (1 clic del vendedor) + fallback a
+      `x_approval_request` cuando no hay fila parametrizada. Falta implementar y probar
+      en Odoo real (vía Claude Code, no Cowork — requiere acceso de red real)
 - [ ] Crear AI Cotizador asistente para vendedor
 
 ### FASE 4: Setup técnico WhatsApp + n8n

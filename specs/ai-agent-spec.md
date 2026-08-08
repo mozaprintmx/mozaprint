@@ -300,6 +300,23 @@ Escala. El cierre es del humano.
 }
 ```
 
+**Estructura de líneas (secciones, decidido 2026-08-06)**: `create_quote_draft` arma la cotización
+con **2 secciones fijas** vía `sale.order.line.display_type='line_section'` (feature nativa de
+Odoo Sales, "Sections and Notes" — ver [docs Odoo 19](https://www.odoo.com/documentation/19.0/applications/sales/sales/sales_quotations/create_quotations.html)),
+sin importar cuántos productos distintos traiga la cotización:
+
+```
+── Producto ──
+<todas las líneas de producto físico, sale.order.line normal>
+── Personalización ──
+<todas las líneas de servicio (product.template x_es_servicio_personalizacion=True)>
+```
+
+No es "una sección por producto" — se descartó esa opción por más compleja de armar sin
+beneficio claro para el caso típico de Mozaprint (pocas líneas por cotización). Cada sección
+recibe subtotal automático (feature nativa de Odoo, no hay que calcularlo). Aplica igual si la
+cotización la arma un vendedor a mano.
+
 ### 8. request_human_approval
 
 **Descripción**: Crea solicitud de aprobación humana para costos no parametrizados.
