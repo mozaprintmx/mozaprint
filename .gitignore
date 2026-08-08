@@ -64,6 +64,9 @@ reports/derive_familia_*
 # Rollback de Color (familia) (MD): ids + conteos de catálogo. No se commitea.
 reports/rollback_familia_*
 
+# Optimización de imágenes de categoría (MD): estructura del catálogo. No se commitea.
+reports/optimize_category_images_*
+
 # =============================================================================
 # Python
 # =============================================================================

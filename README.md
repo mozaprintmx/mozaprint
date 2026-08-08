@@ -42,6 +42,8 @@ mozaprint-context/
 │   ├── derive_colores.py        ← Deriva swatches html_color del atributo Color
 │   ├── derive_color_familia.py  ← Deriva atributo no_variant "Color (familia)" (revertido)
 │   ├── rollback_color_familia.py ← Rollback seguro de "Color (familia)"
+│   ├── optimize_category_images.py  ← Optimiza image_1920 de categorías (peso de /shop)
+│   ├── rollback_category_images.py  ← Rollback de imágenes desde backups/
 │   ├── backup_catalog.py        ← Backup del catálogo antes de sync masivo
 │   ├── dns_audit.py             ← Auditoría DNS
 │   ├── anonymize_whatsapp.py    ← Anonimiza exports de WhatsApp

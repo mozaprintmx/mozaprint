@@ -9,3 +9,8 @@ requests>=2.31
 
 # Carga de variables de entorno desde .env (scripts/audit_catalog.py)
 python-dotenv>=1.0
+
+# Redimensionado/re-encodado de imágenes de categoría a WebP
+# (scripts/optimize_category_images.py). Necesario porque Odoo no regenera
+# image_128 en algunas imágenes y el filmstrip de /shop las incrusta en el HTML.
+Pillow>=11.0

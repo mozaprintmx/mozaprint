@@ -149,7 +149,12 @@
 - [ ] **Diagnóstico GSC previo** (condición para pasar de "targeted" a "hacer"): en Search Console → Performance filtrado a URLs de producto, medir impresiones totales vs por página, posición media (15-30 ≈ filtrado por duplicado) y si las queries son nombre/SKU vs genéricas
 
 **Otras tareas de fase**:
-- [ ] Optimizar Core Web Vitals
+- [~] Optimizar Core Web Vitals — **`/shop` de 5,041 KB a 913 KB (−82%)** el 2026-08-07
+      optimizando las imágenes de `product.public.category` a WebP 256px. El filmstrip nativo
+      las incrusta como base64 en el HTML (no cacheables, bloquean render) y Odoo no
+      redimensiona `image_128` al escribir por API, así que el peso de la página es el de
+      `image_1920`. Ver changelog v31 y `scripts/optimize_category_images.py`.
+      Falta: medir LCP/CLS reales en PageSpeed y revisar el resto de páginas.
 - [ ] Home redesign con value props claras
 - [ ] Dashboard KPIs con Studio
 

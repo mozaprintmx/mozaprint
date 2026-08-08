@@ -136,6 +136,12 @@ python3 scripts/test_server_action.py --action ai_handle_whatsapp_message \
 
 # Anonimizar conversaciones WhatsApp para análisis
 python3 scripts/anonymize_whatsapp.py "exports/*.txt" --output-dir anonymized/
+
+# Imágenes de categorías del eCommerce (dry-run por defecto; --apply escribe).
+# El filmstrip de /shop las incrusta como base64 en el HTML y Odoo NO redimensiona
+# image_128 al escribir por API → el peso de la página es el de image_1920.
+python3 scripts/optimize_category_images.py --apply
+python3 scripts/rollback_category_images.py --from backups/category_images_AAAAMMDD --apply
 ```
 
 ## Dónde está el resto del contexto

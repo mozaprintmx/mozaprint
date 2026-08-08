@@ -4,6 +4,67 @@
 
 ---
 
+## 2026-08-07 · perf (v31) — /shop de 5,041 KB a 913 KB: imágenes de categoría optimizadas
+
+**Tipo**: `perf` (datos en Odoo) — 41 registros de `product.public.category` reescritos.
+NO se tocó ninguna vista, snippet ni configuración del sitio.
+
+**Síntoma reportado**: el submenú de categorías de la tienda cargaba muy lento y arrastraba
+al sitio entero.
+
+**Diagnóstico** (medido contra producción, no supuesto):
+
+- El bloque es `o_wsale_categories_filmstrip`, la tira de categorías **nativa de
+  `website_sale`** — no un snippet pegado a mano. Se renderiza sola desde
+  `product.public.category`, así que una actualización de Odoo no la borra.
+- El filmstrip **no sirve las imágenes por `/web/image/`**: las incrusta en el HTML de
+  `/shop` como `data:image` en `style="background-image:url(...)"`, una por categoría raíz.
+  Al vivir dentro del HTML no se cachean, se re-descargan en cada visita, no admiten
+  lazy-load y bloquean el render. Base64 agrega además ~33%.
+- **Odoo NO redimensiona `image_128` al escribir `image_1920` por API**: la deja byte a byte
+  idéntica (verificado leyendo de vuelta después de escribir). Las únicas categorías que
+  tenían miniatura real eran las subidas por el editor web. Conclusión operativa: **el peso
+  de `/shop` es la suma de los `image_1920` × 4/3**, y el único control es escribirlas ya
+  pequeñas.
+- Punto de partida: `/shop` = 5,041 KB de HTML, de los cuales **4,598 KB (91%)** eran las 38
+  miniaturas, a **121 KB de promedio** cada una (la peor, `OFICINA`, 389 KB).
+
+**Resultado**: `/shop` **5,041 KB → 913 KB (−82%)**; las miniaturas **4,598 → 470 KB (−90%)**,
+de 121 KB a 12 KB de promedio. Las 41 categorías con imagen quedaron en WebP 256 px @ q82.
+
+Los 256 px salieron de calibrar localmente sobre los originales: el filmstrip dibuja fichas de
+~128 px, así que 256 da nitidez 2× en retina al mínimo costo (128 px daría 603 KB pero sin
+margen; 512 px daba 1,893 KB). Los 41 originales quedaron respaldados en
+`backups/category_images_20260807/` (gitignored, 9.3 MB) — es la fuente de todo re-encodado,
+para no comprimir sobre comprimido en corridas sucesivas.
+
+**Permisos**: al **usuario técnico de la API** le faltaba escritura sobre
+`product.public.category` (ACL de `website_sale`: lectura a cualquier usuario interno,
+escritura a Administrador de Ventas); se le concedió el grupo. No es el usuario del operador.
+Nota operativa: **todas las escrituras de los scripts quedan registradas a nombre de esa
+cuenta**, no de quien ejecuta. Detalle de la cuenta en `analysis/` (gitignored).
+
+### Impacto en repo
+
+- `scripts/optimize_category_images.py` (nuevo): dry-run por defecto, `--apply`,
+  `--only-broken`, `--ids`, `--max-px`, `--quality`. Respalda originales, re-encoda siempre
+  desde el respaldo, verifica leyendo de vuelta. Idempotente byte a byte.
+- `scripts/rollback_category_images.py` (nuevo): restaura `image_1920` desde el respaldo.
+- `requirements.txt`: `Pillow>=11.0`.
+- `.gitignore`: `reports/optimize_category_images_*`.
+- `docs/roadmap.md`: Fase 9, "Optimizar Core Web Vitals" avanzado.
+
+### Pendientes detectados (no abordados aquí)
+
+- **347 de 388 categorías siguen sin imagen** y el árbol trae deuda del sync: duplicados por
+  acento (`TECNOLOGIA`/`TECNOLOGÍA`, `TEXTIL`/`TEXTILES`, `FUTBOL`/`FÚTBOL`,
+  `ECOLÓGICA`/`ECOLÓGICOS`), categorías con nombre vacío (ids 359, 288, 375, 396) y ~30 con
+  cero productos. Conviene consolidar ANTES de generar imágenes nuevas.
+- El API key no puede leer ni escribir `ir.ui.view` / `website.page` (403), así que cualquier
+  cambio de plantilla sigue siendo manual en el editor web.
+
+---
+
 ## 2026-08-06 · odoo (v27) — Servicios de personalización: setup previo (categoría + 2 campos)
 
 **Tipo**: `odoo` (config) — ambos prerrequisitos listos (categoría por API, campos manual)
