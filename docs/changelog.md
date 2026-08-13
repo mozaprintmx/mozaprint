@@ -4,6 +4,316 @@
 
 ---
 
+## 2026-08-12 · feat (v40) — Precio de venta (markup) + confirmación antes de aprobar (STAGING)
+
+**Tipo**: `feat` (lógica + metadata + UI + script), **solo STAGING**, pendiente de prod.
+
+### 1) Costo ≠ precio de venta
+Hasta ahora el motor cotizaba **al costo del proveedor**: la personalización se vendía **sin
+margen**. Decisión (JC): guardar ambos, **en la matriz de costos** (no en la línea de
+cotización — se descartó instalar `sale_margin` y no se agregó costo a `sale.order.line`).
+
+- `x_costo_personalizacion`: nuevos `x_markup` (estándar **1.275**), `x_precio_venta` y
+  `x_precio_setup` (computed + store + **editables**, = costo × markup, redondeado a 2).
+- `x_approval_request`: equivalentes `x_markup`, `x_approved_precio_venta`,
+  `x_approved_precio_setup`.
+- **El motor ya cotiza con el precio de venta** (y el setup también lleva markup, por decisión
+  de JC). El costo queda como referencia de gasto. Al guardar una tarifa desde una aprobación se
+  copia el markup.
+- **Backfill**: markup 1.275 en las 130 filas + `ir.default` para nuevos registros.
+- **Seed**: `scripts/seed_costos.py` acepta columna opcional `markup`
+  (`DEFAULT_MARKUP = 1.275`) y el CSV de `analysis/` ya la trae → viaja a producción.
+  Dry-run tras el cambio: *0 a crear, 128 a actualizar, 0 error*.
+
+### 2) Confirmación Aceptar/Cancelar antes de crear la solicitud
+Antes la solicitud se creaba de inmediato, sin avisar. Ahora `agregar_personalizacion` **no crea
+nada**: guarda el motivo y abre un **diálogo** explicando qué pasó, con
+**"Aceptar y solicitar aprobación" / "Cancelar"**. La creación vive en un Server Action nuevo,
+**`confirmar_aprobacion`** (único lugar que crea solicitudes, sin duplicar lógica).
+Casos con diálogo: candidato elegido que no aplica a la cantidad/área (antes era un `UserError`
+seco), sin tarifa tabulada, producto sin proveedor, y "ninguna tarifa aplica". Sigue siendo
+`UserError` el caso de N candidatos sin elegir (ahí solo falta elegir).
+La vista del diálogo se localiza **por nombre**, no por ID → el mismo código sirve en prod.
+
+**Probado en staging**: el diálogo abre y **no** crea la solicitud hasta pulsar Aceptar
+(verificado que la cotización sigue sin solicitud antes de confirmar); mensaje correcto en el
+caso "candidato no aplica" (`Llavero (9 cm²) 50-499` vs. 300 pzas); y la línea de cotización
+ahora sale a **precio de venta** (costo tabulado × markup), no al costo del proveedor.
+
+**Nota de datos**: la matriz tiene 130 filas = 128 del CSV + 2 creadas por JC desde la UI
+(`TAZAS` y `POWER BANK` externo) — confirma la deriva del CSV ya advertida en v37.
+
+---
+
+## 2026-08-12 · feat (v39) — UI de administración: matriz de costos y catálogo de técnicas (STAGING)
+
+**Tipo**: `feat` (UI), **solo STAGING**, pendiente de prod.
+
+**Hueco detectado por JC**: guardó una tarifa desde una aprobación eligiendo por error
+"por pieza" en vez de "por lote" y **no encontró dónde corregirla**. Al revisar:
+`x_costo_personalizacion` y `x_tecnica_personalizacion` **no tenían ninguna vista, acción ni
+menú** — se crearon vía Técnico y se poblaron por script, y solo se consultaban desde el wizard.
+Es decir, la matriz de costos (129 filas) y las 20 técnicas eran invisibles/no editables desde la
+interfaz normal.
+
+**Creado en staging** (bajo **Ventas → Configuración**):
+- **"Costos de personalización"**: vista lista (editable en línea) con técnica, proveedor,
+  alcance, rangos de cantidad, tintas, unidad de cobro, costo, setup, escala por tinta, externa y
+  activa; y formulario completo agrupado (a qué aplica / rangos / costo / notas).
+- **"Técnicas de personalización"**: lista y formulario (código, nombre, orden, activa, aliases
+  de proveedor, descripción).
+
+Ambos modelos ya tenían ACL para "Sales / User: All Documents" con permiso de escritura, así que
+un usuario de ventas normal puede consultarlos y editarlos (verificado con el usuario reducido).
+
+**Nota**: el registro que JC quería corregir es
+`PROMOOPCION - Serigrafía - TAZAS - qty 50+` (unidad "pieza"); ahora es editable desde el menú
+nuevo. No se modificó su dato — es decisión suya.
+
+---
+
+## 2026-08-12 · fix (v38) — El setup ya se cobra: línea propia en la cotización (STAGING)
+
+**Tipo**: `fix` (lógica + metadata), **solo STAGING**, pendiente de prod.
+**Impacto de negocio**: corrige una **subcotización** real.
+
+**Hallazgo**: al preguntar JC para qué servía el campo "Costo de setup aprobado", se verificó
+que **ningún flujo cobraba el setup**. Ni `x_costo_personalizacion.x_costo_setup` (matriz) ni
+`x_approval_request.x_approved_setup_cost` (aprobación) llegaban a la cotización: el motor solo
+usaba el costo unitario. El setup es el cargo **único por orden** (pantalla/ponchado/placa), y
+5 de 129 filas lo tienen publicado — así que esas técnicas se estaban cotizando de menos.
+
+**Decisión (JC)**: cobrarlo como **línea aparte** (no prorrateado en el precio unitario):
+transparente para el cliente, editable/eliminable por separado, sin ensuciar el margen unitario.
+
+**Implementación** (en Aplicar y en Aprobar):
+- La línea de setup **reutiliza el producto-servicio de la técnica** → el reporte de ingresos por
+  técnica se mantiene.
+- Nuevo `sale.order.line.x_es_setup` (bool). La idempotencia pasa a ser por
+  `(x_source_line_id, x_es_setup)`: máximo una línea normal + una de setup por línea de producto.
+- `qty = 1`, precio = setup, nombre `"Setup / preparacion - <técnica>"`, justo debajo de la línea
+  de personalización. Si el setup es 0 o se cambia a una técnica sin setup, **la línea se borra**.
+- Se refactorizó el bloque de escritura de líneas a un helper `_upsert(es_setup, ...)` en ambas
+  acciones (las secciones ahora se garantizan una sola vez, no solo en la rama de creación).
+
+**Probado en staging**: una técnica con setup publicado, 300 pzas → 2 líneas (personalización + setup);
+re-aplicar no duplica; cambiar a Láser (sin setup) elimina la línea de setup.
+
+**Nota**: se detectó también una fila de costo creada por JC desde la UI
+(`... - Serigrafía - TAZAS - qty 50+`, desde la aprobación 12) — confirma que el guardado de
+tarifas de v37 funciona en uso real. Se dejó intacta.
+
+**Docs**: `specs/motor-cotizacion.md` §9 (+ corrección 7), `odoo-extensions/studio-fields.yaml`,
+`docs/manual-personalizacion-cotizacion.md` + artículo Knowledge.
+
+---
+
+## 2026-08-12 · feat (v37) — Aprobaciones: pedir aprobación con candidatos + guardar la tarifa (STAGING)
+
+**Tipo**: `feat` (lógica + metadata + UI), **solo STAGING**, pendiente de prod.
+
+**Dos huecos detectados por JC al probar:**
+
+**1) No se podía pedir aprobación cuando SÍ había candidatos.** Caso real: serigrafía en un
+producto cuyo alcance **no está tabulado** por su proveedor — técnica/proveedor/cantidad matchean
+otras filas, así que el motor obligaba a elegir un alcance que no aplica (cilindro/bolsa/bolígrafo
+para un dominó de madera). Se agregó `x_wizard_personalizacion.x_forzar_aprobacion` (bool,
+"Ninguna tarifa aplica - solicitar aprobación"): salta el matching y crea la solicitud
+directamente. Con el check activo, la vista oculta los selectores de candidato.
+
+**2) La tarifa aprobada se perdía**: al aprobar, el precio solo servía para esa cotización.
+Ahora el administrador elige con `x_approval_request.x_guardar_tarifa` (**opt-in**, default `no`):
+`no` (solo esta cotización) · `proveedor` (se guarda como tarifa del proveedor del producto → sale
+entre los **candidatos**) · `externo` (se guarda anclada al contacto "Personalización Externa
+(Mozaprint)" → sale en **proveedor externo**). Campos de apoyo: `x_alcance_nuevo`,
+`x_tarifa_qty_from`, `x_tarifa_qty_to`, `x_tintas` (precargados al crear la solicitud).
+El alta es **idempotente** por (técnica+proveedor+alcance+rango) y deja trazabilidad en `x_notas`.
+
+**Probado en staging (ciclo completo)**: producto no tabulado → "ninguna tarifa aplica" → solicitud
+creada con el motivo correcto → aprobar guardando como tarifa del proveedor → **la fila se crea** →
+una cotización nueva del mismo caso **ya la ofrece como candidato**. Idem la variante `externo`
+(queda anclada al contacto externo con la marca correspondiente). Las tarifas de prueba se
+eliminaron; staging quedó en sus 128 filas reales.
+
+⚠ **Deriva del CSV**: las filas creadas desde aprobaciones nacen en Odoo y no están en el CSV
+fuente de `analysis/` (gitignored). `seed_costos.py` no las borra, pero conviene exportarlas al CSV
+periódicamente para conservar la reproducibilidad.
+
+**Docs**: `specs/motor-cotizacion.md` §8.1 y §8.2, `odoo-extensions/studio-fields.yaml`,
+`docs/manual-personalizacion-cotizacion.md` + artículo Knowledge.
+
+---
+
+## 2026-08-12 · data (v36) — Alcances de costo legibles + fila de mínimo por lote (STAGING)
+
+**Tipo**: `data` (contenido de `x_costo_personalizacion`), **solo STAGING**, pendiente de prod.
+El detalle de costos (montos, proveedor, tramos) vive en `analysis/costos-personalizacion/`
+(**gitignored**) — aquí solo el cambio estructural.
+
+**Por qué**: el `x_alcance_producto` se muestra al vendedor en el wizard cuando hay varios
+candidatos, así que tiene que leerse como en la lista original del proveedor. Los nombres traían
+símbolos (`≤`, `>`) y una categoría poco clara.
+
+- **Renombrados 20 alcances** para que digan la categoría completa y usen palabras
+  ("máximo … cm2" / "mayor a … cm2") en lugar de `≤` / `>`.
+- **1 fila nueva**: mínimo por **lote** para tirajes por debajo del primer tramo tabulado
+  (antes esos pedidos caían a aprobación manual por ausencia de fila).
+
+**Cómo se aplicó (patrón reutilizable)**: la llave de idempotencia de
+`scripts/seed_costos.py` incluye `x_alcance_producto`, así que renombrar **solo** en Odoo haría
+que un re-run creara duplicados. Orden correcto: (1) actualizar el CSV fuente en `analysis/`,
+(2) renombrar en Odoo (`x_alcance_producto` + `x_name`), (3) correr el seed apuntando a staging
+(`ODOO_URL=<staging> python scripts/seed_costos.py`) — que entonces matchea y solo actualiza.
+
+⚠ **Nota de operación**: `scripts/seed_costos.py` lee `ODOO_URL` del entorno; para staging hay
+que **sobrescribir la variable**, si no apunta a producción.
+
+---
+
+## 2026-08-08 · fix (v35) — Wizard de personalización: multi-línea con campos `related` (STAGING)
+
+**Tipo**: `fix` (metadata + lógica), **solo STAGING**, pendiente de prod.
+
+**Síntoma** (reportado por JC): en una cotización con **varias líneas**, al abrir "Agregar
+personalización" desde el encabezado y elegir la línea, el campo "Proveedor del producto"
+quedaba vacío y "Candidato elegido" mostraba **"Sin registros"** — aunque **Aplicar sí
+cotizaba correctamente** (el motor resuelve el proveedor desde la línea, no desde ese campo).
+
+**Causa**: los modelos manuales de Odoo **no tienen `onchange`**, así que al cambiar la línea
+dentro del wizard nada recalculaba el proveedor.
+
+**Solución (sin campos nuevos en el catálogo)**: aprovechar el `product.supplierinfo` que el
+producto **ya tiene**, vía campos **`related`** en el wizard:
+- `x_proveedor_id` → `x_sale_order_line_id.product_id.seller_ids.partner_id` (al atravesar el
+  one2many, Odoo toma el primero, que por el `_order` de `product.supplierinfo` es el
+  **proveedor preferido** — mismo criterio del motor).
+- `x_producto_id` (nuevo) → `x_sale_order_line_id.product_id`, referencia visible **con SKU**.
+
+Ambos `readonly` y no almacenados; los related **sí se recalculan** al cambiar la línea en el
+formulario. Los Server Actions **dejaron de escribir** `x_proveedor_id` (escribir un related
+propagaría al origen) → el código bajó a **179 líneas** de código en 5 acciones.
+
+Se descartó la alternativa de crear un campo "proveedor principal" en `product.template` con
+backfill + regla de automatización: innecesaria y con mantenimiento permanente.
+
+**Técnica y Cantidad** (2ª iteración, mismo día): tampoco se autollenaban en multi-línea, y sin
+técnica el desplegable seguía vacío. **No pueden ser `related`** (un related editable escribiría
+de vuelta en el producto), así que se pasaron al patrón nativo **computed + store +
+`readonly=False`** (el de `sale.order.line.price_unit`), con el `compute` en
+`ir.model.fields.compute` y `depends = x_sale_order_line_id`: se autollenan al elegir la línea
+**y siguen siendo editables**. Con eso los abridores ya solo fijan la línea → **174 líneas** de
+código en 5 acciones (desde 183). Extra: fallback de técnica en el Aplicar.
+
+**Probado en staging**: multi-línea → al elegir la línea del dominó, Producto y Proveedor
+(PROMOOPCION) se autollenan y el desplegable pasa de "Sin registros" a **20 filas**; aplicar OK.
+Regresión 1-línea (precarga completa), re-clic (actualiza, no duplica) y N-candidatos: OK.
+
+**Limitación restante (cosmética)**: el desplegable "Línea de cotización" muestra la descripción
+de la línea (`display_name` nativo de `sale.order.line`, no configurable sin módulo); por eso se
+agregó "Producto" con SKU. El **botón por línea** (`abrir_wizard_personalizacion_por_linea`, ya
+escrito y probado) lo evitaría del todo, pero **Studio no permite agregar botones a la lista
+embebida de líneas** (solo campos).
+
+**Visibilidad de técnicas del producto** (3ª iteración): el selector de Técnica ofrece las 20
+(deliberado: permite cotizar externo una técnica no asignada), pero el vendedor no veía **cuáles
+sí** trae el producto. Se agregaron `x_tecnicas_producto_ids` (m2m related a
+`x_tecnicas_compatibles_ids`, mostrado con `many2many_tags`) y `x_aviso_tecnica` (char computed:
+"OK - tecnica asignada" / "AVISO - esta tecnica NO esta asignada..."). Solo informan, no bloquean.
+
+**Docs**: `specs/motor-cotizacion.md` §7, `odoo-extensions/studio-fields.yaml`,
+`docs/guia-motor-cotizacion.md`, `docs/manual-personalizacion-cotizacion.md`.
+
+---
+
+## 2026-08-08 · feat (v34) — Administración de aprobaciones de personalización (STAGING)
+
+**Tipo**: `feat` (lógica + metadata + UI), **solo STAGING**, pendiente de prod.
+
+**Origen**: el manual mencionaba que "se crea una solicitud de aprobación" cuando no hay costo
+parametrizado, pero **faltaba todo lo demás**: no había UI para ver/administrar las solicitudes,
+ni forma de aprobar, ni se generaba la línea al aprobar. Hueco real detectado por JC.
+
+**Construido en staging (admin XML-RPC)**:
+- **Campos** en `x_approval_request` para reconstruir la línea al aprobar: `x_sale_order_line_id`
+  (línea de producto origen), `x_tecnica_id`, `x_qty`, `x_approved_unidad` (pieza/lote).
+- **Server Actions**: `aprobar_personalizacion` (valida costo > 0, **genera/actualiza
+  automáticamente la línea** de personalización en la sección "Personalización", marca la
+  solicitud Aprobada con responsable/fecha y desmarca "requiere aprobación") y
+  `rechazar_personalizacion`.
+- **UI**: vista lista + formulario de `x_approval_request` (con botones "Aprobar y agregar a la
+  cotización" / "Rechazar" y statusbar), acción de ventana y **menú "Ventas → Aprobaciones
+  personalización"**.
+- El caso 0-candidatos del Server Action `agregar_personalizacion` ahora **precarga** en la
+  solicitud la línea/técnica/cantidad y el servicio (el aprobador solo teclea el costo).
+- Formulario: `x_sale_order_line_id`/`x_tecnica_id`/`x_qty`/decisión **editables mientras
+  Pendiente** (para completar solicitudes incompletas); antes bloqueaban al aprobador.
+- `context_json` con `ensure_ascii=False` (antes los acentos se guardaban como `\uXXXX`,
+  ej. `Serigrafía` → ahora `Serigrafía`).
+
+**Probado en staging**: 0 candidatos → solicitud pendiente con datos precargados; aprobar sin
+costo → bloqueado; capturar costo → aprobar → **línea generada** ($ aprobado, unidad pieza/lote),
+solicitud Aprobada (con usuario/fecha), cotización sin aviso; re-aprobar una ya respondida →
+bloqueado.
+
+**Pendiente/decisión**: hoy cualquier usuario interno puede aprobar (ACL a `base.group_user`);
+si se quiere restringir a un rol, se configura aparte. Setup cost (`x_approved_setup_cost`) aún
+no se refleja como línea (futuro).
+
+**Docs**: `specs/motor-cotizacion.md` §8, `odoo-extensions/studio-fields.yaml`,
+`docs/guia-motor-cotizacion.md`, `docs/manual-personalizacion-cotizacion.md` (sección "Para
+administradores") + artículo Knowledge de staging.
+
+---
+
+## 2026-08-08 · fix (v33) — Motor de cotización: regla de proveedor híbrida (STAGING)
+
+**Tipo**: `fix` + `feat` (lógica + metadata), **solo STAGING**, pendiente de prod.
+
+**Origen**: al probar en staging, un producto surtido por PROMOOPCION (dominó de madera,
+100 pzas, láser) solo ofrecía las 2 filas de láser de PO, no las de INN ("Productos de
+madera"). **No era un bug de cálculo**: el motor resuelve el proveedor desde el
+`supplierinfo` del producto (§2 paso 1), y el dominó lo surte PO, no INN. Pero destapó una
+decisión de negocio: ¿la personalización se amarra al proveedor del producto o se puede
+elegir otro?
+
+**Decisión (JC)**: **híbrida** — amarre al proveedor del producto por defecto (sin poder
+usar filas de *otros proveedores de productos*), **más** una opción manual de **proveedor
+externo de personalización** (maquila/in-house), independiente del catálogo de proveedores.
+
+**Cambios en staging**:
+- Campo `x_costo_personalizacion.x_personalizacion_externa` (bool) — marca filas externas.
+- Partner dedicado **"Personalización Externa (Mozaprint)"** (no surte productos).
+- Wizard: `x_proveedor_id` (proveedor del producto, lo precarga el abridor) y
+  `x_candidato_externo_id` (elegir fila externa).
+- Server Action: default = filas del proveedor del producto y `x_personalizacion_externa=False`;
+  si se elige `x_candidato_externo_id`, usa la externa e ignora al del producto. Esto también
+  **arregla el bug de UX**: el desplegable "Candidato elegido" ahora se acota al proveedor del
+  producto (antes mostraba todos).
+- **Fix re-clic (2º "Agregar personalización")**: el abridor contaba la línea de servicio ya
+  agregada (`[SERV-...]`) como línea de producto → no preseleccionaba línea y fallaba al crear
+  el wizard (campo requerido). Ahora el abridor **excluye las líneas de servicio**
+  (`x_es_servicio_personalizacion`), y `x_sale_order_line_id`/`x_tecnica_id` pasan a **no
+  obligatorios** a nivel modelo (se validan en el Aplicar) para permitir abrir el wizard en
+  cotizaciones multi-línea. Re-clic ahora **actualiza** la línea (no duplica ni falla).
+
+**Probado en staging** (4 casos): (1) dominó PO precarga proveedor y pide elegir solo entre las
+de PO; (2) elegir el alcance genérico de PO aplica; (3) fila externa temporal aplica e
+ignora a PO (luego eliminada); (4) intentar elegir una fila de INN (otro proveedor de producto)
+es **rechazado**.
+
+**Estado de datos**: las filas de costo externas **aún no existen** (se cargan después, decisión
+de JC). El mecanismo queda listo; la opción externa está vacía hasta entonces.
+
+**Limitación (multi-línea)**: los modelos manuales no tienen `onchange`, así que el abridor solo
+precarga proveedor/técnica/cantidad cuando la cotización tiene **una** línea. Con varias líneas,
+el caso de N candidatos no puede acotar el desplegable → conviene el botón por línea vía Studio.
+
+**Docs**: `specs/motor-cotizacion.md` §7, `odoo-extensions/studio-fields.yaml`,
+`docs/guia-motor-cotizacion.md`, `docs/manual-personalizacion-cotizacion.md` (+ artículo en
+Knowledge de staging).
+
+---
+
 ## 2026-08-08 · feat (v32) — Motor de cotización (Server Action + wizard) probado en STAGING
 
 **Tipo**: `feat` (lógica + metadata) — construido y probado **solo en STAGING**

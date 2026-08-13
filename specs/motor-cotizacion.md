@@ -139,6 +139,9 @@ misma línea actualiza (no duplica), vía `sale.order.line.x_source_line_id`.
 6. **Precio de la línea = costo de `x_costo_personalizacion`** (§2 paso 6, sin markup
    adicional sobre la personalización). Si se quiere margen sobre personalización,
    es una decisión aparte — hoy se factura al costo parametrizado.
+7. **Setup (`x_costo_setup`) → línea propia** (decisión 2026-08-12). §2 paso 6 no lo
+   contemplaba y el motor lo ignoraba, así que se estaba **subcotizando** toda técnica con
+   setup publicado (INN: tampografía y bordado; montos en `analysis/`). Ver §9.
 
 ### Disparador (§1) — realidad de Odoo 19
 
@@ -149,3 +152,224 @@ personalización" (robusto, versión-estable) que abre el wizard precargando la 
 cuando la cotización tiene una sola línea de producto; con varias, el vendedor elige
 la línea en el wizard. El botón por línea exacto de la spec puede añadirse en
 **Studio** (que sí se engancha al widget) si se prefiere esa UX.
+
+## 7. Regla de proveedor — híbrida (decisión 2026-08-08)
+
+Corrige el §2 paso 1 tras probar con datos reales (un producto surtido por PO solo
+mostraba las filas de láser de PO, no las de INN — comportamiento correcto pero que
+destapó la decisión de negocio):
+
+- **Default — amarrado al proveedor del producto**: el motor resuelve el proveedor
+  desde `product.supplierinfo` (menor `sequence`) y **solo** considera filas de
+  `x_costo_personalizacion` de **ese** proveedor con `x_personalizacion_externa = False`.
+  El vendedor **no** puede cotizar con filas de **otros proveedores de productos**
+  (el dominó de PO no puede cotizarse con la tarifa de INN). El desplegable
+  "Candidato elegido" queda acotado a ese proveedor.
+- **Opción manual — proveedor externo de personalización**: filas marcadas
+  `x_personalizacion_externa = True`, ancladas al partner dedicado
+  **"Personalización Externa (Mozaprint)"** (maquila/in-house, NO surte productos).
+  Se eligen en el campo `x_candidato_externo_id` del wizard; si se elige una, el motor
+  la usa e **ignora** al proveedor del producto. Independiente del catálogo de
+  proveedores de productos.
+
+Campos añadidos: `x_costo_personalizacion.x_personalizacion_externa` (bool);
+`x_wizard_personalizacion.x_proveedor_id` (proveedor del producto, lo precarga el
+abridor) y `x_candidato_externo_id`.
+
+**Estado de datos**: el mecanismo está listo en staging; **las filas de costo externas
+aún no existen** (se cargan después). Hasta entonces, la opción externa está vacía.
+
+### Multi-línea resuelto con campos `related` (2026-08-08)
+
+Problema: los modelos manuales **no tienen `onchange`**, así que al elegir la línea dentro
+del wizard (cotización con varias líneas) el proveedor no se recalculaba → "Proveedor del
+producto" vacío y el desplegable "Candidato elegido" mostraba *Sin registros* (aunque
+**Aplicar sí cotizaba bien**, porque el motor resuelve el proveedor desde la línea).
+
+Solución sin campos nuevos en el catálogo: `x_proveedor_id` y `x_producto_id` del wizard son
+campos **`related`** sobre el `product.supplierinfo` que el producto ya tiene:
+
+- `x_proveedor_id` → `x_sale_order_line_id.product_id.seller_ids.partner_id`
+- `x_producto_id` → `x_sale_order_line_id.product_id`
+
+Los related **sí se recalculan** al cambiar su origen en el formulario (son campos computados
+con `depends` sobre la ruta), y al atravesar el one2many `seller_ids` Odoo toma el primer
+registro — que por el `_order` de `product.supplierinfo` (`sequence, ...`) es **el proveedor
+preferido**, el mismo criterio del motor (§2 paso 1). Ambos van `readonly` + no almacenados,
+y los Server Actions **ya no los escriben** (escribir un related propagaría al origen).
+
+`x_tecnica_id` y `x_qty` **no pueden ser `related`** (un related editable escribiría de vuelta
+en el producto/la línea). Se resuelven con el patrón nativo de Odoo **computed + store +
+`readonly=False`** (el mismo de `sale.order.line.price_unit`): se autollenan desde la línea y
+se recalculan al cambiarla, pero el vendedor puede sobrescribirlos. El `compute` de los campos
+manuales se escribe en `ir.model.fields.compute` con `depends = x_sale_order_line_id`:
+
+```python
+for r in self:
+    r['x_tecnica_id'] = r.x_sale_order_line_id.product_id.product_tmpl_id.x_tecnica_default_id
+for r in self:
+    r['x_qty'] = int(r.x_sale_order_line_id.product_uom_qty or 0)
+```
+
+Con esto los abridores solo fijan la línea (el resto se calcula solo): quedaron en 12 líneas
+de código cada uno.
+
+### Visibilidad de las técnicas del producto (2026-08-08)
+
+El selector de Técnica deja elegir **cualquiera** de las 20 —deliberado: se puede querer cotizar
+con un proveedor externo una técnica que el producto no trae asignada— pero eso dejaba al
+vendedor sin saber **cuáles sí** están asignadas. Se agregaron dos campos de referencia:
+
+- `x_tecnicas_producto_ids`: m2m **related** a
+  `x_sale_order_line_id.product_id.product_tmpl_id.x_tecnicas_compatibles_ids`, readonly, se
+  muestra con `widget="many2many_tags"` → el vendedor ve las técnicas del producto como etiquetas.
+- `x_aviso_tecnica`: char **computed** (no almacenado, `depends='x_sale_order_line_id,x_tecnica_id'`)
+  que indica `OK - tecnica asignada a este producto` o
+  `AVISO - esta tecnica NO esta asignada al producto (verifica o cotiza externo)`. Es el
+  "distintivo": no bloquea nada, solo advierte.
+
+**Limitación restante (cosmética)**: el desplegable de "Línea de cotización" muestra la
+*descripción* de la línea (es el `display_name` nativo de `sale.order.line`, no configurable
+sin módulo). Por eso se agregó `x_producto_id` como referencia visible con SKU. El botón
+**por línea** (Server Action `abrir_wizard_personalizacion_por_linea`, ya escrito y probado)
+eliminaría por completo el paso de elegir línea, pero **Studio de esta instancia no permite
+agregar botones a la lista embebida de líneas** (solo campos), así que queda disponible por si
+en el futuro hay forma de engancharlo.
+
+## 8. Administración de aprobaciones (caso 0 candidatos)
+
+Cuando §2 no encuentra costo, `agregar_personalizacion` crea una `x_approval_request`
+**pendiente** precargando lo necesario para reconstruir la línea al aprobar:
+`x_sale_order_line_id` (línea de producto origen), `x_tecnica_id`, `x_qty`,
+`x_approved_servicio_id` (el servicio de la técnica) y `x_approved_unidad` (default `pieza`).
+Marca `sale.order.x_requires_human_approval=True` y `x_customization_cost_source='manually_approved'`.
+
+**UI**: menú **Ventas → "Aprobaciones personalización"** (acción de ventana + vistas lista/
+formulario de `x_approval_request`, con statusbar `pending/approved/rejected`).
+
+**Aprobar** (Server Action `aprobar_personalizacion`, botón del formulario): valida que
+`x_approved_cost_unit > 0`, calcula `precio`/`qty_linea` según `x_approved_unidad`
+(pieza → ×cantidad; lote → fija), **genera o actualiza** la línea de personalización en la
+sección "Personalización" (misma lógica idempotente por `x_source_line_id` que §4), marca la
+solicitud `approved` con `x_responded_by_id`/`x_responded_at`, y desmarca
+`x_requires_human_approval`. Bloquea si la solicitud ya fue respondida o si la cotización salió
+de borrador/enviada.
+
+**Rechazar** (Server Action `rechazar_personalizacion`): marca `rejected` y libera el aviso de
+la cotización, sin agregar línea.
+
+**Permisos**: hoy `base.group_user` (cualquier usuario interno) puede aprobar. Restringir a un
+rol es configuración aparte. **Setup cost** (`x_approved_setup_cost`) aún no se refleja como
+línea (futuro).
+
+### 8.1 Pedir aprobación aunque HAYA candidatos (2026-08-12)
+
+Caso real: serigrafía en un producto de PO que **no está en su lista tabulada** (no es cilindro,
+bolsa ni bolígrafo). Técnica + proveedor + cantidad **sí** matchean otras filas, así que el motor
+obligaba a elegir un alcance que no aplica. Se agregó al wizard el booleano
+**`x_forzar_aprobacion`** ("Ninguna tarifa aplica - solicitar aprobación"): si está marcado, el
+Aplicar **salta el matching** y crea la `x_approval_request` directamente (motivo: "alcance no
+tabulado para <proveedor>"). Cuando está marcado, la vista oculta los selectores de candidato.
+
+### 8.2 Guardar la tarifa aprobada en la matriz (2026-08-12)
+
+Al aprobar, el administrador puede decidir si esa tarifa **se queda** en
+`x_costo_personalizacion` para que la próxima vez ya esté tabulada. Campo
+**`x_guardar_tarifa`** (selection, **default `no` — es opt-in**):
+
+| Valor | Efecto |
+|---|---|
+| `no` | Solo aplica a esta cotización; la matriz no se toca. |
+| `proveedor` | Crea la fila con `x_proveedor_id` = proveedor del producto, `x_personalizacion_externa=False` → aparecerá entre los **candidatos** de ese proveedor. |
+| `externo` | Crea la fila anclada al partner **"Personalización Externa (Mozaprint)"** con `x_personalizacion_externa=True` → aparecerá en **proveedor externo**. |
+
+La fila se arma con `x_alcance_nuevo` (precargado con el nombre del producto),
+`x_tarifa_qty_from`/`x_tarifa_qty_to` (precargados con la cantidad pedida y "sin límite"),
+`x_tintas`, `x_approved_unidad` y `x_approved_cost_unit`. Es idempotente: si ya existe una fila
+con la misma llave (técnica+proveedor+alcance+rango), la actualiza en vez de duplicar. Queda
+`x_notas` con la trazabilidad ("Alta automatica desde la aprobacion N").
+
+⚠ **Deriva del CSV**: estas filas nacen en Odoo y **no** están en
+`analysis/costos-personalizacion/costos_seed.csv`. `seed_costos.py` no las borra (solo crea/
+actualiza lo que trae el CSV), pero conviene exportarlas al CSV periódicamente para que el CSV
+siga siendo la fuente de verdad reproducible.
+
+## 9. Setup como línea propia (2026-08-12)
+
+El **setup** es el costo único por orden (pantalla de serigrafía, ponchado de bordado,
+placa/cliché de tampografía): **no se multiplica por la cantidad**. Estaba modelado en
+`x_costo_personalizacion.x_costo_setup` y en `x_approval_request.x_approved_setup_cost`, pero
+**ningún flujo lo cobraba** — se detectó al preguntar para qué servía el campo. Impacto real:
+5 de 129 filas tienen setup > 0 (INN tampografía; INN bordado en 1–50 y 51–200 pzas,
+exento arriba de 200), y ese monto no llegaba a la cotización.
+
+**Decisión (JC, 2026-08-12): línea aparte**, no prorrateado en el precio unitario — es
+transparente para el cliente, editable/eliminable por separado y no ensucia el margen unitario.
+
+Implementación (en los dos flujos: Aplicar y Aprobar):
+
+- La línea de setup **reutiliza el mismo producto-servicio de la técnica**, para no perder el
+  reporte de ingresos por técnica (ver `specs/data-model.md`, servicios de personalización).
+- Se distingue con **`sale.order.line.x_es_setup`** (bool). La idempotencia pasa a ser por
+  `(x_source_line_id, x_es_setup)`: hay como máximo una línea normal y una de setup por línea
+  de producto.
+- `product_uom_qty = 1`, `price_unit = x_costo_setup` (o `x_approved_setup_cost` al aprobar),
+  nombre `"Setup / preparacion - <técnica>"`, y se coloca justo debajo de la línea de
+  personalización (`sec.sequence + 2`).
+- Si el setup es 0 (o se cambia a una técnica sin setup), la línea de setup **se elimina**
+  — comportamiento verificado.
+
+**Probado en staging**: Tampografía INN 300 pzas → línea de personalización + línea de setup
+re-aplicar no duplica; cambiar a Láser (sin setup) borra la línea de setup.
+
+## 10. Costo vs. precio de venta (2026-08-12)
+
+Hasta ahora el motor escribía en la cotización el **costo del proveedor** — es decir, se
+vendía la personalización **sin margen**. Decisión (JC, 2026-08-12): separar ambos conceptos,
+guardando los dos **en la matriz de costos** (no en la línea de cotización: no se instaló
+`sale_margin` ni se agregó costo a `sale.order.line`).
+
+Campos nuevos en `x_costo_personalizacion`:
+
+| Campo | Qué es |
+|---|---|
+| `x_markup` | Factor costo → precio. **Estándar 1.275** (backfill en las filas existentes + `ir.default` para nuevas). |
+| `x_precio_venta` | computed+store+**editable** = `round(x_costo_unit * x_markup, 2)` |
+| `x_precio_setup` | computed+store+**editable** = `round(x_costo_setup * x_markup, 2)` |
+
+Equivalentes en `x_approval_request`: `x_markup`, `x_approved_precio_venta`,
+`x_approved_precio_setup` (derivados de `x_approved_cost_unit` / `x_approved_setup_cost`).
+
+**El motor cotiza con el precio de venta** (`x_precio_venta`, y `x_precio_setup` para la línea
+de setup). `x_escala_por_tinta` multiplica el **precio**, no el costo. El costo se conserva solo
+como referencia de gasto en la matriz / en la solicitud de aprobación. Al guardar una tarifa
+desde una aprobación se copia también el markup.
+
+Como son computed **editables**, se puede fijar un precio manual en una fila concreta; ese
+override se conserva mientras no cambien el costo ni el markup (si cambian, se recalcula).
+
+**Seed**: `scripts/seed_costos.py` acepta la columna opcional `markup` (default
+`DEFAULT_MARKUP = 1.275`) y carga **costo + markup**; el precio de venta lo calcula Odoo. El CSV
+de `analysis/` ya trae la columna. Dry-run tras el cambio: *0 a crear, 128 a actualizar, 0 error*.
+
+## 11. Confirmación antes de solicitar aprobación (2026-08-12)
+
+Antes, cualquier caso sin tarifa creaba la solicitud **de inmediato**, sin avisar. Ahora
+`agregar_personalizacion` **no crea nada**: guarda el motivo en `x_msg_confirmacion` y abre un
+diálogo (vista `x_wizard_personalizacion.confirmar`, `target=new`) con el mensaje explicando qué
+pasó y dos botones: **"Aceptar y solicitar aprobación"** / **"Cancelar"**. La solicitud la crea
+el Server Action **`confirmar_aprobacion`** — el único lugar que la crea, sin lógica duplicada.
+
+Casos que abren el diálogo (cada uno con su mensaje):
+1. **Candidato elegido que no aplica** a la cantidad/área pedidas (antes: `UserError` seco).
+   El mensaje invita a *cancelar y elegir otro* o *aceptar y pedir aprobación*.
+2. **Sin tarifa tabulada** para técnica/proveedor/cantidad/tintas/área.
+3. **Producto sin proveedor** (no hay tabla de costos que aplique).
+4. **"Ninguna tarifa aplica"** marcado por el vendedor (§8.1).
+
+Sigue siendo `UserError` (sin diálogo) el caso de **N candidatos sin elegir**: ahí no hay
+aprobación que pedir, solo falta que el vendedor elija.
+
+> La vista del diálogo se localiza **por nombre** (`ir.ui.view` con
+> `name='x_wizard_personalizacion.confirmar'`), no por ID — así el mismo código funciona en
+> staging y en producción sin editar el Server Action.

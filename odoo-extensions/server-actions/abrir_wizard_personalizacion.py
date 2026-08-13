@@ -16,16 +16,19 @@
 # Vars del sandbox usadas: env, UserError.
 
 order = env['sale.order'].browse(env.context.get('active_id'))
-lines = order.order_line.filtered(lambda l: not l.display_type and l.product_id)
+# Excluir secciones/notas Y las líneas de servicio de personalización ya agregadas
+# (si no, al reabrir el wizard, la línea [SERV-...] contaría como "línea de producto"
+# y rompería el preselect de línea única).
+lines = order.order_line.filtered(
+    lambda l: not l.display_type and l.product_id and not l.product_id.x_es_servicio_personalizacion)
 if not lines:
     raise UserError('La cotizacion no tiene lineas de producto.')
 
+# Solo se fija la línea: producto/proveedor (related) y técnica/cantidad (computed
+# editables) se resuelven solos desde ella, también al cambiarla en el formulario.
 vals = {'x_order_id': order.id, 'x_tintas': 1, 'x_posiciones': 1}
 if len(lines) == 1:
-    ln = lines
-    vals.update({'x_sale_order_line_id': ln.id,
-                 'x_tecnica_id': ln.product_id.product_tmpl_id.x_tecnica_default_id.id or False,
-                 'x_qty': int(ln.product_uom_qty or 1)})
+    vals['x_sale_order_line_id'] = lines.id
 
 wiz = env['x_wizard_personalizacion'].create(vals)
 action = {'type': 'ir.actions.act_window', 'name': 'Agregar personalizacion',

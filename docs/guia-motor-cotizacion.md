@@ -40,10 +40,14 @@ exige el nombre exacto. En prod la BD es `mozaprintmx`.
    on_delete=cascade) — idempotencia/trazabilidad de la línea de personalización.
 
 4. **Modelo `x_wizard_personalizacion`** (transitorio, `transient=True`). Campos:
-   `x_order_id` (m2o `sale.order`), `x_sale_order_line_id` (m2o `sale.order.line`, required),
-   `x_tecnica_id` (m2o `x_tecnica_personalizacion`, required), `x_qty` (int), `x_tintas` (int),
+   `x_order_id` (m2o `sale.order`), `x_sale_order_line_id` (m2o `sale.order.line`,
+   **NO required** — se valida en el Aplicar; ver nota abajo), `x_tecnica_id`
+   (m2o `x_tecnica_personalizacion`, **NO required**), `x_qty` (int), `x_tintas` (int),
    `x_posiciones` (int), `x_area_cm2` (float), `x_candidato_elegido_id`
    (m2o `x_costo_personalizacion`).
+   - **Por qué no required**: en cotizaciones multi-línea el wizard abre con el selector de
+     línea vacío (modelos manuales no tienen `onchange`); si fueran `required`, el abridor no
+     podría crear el registro. La obligatoriedad la valida el Server Action Aplicar.
    - **on_delete de los m2o del wizard = `cascade`/`set null`, NO `restrict`**: en un
      transitorio, `restrict` bloquearía borrar líneas/técnicas reales por un wizard efímero.
      (La spec §3 mencionaba `restrict` "en los obligatorios"; se documenta esta desviación).
@@ -57,7 +61,10 @@ exige el nombre exacto. En prod la BD es `mozaprintmx`.
    pegar `odoo-extensions/server-actions/agregar_personalizacion.py`.
 
 7. **Server Action "Abrir wizard"** (state=code, model=`sale.order`): pegar
-   `abrir_wizard_personalizacion.py`. Anotar su ID (lo usa el botón).
+   `abrir_wizard_personalizacion.py`. Anotar su ID (lo usa el botón). Ojo: el código
+   **excluye las líneas de servicio de personalización** (`x_es_servicio_personalizacion`)
+   al contar las líneas de producto — si no, al reabrir el wizard, la línea `[SERV-...]`
+   contaría como producto y rompería el preselect de línea única / el re-aplicar.
 
 8. **Vista form del wizard** (`ir.ui.view`, model=`x_wizard_personalizacion`): el footer
    tiene un botón `type="action" name="<ID del Server Action Aplicar>"`. Sustituir el ID real.
@@ -69,6 +76,64 @@ exige el nombre exacto. En prod la BD es `mozaprintmx`.
      debe cargar sin error. Si falla, **desactivar la vista heredada de inmediato** (rompe el
      form para todos). Un xpath contra el `order_line` (widget `sol_o2m`) NO funciona — por eso
      el botón va en el encabezado, no por línea.
+
+## Regla híbrida de proveedor (añadido 2026-08-08)
+
+Objetos extra a crear en la replicación (ver `specs/motor-cotizacion.md` §7):
+
+- **Campo** `x_costo_personalizacion.x_personalizacion_externa` (bool, default False) —
+  marca filas de personalización **externa** (maquila/in-house), disponibles para
+  cualquier producto sin importar su proveedor.
+- **Partner** dedicado **"Personalización Externa (Mozaprint)"** (`res.partner`,
+  `supplier_rank=0`) para anclar esas filas — NO surte productos.
+- **Campos del wizard**: `x_candidato_externo_id` (m2o `x_costo_personalizacion`) y los dos
+  **`related`** (readonly, `store=False`, **no escribir desde los Server Actions**):
+  - `x_proveedor_id` (m2o `res.partner`) → related `x_sale_order_line_id.product_id.seller_ids.partner_id`
+  - `x_producto_id` (m2o `product.product`) → related `x_sale_order_line_id.product_id`
+
+  Son la clave para que el wizard funcione en cotizaciones **multi-línea**: los related se
+  recalculan al cambiar la línea en el formulario (los modelos manuales no tienen `onchange`),
+  y `seller_ids[:1]` es el proveedor preferido por el `_order` de `product.supplierinfo`.
+- **`x_tecnica_id` y `x_qty`**: computed + `store=True` + `readonly=False` +
+  `depends='x_sale_order_line_id'`, con el código en `ir.model.fields.compute` (ver
+  `specs/motor-cotizacion.md` §7 para el snippet). Así se autollenan desde la línea pero el
+  vendedor puede cambiarlos. **No usar `related`** aquí: escribiría de vuelta en el producto.
+- **Vista del wizard**: el desplegable "Candidato elegido" se acota al proveedor del
+  producto — dominio
+  `[('x_tecnica_id','=',x_tecnica_id),('x_proveedor_id','=',x_proveedor_id),('x_personalizacion_externa','=',False),('x_activa','=',True)]`;
+  y un campo aparte "Proveedor externo (opcional)" con dominio
+  `[('x_tecnica_id','=',x_tecnica_id),('x_personalizacion_externa','=',True),('x_activa','=',True)]`.
+
+Comportamiento: por defecto solo cotiza con el proveedor del producto (no se pueden usar
+filas de otros proveedores de productos); si se elige una fila externa, el motor la usa e
+ignora al del producto. **Las filas de costo externas se cargan aparte** (aún no existen).
+
+## Administración de aprobaciones (añadido 2026-08-08)
+
+Objetos extra a crear en la replicación (ver `specs/motor-cotizacion.md` §8):
+
+- **Campos** en `x_approval_request`: `x_sale_order_line_id` (m2o `sale.order.line`,
+  on_delete cascade), `x_tecnica_id` (m2o `x_tecnica_personalizacion`), `x_qty` (int),
+  `x_approved_unidad` (selection pieza/lote). Permiten generar la línea al aprobar.
+- **Server Actions** (state=code, model=`x_approval_request`): pegar
+  `aprobar_personalizacion.py` (botón "Aprobar y agregar a la cotización") y
+  `rechazar_personalizacion.py` (botón "Rechazar"). Anotar sus IDs (los usan los botones).
+- **Vistas** `ir.ui.view` de `x_approval_request`: lista (con `x_status` widget badge) y
+  formulario (header con los 2 botones `type="action"` referenciando los IDs anteriores,
+  `invisible="x_status != 'pending'"`, y statusbar de `x_status`). En el formulario,
+  `x_sale_order_line_id`/`x_tecnica_id`/`x_qty`/`x_approved_*` son **editables mientras la
+  solicitud está Pendiente** (`readonly="x_status != 'pending'"`) para poder completar
+  solicitudes incompletas; `x_sale_order_line_id` con dominio
+  `[('order_id','=',x_sale_order_id),('display_type','=',False),('product_id','!=',False)]`.
+- **Acción de ventana** + **menú** "Ventas → Aprobaciones personalización"
+  (`ir.actions.act_window` sobre `x_approval_request` + `ir.ui.menu` con
+  `parent_id = sale.sale_menu_root`).
+- El Server Action `agregar_personalizacion` (caso 0 candidatos) precarga en la solicitud la
+  línea/técnica/cantidad y el servicio, para que el aprobador solo capture el costo.
+
+Nota: la vista de búsqueda personalizada se omitió (una search view inválida rompe el listado);
+el filtrado se hace con la columna de estado. Los botones NO se validan solo con `create` —
+correr `x_approval_request.get_views([[list_id,'list'],[form_id,'form']])` tras crearlas.
 
 ## Disparador: encabezado, no por línea
 
@@ -88,3 +153,21 @@ Con una cotización borrador y un producto que tenga `x_tecnica_default_id` y `s
 - **0 candidatos** (ej. proveedor sin costos parametrizados) → crea `x_approval_request` y
   **no** agrega precio; marca `x_customization_cost_source = manually_approved`.
 - **Idempotencia**: aplicar dos veces sobre la misma línea actualiza la línea, no duplica.
+
+## UI de administración de datos maestros (añadido 2026-08-12)
+
+`x_costo_personalizacion` y `x_tecnica_personalizacion` se crearon vía Técnico y se poblaron por
+script, así que **nacieron sin vistas ni menú**: no había forma de corregir una tarifa desde la
+interfaz. Al replicar a producción hay que crear también:
+
+- **Vistas** `ir.ui.view` (lista + formulario) para `x_costo_personalizacion` — la lista conviene
+  `editable="bottom"` para corregir rápido (ej. cambiar `x_unidad_cobro` de pieza a lote).
+- **Vistas** (lista + formulario) para `x_tecnica_personalizacion`.
+- **Acciones de ventana** + **menús** bajo **Ventas → Configuración**
+  (`parent_id = sale.menu_sale_config`).
+
+Ambos modelos ya tienen ACL de "Sales / User: All Documents" con escritura, así que no hace falta
+tocar permisos. Validar siempre con `get_views` tras crear las vistas.
+
+> ⚠ Recordatorio: **no crear vistas de búsqueda (`search`) a la ligera** — una search view
+> inválida rompe el listado del modelo. Si se agrega, validar y borrarla si falla.

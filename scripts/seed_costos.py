@@ -17,7 +17,11 @@ Uso:
 
 Entrada (CSV, columnas): tecnica_code, proveedor_nombre, alcance_producto,
 qty_from, qty_to, area_from_cm2, area_to_cm2, tintas, escala_por_tinta,
-posiciones, unidad_cobro, costo_unit, costo_setup, activa, notas
+posiciones, unidad_cobro, costo_unit, costo_setup, markup, activa, notas
+
+'markup' es OPCIONAL (factor costo -> precio de venta; default DEFAULT_MARKUP = 1.275).
+El precio de venta NO se carga: x_precio_venta y x_precio_setup son campos CALCULADOS en
+Odoo (costo x markup) y editables si se quiere un precio manual para una fila concreta.
 
 Resolución de relaciones (cacheada, 1 búsqueda por valor distinto):
     tecnica_code      -> x_tecnica_id   (busca x_tecnica_personalizacion por x_code)
@@ -44,6 +48,10 @@ from odoo_client import OdooClient
 MODEL = 'x_costo_personalizacion'
 TECNICA_MODEL = 'x_tecnica_personalizacion'
 DEFAULT_CSV = 'analysis/costos-personalizacion/costos_seed.csv'
+# Factor costo -> precio de venta cuando el CSV no trae columna 'markup'.
+# x_precio_venta / x_precio_setup se CALCULAN en Odoo (campos computed) a partir de
+# x_costo_unit / x_costo_setup y este factor; el script solo carga costo + markup.
+DEFAULT_MARKUP = 1.275
 REQUIRED_COLUMNS = (
     'tecnica_code', 'proveedor_nombre', 'qty_from', 'unidad_cobro', 'costo_unit',
 )
@@ -124,6 +132,9 @@ def build_records(rows: list[dict[str, str]]) -> list[dict[str, Any]]:
             posiciones = _int_or_none(row.get('posiciones')) or 1
             costo_unit = float(row['costo_unit'])
             costo_setup = _float_or_none(row.get('costo_setup')) or 0.0
+            # Markup: factor costo -> precio de venta. Columna opcional; si falta o viene
+            # vacía se usa el estándar de Mozaprint (DEFAULT_MARKUP).
+            markup = _float_or_none(row.get('markup')) or DEFAULT_MARKUP
         except (ValueError, KeyError) as exc:
             errors.append(f"línea {line_no}: valor numérico inválido ({exc})")
             continue
@@ -153,6 +164,7 @@ def build_records(rows: list[dict[str, str]]) -> list[dict[str, Any]]:
             'x_unidad_cobro': unidad_cobro,
             'x_costo_unit': costo_unit,
             'x_costo_setup': costo_setup,
+            'x_markup': markup,
             'x_activa': _bool(row.get('activa'), default=True),
             'x_notas': (row.get('notas') or '').strip(),
         })

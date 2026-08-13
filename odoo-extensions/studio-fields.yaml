@@ -374,6 +374,14 @@ extensions:
       relation: sale.order.line
       string: 'Línea de producto origen (personalización)'
       status: staging
+    # Distingue la línea de SETUP (cargo único por orden) de la de personalización.
+    # La idempotencia del motor es por (x_source_line_id, x_es_setup).
+    # Ver specs/motor-cotizacion.md §9.
+    - field_name: x_es_setup
+      field_type: boolean
+      default: false
+      string: 'Es línea de setup (personalización)'
+      status: staging
 
 # =============================================================================
 # MODELOS NUEVOS
@@ -511,6 +519,83 @@ new_models:
         relation: res.users
         string: 'Asignado a'
         status: staging
+      # Añadidos 2026-08-08 (administración de aprobaciones): permiten reconstruir y
+      # generar la línea de personalización al aprobar. Ver specs/motor-cotizacion.md §8.
+      - field_name: x_sale_order_line_id
+        field_type: many2one
+        relation: sale.order.line
+        on_delete: cascade
+        string: 'Línea de producto (origen)'
+        status: staging
+      - field_name: x_tecnica_id
+        field_type: many2one
+        relation: x_tecnica_personalizacion
+        on_delete: set null
+        string: 'Técnica'
+        status: staging
+      - field_name: x_qty
+        field_type: integer
+        string: 'Cantidad'
+        status: staging
+      - field_name: x_approved_unidad
+        field_type: selection
+        string: 'Unidad del costo aprobado'
+        status: staging
+        selection:
+          - [pieza, 'Por pieza']
+          - [lote, 'Por lote']
+      # Guardar la tarifa aprobada en la matriz de costos (2026-08-12, opt-in).
+      # Ver specs/motor-cotizacion.md §8.2.
+      - field_name: x_guardar_tarifa
+        field_type: selection
+        string: '¿Guardar esta tarifa en la matriz de costos?'
+        default: 'no'
+        status: staging
+        selection:
+          - ['no', 'No guardar (solo esta cotización)']
+          - [proveedor, 'Guardar como tarifa del proveedor del producto']
+          - [externo, 'Guardar como tarifa de personalización EXTERNA']
+      - field_name: x_alcance_nuevo
+        field_type: char
+        string: 'Alcance de la nueva tarifa'
+        status: staging
+      - field_name: x_tarifa_qty_from
+        field_type: integer
+        string: 'Tarifa: cantidad desde'
+        status: staging
+      - field_name: x_tarifa_qty_to
+        field_type: integer
+        string: 'Tarifa: cantidad hasta (0 = sin límite)'
+        status: staging
+      - field_name: x_tintas
+        field_type: integer
+        string: 'Número de tintas'
+        status: staging
+      - field_name: x_markup
+        field_type: float
+        default: 1.275
+        string: 'Markup (factor sobre el costo)'
+        status: staging
+      - field_name: x_approved_precio_venta
+        field_type: float
+        string: 'Precio de venta (calculado)'
+        status: staging
+        store: true
+        readonly: false
+        depends: x_approved_cost_unit,x_markup
+        compute: |
+          for r in self:
+              r['x_approved_precio_venta'] = round((r.x_approved_cost_unit or 0.0) * (r.x_markup or 1.275), 2)
+      - field_name: x_approved_precio_setup
+        field_type: float
+        string: 'Precio de venta del setup (calculado)'
+        status: staging
+        store: true
+        readonly: false
+        depends: x_approved_setup_cost,x_markup
+        compute: |
+          for r in self:
+              r['x_approved_precio_setup'] = round((r.x_approved_setup_cost or 0.0) * (r.x_markup or 1.275), 2)
 
   # -------------------------------------------------------------------------
   # Modelo TRANSITORIO del wizard del motor de cotización (Fase 3).
@@ -529,28 +614,69 @@ new_models:
         on_delete: cascade
         string: 'Cotización'
         status: staging
+      # required=False a propósito: en cotizaciones multi-línea el wizard abre con
+      # el selector de línea vacío (los modelos manuales no tienen onchange). La
+      # obligatoriedad se valida en el Server Action Aplicar, no a nivel modelo.
       - field_name: x_sale_order_line_id
         field_type: many2one
         relation: sale.order.line
-        required: true
         on_delete: cascade
         string: 'Línea de cotización'
         status: staging
+      # COMPUTED + STORE + EDITABLE (2026-08-08): se autollenan desde la línea (y se
+      # recalculan al cambiarla en el formulario), pero el vendedor puede sobrescribirlos.
+      # NO pueden ser `related`: un related editable escribiría de vuelta en el producto.
       - field_name: x_tecnica_id
         field_type: many2one
         relation: x_tecnica_personalizacion
-        required: true
         on_delete: cascade
         string: 'Técnica'
         status: staging
+        store: true
+        readonly: false
+        depends: x_sale_order_line_id
+        compute: |
+          for r in self:
+              r['x_tecnica_id'] = r.x_sale_order_line_id.product_id.product_tmpl_id.x_tecnica_default_id
       - field_name: x_qty
         field_type: integer
         string: 'Cantidad'
         status: staging
+        store: true
+        readonly: false
+        depends: x_sale_order_line_id
+        compute: |
+          for r in self:
+              r['x_qty'] = int(r.x_sale_order_line_id.product_uom_qty or 0)
       - field_name: x_tintas
         field_type: integer
         string: 'Número de tintas'
         status: staging
+      - field_name: x_markup
+        field_type: float
+        default: 1.275
+        string: 'Markup (factor sobre el costo)'
+        status: staging
+      - field_name: x_approved_precio_venta
+        field_type: float
+        string: 'Precio de venta (calculado)'
+        status: staging
+        store: true
+        readonly: false
+        depends: x_approved_cost_unit,x_markup
+        compute: |
+          for r in self:
+              r['x_approved_precio_venta'] = round((r.x_approved_cost_unit or 0.0) * (r.x_markup or 1.275), 2)
+      - field_name: x_approved_precio_setup
+        field_type: float
+        string: 'Precio de venta del setup (calculado)'
+        status: staging
+        store: true
+        readonly: false
+        depends: x_approved_setup_cost,x_markup
+        compute: |
+          for r in self:
+              r['x_approved_precio_setup'] = round((r.x_approved_setup_cost or 0.0) * (r.x_markup or 1.275), 2)
       - field_name: x_posiciones
         field_type: integer
         string: 'Número de posiciones'
@@ -565,6 +691,79 @@ new_models:
         on_delete: set null
         string: 'Candidato elegido'
         status: staging
+      # Regla híbrida de proveedor (2026-08-08): amarre al proveedor del producto +
+      # opción manual de proveedor externo. Ver specs/motor-cotizacion.md §7.
+      # RELATED (2026-08-08): se resuelven solos desde la línea, también al cambiarla en el
+      # formulario — así no hace falta onchange (que los modelos manuales no tienen) ni un
+      # campo nuevo en el catálogo. NO escribirlos desde los Server Actions.
+      - field_name: x_proveedor_id
+        field_type: many2one
+        relation: res.partner
+        related: x_sale_order_line_id.product_id.seller_ids.partner_id
+        readonly: true
+        store: false
+        string: 'Proveedor del producto'
+        status: staging
+        # seller_ids está ordenado por sequence → [:1] es el proveedor preferido, el mismo
+        # criterio que usa el motor. Acota el dominio de x_candidato_elegido_id.
+      - field_name: x_producto_id
+        field_type: many2one
+        relation: product.product
+        related: x_sale_order_line_id.product_id
+        readonly: true
+        store: false
+        string: 'Producto'
+        status: staging
+        # Referencia visible con SKU ("[JM 045 BE] DOMINÓ KATAVI"): el selector de línea
+        # muestra la descripción larga (display_name nativo de sale.order.line).
+      # Referencia de técnicas del producto (2026-08-08): el selector de Técnica deja elegir
+      # CUALQUIERA (para poder cotizar externo), así que se muestran las asignadas como
+      # etiquetas + un distintivo que avisa si la elegida no está asignada.
+      - field_name: x_tecnicas_producto_ids
+        field_type: many2many
+        relation: x_tecnica_personalizacion
+        related: x_sale_order_line_id.product_id.product_tmpl_id.x_tecnicas_compatibles_ids
+        readonly: true
+        store: false
+        string: 'Técnicas del producto'
+        status: staging
+      - field_name: x_aviso_tecnica
+        field_type: char
+        readonly: true
+        store: false
+        depends: x_sale_order_line_id,x_tecnica_id
+        string: '¿Asignada al producto?'
+        status: staging
+        compute: |
+          for r in self:
+              comp = r.x_sale_order_line_id.product_id.product_tmpl_id.x_tecnicas_compatibles_ids
+              if not r.x_tecnica_id or not r.x_sale_order_line_id:
+                  r['x_aviso_tecnica'] = ''
+              elif r.x_tecnica_id in comp:
+                  r['x_aviso_tecnica'] = 'OK - tecnica asignada a este producto'
+              else:
+                  r['x_aviso_tecnica'] = 'AVISO - esta tecnica NO esta asignada al producto (verifica o cotiza externo)'
+      - field_name: x_candidato_externo_id
+        field_type: many2one
+        relation: x_costo_personalizacion
+        on_delete: set null
+        string: 'Proveedor externo (opcional)'
+        status: staging
+      # Permite pedir aprobación aunque el motor SÍ encuentre candidatos: el alcance del
+      # producto no está tabulado. Ver specs/motor-cotizacion.md §8.1.
+      - field_name: x_forzar_aprobacion
+        field_type: boolean
+        default: false
+        string: 'Ninguna tarifa aplica - solicitar aprobación'
+        status: staging
+      - field_name: x_msg_confirmacion
+        field_type: text
+        string: 'Aviso'
+        status: staging
+        # Motivo que muestra el diálogo Aceptar/Cancelar antes de crear la solicitud.
+        # Lo escribe agregar_personalizacion; lo lee confirmar_aprobacion. Ver specs §11.
+        # Elige una fila con x_personalizacion_externa=True (maquila in-house), independiente
+        # del proveedor del producto. Si se elige, el motor la usa e ignora al del producto.
 
   x_costo_personalizacion:
     display_name: 'Costo de Personalización'
@@ -705,6 +904,43 @@ new_models:
         string: 'Activa'
         status: created
         created_date: 2026-08-05
+
+      # Regla híbrida de proveedor (2026-08-08). Marca filas de personalización EXTERNA
+      # (maquila in-house), disponibles para cualquier producto sin importar su proveedor.
+      # Se anclan al partner dedicado "Personalización Externa (Mozaprint)".
+      - field_name: x_personalizacion_externa
+        field_type: boolean
+        default: false
+        string: 'Personalización externa (no ligada al proveedor del producto)'
+        status: staging
+
+      # Costo vs precio de venta (2026-08-12). Ver specs/motor-cotizacion.md §10.
+      # El motor cotiza con x_precio_venta / x_precio_setup; el costo queda de referencia.
+      - field_name: x_markup
+        field_type: float
+        default: 1.275
+        string: 'Markup (factor sobre el costo)'
+        status: staging
+      - field_name: x_precio_venta
+        field_type: float
+        string: 'Precio de venta (MXN)'
+        status: staging
+        store: true
+        readonly: false
+        depends: x_costo_unit,x_markup
+        compute: |
+          for r in self:
+              r['x_precio_venta'] = round((r.x_costo_unit or 0.0) * (r.x_markup or 1.275), 2)
+      - field_name: x_precio_setup
+        field_type: float
+        string: 'Precio de venta del setup (MXN)'
+        status: staging
+        store: true
+        readonly: false
+        depends: x_costo_setup,x_markup
+        compute: |
+          for r in self:
+              r['x_precio_setup'] = round((r.x_costo_setup or 0.0) * (r.x_markup or 1.275), 2)
 
   x_ai_interaction_log:
     display_name: 'Log de Interacción AI'
