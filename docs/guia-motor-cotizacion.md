@@ -1,5 +1,16 @@
 # Guía: motor de cotización (Server Action + wizard) — replicación a producción
 
+> ⚠️ **Para DESPLEGAR usa los scripts, no esta guía a mano.** Esta guía quedó como
+> referencia conceptual (el porqué de cada objeto) pero **no es un checklist completo**:
+> se detectó el 2026-08-13 que le faltaban 12 objetos añadidos entre v38 y v40, y seguir
+> una lista a mano de ~50 objetos es frágil.
+>
+> - **Plan de ejecución y rollback**: `docs/checklist-deploy-produccion.md`
+> - **Despliegue** (idempotente, dry-run por defecto): `scripts/deploy_motor_cotizacion.py`
+> - **Reversión**: `scripts/rollback_motor_cotizacion.py`
+> - **Definición de objetos** (fuente de verdad ejecutable): las tablas `CAMPOS` /
+>   `SERVER_ACTIONS` del script de deploy y `scripts/views_motor.py`.
+
 > Diseño y algoritmo: `specs/motor-cotizacion.md`. Campos/modelos:
 > `odoo-extensions/studio-fields.yaml` (status `staging`). Código versionado:
 > `odoo-extensions/server-actions/agregar_personalizacion.py` (Aplicar) y

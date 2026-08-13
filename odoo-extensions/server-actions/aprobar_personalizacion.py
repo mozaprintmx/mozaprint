@@ -20,6 +20,9 @@ if order.state not in ('draft', 'sent'):
     raise UserError('La cotizacion %s ya no esta en borrador/enviada.' % order.name)
 if not req.x_approved_cost_unit or req.x_approved_cost_unit <= 0:
     raise UserError('Captura el "Costo unitario aprobado" (> 0) antes de aprobar.')
+if not req.x_tecnica_id:
+    # Sin técnica no se puede nombrar la línea ni, si se pide, guardar la tarifa.
+    raise UserError('Selecciona la Tecnica antes de aprobar.')
 
 servicio = req.x_approved_servicio_id
 if not servicio and req.x_tecnica_id:

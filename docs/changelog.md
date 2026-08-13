@@ -4,6 +4,47 @@
 
 ---
 
+## 2026-08-13 · chore (v41) — Scripts de despliegue/rollback + revisión pre-producción
+
+**Tipo**: `chore` (tooling + revisión). **Producción sigue sin tocarse.**
+
+### Revisión completa previa a producción
+- **Compatibilidad 19.0 vs 19.2 verificada** (sondeo solo-lectura contra producción):
+  producción es **19.0+e** y staging **saas~19.2+e**. Sin bloqueantes — `ir.model.fields`
+  soporta `compute`/`depends`/`related`, las vistas usan `type='list'`, existen los xmlid
+  que usa el deploy y todos los prerequisitos (2 modelos, 20 servicios, 20 técnicas, 127
+  tarifas). **Único punto no probado en 19.0**: campos manuales *computed* (prod tenía 0);
+  se mitiga con una prueba de capacidad en el propio deploy que **aborta** si falla.
+- **La guía de replicación estaba incompleta**: le faltaban 12 objetos creados entre v38 y
+  v40 (`x_es_setup`, markup/precios, `x_forzar_aprobacion`, `x_msg_confirmacion`,
+  `confirmar_aprobacion` y su vista, vistas/menús de costos y técnicas, defaults…).
+  Seguirla habría dejado el motor roto en producción — de ahí el cambio a scripts.
+- **3 bugs corregidos** (encontrados leyendo el código, no probando):
+  1. Si faltaba la vista del diálogo, se abría el formulario equivocado en silencio; ahora
+     falla con mensaje claro (**es justo el error que habría aparecido en producción**).
+  2. La tarifa **externa** no se validaba contra cantidad/tintas (se podía aplicar una de
+     50–100 pzas a un pedido de 5,000). Ahora se valida igual que las internas.
+  3. Aprobar sin técnica creaba una tarifa corrupta; ahora se exige.
+- **Higiene**: se eliminaron del repo público los montos de costo de proveedor que se habían
+  colado en changelog/specs (CLAUDE.md: los precios viven solo en `analysis/`).
+
+### Nuevo tooling
+- **`scripts/deploy_motor_cotizacion.py`**: despliegue idempotente, **dry-run por defecto**,
+  guardarraíl `--si-produccion`, preflight, respaldo previo de la matriz de costos, prueba de
+  campos computed, smoke test (cotización desechable que borra al final) y **manifiesto**
+  para revertir. `scripts/views_motor.py` contiene los `arch` de las 9 vistas.
+- **`scripts/rollback_motor_cotizacion.py`**: revierte desde el manifiesto en orden inverso y
+  restaura la matriz desde el respaldo; avisa de lo que **no** puede deshacer.
+- **`docs/checklist-deploy-produccion.md`**: plan de ejecución paso a paso, verificación
+  funcional, rollback (por script y por snapshot) y tabla de fallos parciales.
+
+**Probado en staging**: el deploy en dry-run reporta **0 cambios** (el script reproduce
+exactamente lo ya probado); con `--apply` la prueba de computed da OK y el smoke test resuelve
+producto/proveedor/técnica y limpia su cotización. El rollback se probó con objetos
+desechables: los borra y deja el motor intacto (6 acciones, 131 tarifas).
+
+---
+
 ## 2026-08-12 · feat (v40) — Precio de venta (markup) + confirmación antes de aprobar (STAGING)
 
 **Tipo**: `feat` (lógica + metadata + UI + script), **solo STAGING**, pendiente de prod.

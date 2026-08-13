@@ -1,0 +1,134 @@
+# Checklist — despliegue del motor de cotización a PRODUCCIÓN
+
+> Estado: **NADA aplicado a producción todavía.** Este documento es el plan de
+> ejecución + rollback. Todo lo de aquí ya se probó contra staging.
+>
+> Diseño: `specs/motor-cotizacion.md` · Detalle de objetos:
+> `odoo-extensions/studio-fields.yaml` · Guía conceptual: `docs/guia-motor-cotizacion.md`
+
+## 0. Versiones y compatibilidad (verificado 2026-08-13)
+
+| | Producción | Staging |
+|---|---|---|
+| Versión | **19.0+e** | **saas~19.2+e** |
+| URL | `mozaprintmx.odoo.com` | `mozaprintmx-test-saas19-0807.odoo.com` |
+| BD (XML-RPC) | `mozaprintmx` | **el subdominio completo**, no `mozaprintmx` |
+
+Sondeo de compatibilidad contra producción (solo lectura) — **sin bloqueantes**:
+
+- ✅ `ir.model.fields` soporta `compute` / `depends` / `related` / `store` / `readonly`.
+- ✅ Vistas `type='list'` (612 en uso; 0 `tree`) → los `<list>` del motor son válidos.
+- ✅ Existen los xmlid que usa el deploy: `sale.view_order_form`, `sale.menu_sale_config`,
+  `sale.sale_menu_root`, `base.group_user`.
+- ✅ Prerequisitos presentes: modelos `x_tecnica_personalizacion` y
+  `x_costo_personalizacion` (con todos sus campos), **20 servicios**, **20 técnicas**,
+  **127 tarifas**.
+- ✅ Ningún objeto a crear existe ya (base limpia).
+- ⚠️ **Único punto no probado en 19.0**: campos manuales **computed** (prod tiene 0; sí tiene
+  1 `related`). Mitigado: el deploy hace una **prueba de capacidad** (crea un campo computed
+  desechable, verifica que calcula 6×7=42 y lo borra) y **aborta** si falla.
+
+## 1. Antes de empezar
+
+- [ ] Confirmar que **no hay cotizaciones en proceso** que se vayan a tocar (el deploy no
+      modifica cotizaciones, pero el rollback sí deja huella si ya se usó el motor).
+- [ ] Tener a mano `analysis/supplier-sync/.env` con `ODOO_URL`, `ODOO_DB`, `ODOO_USER`,
+      `ODOO_PASSWORD` (admin).
+- [ ] **Snapshot de Odoo Online** (Ajustes → *Duplicar/backup* de la base). Es la red de
+      seguridad real: el rollback por script es fino, pero un snapshot revierte todo.
+- [ ] Estar en horario de baja actividad: la vista heredada del formulario de ventas se
+      recarga para todos los usuarios.
+
+## 2. Ejecución (en orden)
+
+### Paso 1 — Simulacro en producción (no escribe nada)
+```bash
+python scripts/deploy_motor_cotizacion.py --target prod
+```
+Revisar que el preflight pase y que la lista de cambios sea la esperada
+(~2 modelos, ~45 campos, 2 ACLs, 6 Server Actions, 9 vistas, 3 acciones, 3 menús,
+1 contacto, 2 defaults).
+**Si el preflight reporta un problema, no continuar.**
+
+### Paso 2 — Aplicar
+```bash
+python scripts/deploy_motor_cotizacion.py --target prod --apply --si-produccion
+```
+El script, en este orden: respalda `x_costo_personalizacion` a `backups/`, crea los
+modelos, **prueba los campos computed** (aborta si 19.0 no los soporta), crea campos,
+ACLs, contacto, defaults, Server Actions, vistas, acciones y menús, aplica el markup y
+los renombres de alcance, corre el **smoke test** (cotización desechable que borra al
+final) y escribe el **manifiesto** en `backups/manifiesto_motor_prod_<fecha>.json`.
+
+> 📌 **Guarda la ruta del manifiesto**: es lo que necesita el rollback.
+
+### Paso 3 — Cargar tarifas nuevas
+El deploy renombra alcances y pone markup, pero **no** crea tarifas nuevas:
+```bash
+python scripts/seed_costos.py --csv analysis/costos-personalizacion/costos_seed.csv          # simulacro
+python scripts/seed_costos.py --csv analysis/costos-personalizacion/costos_seed.csv --apply  # ejecuta
+```
+Esperado: **1 a crear** (el mínimo de cilindros), **127 a actualizar**, 0 errores.
+⚠️ `seed_costos.py` usa `ODOO_URL` del entorno → apunta a producción por defecto. **Correcto
+aquí**, pero verifica la URL que imprime antes de aceptar.
+
+### Paso 4 — Verificación funcional (manual, en la UI)
+- [ ] **Ventas → Configuración → Costos de personalización** abre y se puede editar.
+- [ ] **Ventas → Configuración → Técnicas de personalización** abre.
+- [ ] **Ventas → Aprobaciones personalización** abre (vacío).
+- [ ] Abrir una cotización en borrador → aparece el botón **"Agregar personalización"**.
+- [ ] Caso A: producto con 1 tarifa → aplica y agrega la línea al **precio de venta**.
+- [ ] Caso B: producto con varios alcances → pide elegir candidato.
+- [ ] Caso C: producto sin tarifa → sale el **diálogo Aceptar/Cancelar**; al aceptar crea la
+      solicitud y **no** pone precio.
+- [ ] Aprobar esa solicitud con un costo → **genera la línea sola** y desmarca el aviso.
+- [ ] Técnica con setup → aparece la **segunda línea "Setup / preparación"**.
+- [ ] Re-aplicar sobre la misma línea → **actualiza, no duplica**.
+- [ ] **Borrar la cotización de prueba** al terminar.
+
+### Paso 5 — Manual para el equipo
+- [ ] Publicar el artículo de Knowledge en producción (contenido en
+      `docs/manual-personalizacion-cotizacion.md`), **quitando el aviso de "en pruebas"**.
+
+## 3. Rollback
+
+### Opción A — Rollback por script (quirúrgico)
+```bash
+python scripts/rollback_motor_cotizacion.py --manifiesto backups/manifiesto_motor_prod_<fecha>.json
+python scripts/rollback_motor_cotizacion.py --manifiesto backups/manifiesto_motor_prod_<fecha>.json --apply --si-produccion
+```
+Borra en **orden inverso** (menús → acciones → vistas → Server Actions → ACLs → defaults →
+campos → modelos → contacto) y restaura nombre/alcance de la matriz desde el respaldo JSON.
+Probado en staging: borra solo lo del manifiesto y deja el resto intacto.
+
+**Lo que el rollback NO deshace** (lo avisa al correr):
+- Las **líneas de personalización ya agregadas** a cotizaciones: al borrarse los campos
+  quedan como líneas de servicio normales. El script cuenta cuántas hay antes de borrar.
+- Las **tarifas creadas después del deploy** (por aprobaciones): las lista pero no las borra.
+- `x_markup` / `x_precio_venta` / `x_precio_setup` desaparecen con el campo (no hace falta
+  restaurarlos).
+
+### Opción B — Restaurar snapshot (nuclear)
+Si algo sale mal a media ejecución o el rollback no alcanza: restaurar el backup de Odoo
+Online del Paso 1. Se pierde lo capturado en producción desde el snapshot.
+
+### Fallos parciales — qué hacer
+| Síntoma | Acción |
+|---|---|
+| El preflight aborta | Nada se escribió. Corregir y repetir el Paso 1. |
+| La prueba de campos computed falla | El deploy aborta tras crear solo los 2 modelos. Correr el rollback con el manifiesto que escribió. **19.0 no soportaría el motor tal cual** → avisar. |
+| Se rompe el formulario de Ventas | Es la vista heredada `sale.order.personalizar.header.button`. Desactivarla de inmediato (Ajustes → Técnico → Vistas → desmarcar *Activo*); el resto sigue funcionando. |
+| El diálogo de confirmación abre el form equivocado | Falta la vista `x_wizard_personalizacion.confirmar`. Desde v-fix el Server Action falla con mensaje claro en vez de abrir la vista equivocada. Re-correr el deploy. |
+| El seed duplica filas | Se renombró un alcance en Odoo sin actualizar el CSV (la llave de idempotencia incluye el alcance). Comparar CSV vs Odoo antes de `--apply`. |
+
+## 4. Pendientes / decisiones antes de ir a producción
+
+- [ ] **3 tarifas creadas desde la UI en staging** (`TAZAS`, `POWER BANK` externo,
+      `VELA ITCHI` externo) **no están en el CSV** → no viajarán con el seed. Decidir:
+      exportarlas al CSV o volver a capturarlas en producción.
+- [ ] **5 solicitudes de aprobación de prueba** en staging (no afectan a producción).
+- [ ] Confirmar el rango **100–499** del mínimo de cilindros (vs. 100–500).
+- [ ] El **markup 1.275** queda visible en el repo público (política de margen). Si se quiere
+      ocultar, moverlo a un parámetro del sistema (`ir.config_parameter`).
+- [ ] Hoy **cualquier usuario interno** puede aprobar solicitudes. Decidir si se restringe.
+- [ ] Las tarifas de **personalización externa** siguen sin cargarse (el mecanismo está listo).

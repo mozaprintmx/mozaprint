@@ -40,6 +40,11 @@ def _pedir_confirmacion(motivo):
     wiz.write({'x_msg_confirmacion': motivo})
     vid = env['ir.ui.view'].sudo().search(
         [('name', '=', 'x_wizard_personalizacion.confirmar')], limit=1).id
+    if not vid:
+        # Sin la vista, Odoo abriria el form normal del wizard y el vendedor no veria el
+        # aviso. Falla ruidosamente: es un error de instalacion, no un caso de negocio.
+        raise UserError('Falta la vista "x_wizard_personalizacion.confirmar" en esta base. '
+                        'Revisa la replicacion del motor de cotizacion.')
     return {'type': 'ir.actions.act_window', 'name': 'Se solicitara una aprobacion',
             'res_model': 'x_wizard_personalizacion', 'res_id': wiz.id,
             'view_mode': 'form', 'views': [(vid, 'form')], 'target': 'new'}
@@ -69,7 +74,18 @@ if wiz.x_forzar_aprobacion:
         'hasta que un responsable la autorice.' % (proveedor.name or 'el proveedor'))
 elif wiz.x_candidato_externo_id:
     # Opción manual: proveedor externo de personalización (ignora al del producto).
-    cand = wiz.x_candidato_externo_id
+    # Se valida igual que las del proveedor: cantidad y tintas deben aplicar.
+    ext = wiz.x_candidato_externo_id
+    if (ext.x_qty_from <= qty and (ext.x_qty_to == 0 or ext.x_qty_to >= qty)
+            and (ext.x_escala_por_tinta or ext.x_tintas == tintas)):
+        cand = ext
+    else:
+        action = _pedir_confirmacion(
+            'La tarifa EXTERNA elegida ("%s", %s-%s pzas, %d tinta(s)) NO aplica a lo que estas '
+            'cotizando (cantidad %d, %d tinta(s)).\n\nPuedes CANCELAR y elegir otra, o ACEPTAR '
+            'para solicitar una aprobacion.'
+            % (ext.x_alcance_producto or 'generico', ext.x_qty_from, ext.x_qty_to or 'sin limite',
+               ext.x_tintas, qty, tintas))
 elif not proveedor:
     action = _pedir_confirmacion(
         'El producto no tiene proveedor asignado, asi que no se puede determinar que tabla de '
