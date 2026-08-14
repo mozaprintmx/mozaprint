@@ -121,14 +121,22 @@ Online del Paso 1. Se pierde lo capturado en producción desde el snapshot.
 | El diálogo de confirmación abre el form equivocado | Falta la vista `x_wizard_personalizacion.confirmar`. Desde v-fix el Server Action falla con mensaje claro en vez de abrir la vista equivocada. Re-correr el deploy. |
 | El seed duplica filas | Se renombró un alcance en Odoo sin actualizar el CSV (la llave de idempotencia incluye el alcance). Comparar CSV vs Odoo antes de `--apply`. |
 
-## 4. Pendientes / decisiones antes de ir a producción
+## 4. Decisiones tomadas (JC, 2026-08-13)
 
-- [ ] **3 tarifas creadas desde la UI en staging** (`TAZAS`, `POWER BANK` externo,
-      `VELA ITCHI` externo) **no están en el CSV** → no viajarán con el seed. Decidir:
-      exportarlas al CSV o volver a capturarlas en producción.
-- [ ] **5 solicitudes de aprobación de prueba** en staging (no afectan a producción).
-- [ ] Confirmar el rango **100–499** del mínimo de cilindros (vs. 100–500).
+- ✅ **Las 3 tarifas creadas desde la UI en staging** (`TAZAS`, `POWER BANK` externo,
+      `VELA ITCHI` externo) son **solo de prueba**: NO se exportan al CSV y NO deben existir
+      en producción. Producción quedará con las 128 tarifas del CSV.
+- ✅ **Mínimo de cilindros: rango 100–499 confirmado** (no incluye el 500, que ya tiene tarifa
+      por pieza). Así está en el CSV y así lo cargará el seed.
+- ✅ **Permisos de aprobación**: por ahora **cualquier usuario interno** puede aprobar. No se
+      restringe en este despliegue.
+
+### Pendientes que NO bloquean el despliegue
+
+- [ ] Las tarifas de **personalización externa** siguen sin cargarse (el mecanismo ya está
+      listo y probado; solo faltan los datos).
 - [ ] El **markup 1.275** queda visible en el repo público (política de margen). Si se quiere
       ocultar, moverlo a un parámetro del sistema (`ir.config_parameter`).
-- [ ] Hoy **cualquier usuario interno** puede aprobar solicitudes. Decidir si se restringe.
-- [ ] Las tarifas de **personalización externa** siguen sin cargarse (el mecanismo está listo).
+- [ ] **5 solicitudes de aprobación de prueba** viven en staging (no afectan a producción).
+- [ ] Costos de **4PROMOTIONAL**: sigue sin lista tabulada; sus cotizaciones caerán al flujo
+      de aprobación hasta que se construya (ver `docs/roadmap.md`).
