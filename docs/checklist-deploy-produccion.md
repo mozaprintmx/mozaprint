@@ -46,9 +46,14 @@ Sondeo de compatibilidad contra producción (solo lectura) — **sin bloqueantes
 python scripts/deploy_motor_cotizacion.py --target prod
 ```
 Revisar que el preflight pase y que la lista de cambios sea la esperada
-(~2 modelos, ~45 campos, 2 ACLs, 6 Server Actions, 9 vistas, 3 acciones, 3 menús,
+(2 modelos, ~48 campos, 2 ACLs, **5 Server Actions**, 9 vistas, 3 acciones, 3 menús,
 1 contacto, 2 defaults).
 **Si el preflight reporta un problema, no continuar.**
+
+> El script sube el código **sin comentarios** (~269 líneas en vez de 386); lo reporta al
+> desplegar. Con `--con-comentarios` se sube tal cual está en el repo.
+> `abrir_wizard_personalizacion_por_linea` **no se despliega** a propósito: no hay botón que
+> lo llame (ver changelog v42).
 
 ### Paso 2 — Aplicar
 ```bash

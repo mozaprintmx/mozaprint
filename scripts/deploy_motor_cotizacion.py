@@ -206,14 +206,34 @@ CAMPOS: list[tuple] = [
 ]
 
 # (clave, nombre visible, archivo .py, modelo)
+#
+# `abrir_wizard_personalizacion_por_linea.py` NO se despliega a propósito (decisión JC
+# 2026-08-14): está probado y versionado, pero ningún botón lo llama — Studio no permite
+# agregar botones a la lista de líneas del pedido. Para habilitarlo el día que se pueda,
+# basta con volver a agregar su tupla aquí y re-correr el deploy.
 SERVER_ACTIONS = [
     ("apply", "Agregar personalización (motor cotización)", "agregar_personalizacion.py", "x_wizard_personalizacion"),
     ("confirmar", "Confirmar solicitud de aprobación", "confirmar_aprobacion.py", "x_wizard_personalizacion"),
     ("opener", "Abrir wizard personalización (pedido)", "abrir_wizard_personalizacion.py", "sale.order"),
-    ("opener_linea", "Abrir wizard personalización (por línea)", "abrir_wizard_personalizacion_por_linea.py", "sale.order.line"),
     ("aprobar", "Aprobar personalización y agregar a cotización", "aprobar_personalizacion.py", "x_approval_request"),
     ("rechazar", "Rechazar personalización", "rechazar_personalizacion.py", "x_approval_request"),
 ]
+
+
+def limpiar_codigo(src: str) -> str:
+    """Quita comentarios y líneas en blanco para que Odoo reciba solo código ejecutable.
+    El repo conserva la documentación completa; esto solo afecta lo que se sube.
+
+    Conservador a propósito: solo elimina líneas cuyo PRIMER carácter no-espacio es '#'.
+    No toca comentarios al final de una línea de código ni cadenas de texto (por eso una
+    línea con un '#' dentro de un string nunca se pierde)."""
+    fuera = []
+    for linea in src.splitlines():
+        sin_esp = linea.strip()
+        if not sin_esp or sin_esp.startswith("#"):
+            continue
+        fuera.append(linea)
+    return "\n".join(fuera) + "\n"
 
 
 def vistas(aid: dict) -> list[dict]:
@@ -361,6 +381,9 @@ def main() -> int:
     ap.add_argument("--si-produccion", action="store_true", help="confirmación extra obligatoria para prod")
     ap.add_argument("--saltar-datos", action="store_true", help="no tocar datos (markup/renombres)")
     ap.add_argument("--saltar-smoke", action="store_true", help="no correr el smoke test")
+    ap.add_argument("--con-comentarios", action="store_true",
+                    help="sube el código con comentarios (por defecto se quitan para "
+                         "minimizar las líneas dentro de Odoo)")
     args = ap.parse_args()
 
     load_dotenv(REPO / "analysis" / "supplier-sync" / ".env")
@@ -435,12 +458,19 @@ def main() -> int:
 
     print("\n=== SERVER ACTIONS ===")
     aid = {}
+    brutas = limpias = 0
     for clave, nombre, archivo, modelo in SERVER_ACTIONS:
-        code = (ACTIONS_DIR / archivo).read_text(encoding="utf-8")
+        src = (ACTIONS_DIR / archivo).read_text(encoding="utf-8")
+        code = src if args.con_comentarios else limpiar_codigo(src)
+        brutas += len(src.splitlines())
+        limpias += len(code.splitlines())
         mid = _id(o.read_call("ir.model", "search", [["model", "=", modelo]]))
         aid[clave] = upsert(o, "ir.actions.server", [["name", "=", nombre]],
                             {"name": nombre, "model_id": mid, "state": "code", "code": code},
                             f"action {nombre}", man, "actions")
+    print(f"  Líneas subidas a Odoo: {limpias}"
+          + ("" if args.con_comentarios else f" (de {brutas} en el repo; "
+             f"−{brutas - limpias} de comentarios/blancos)"))
 
     print("\n=== VISTAS ===")
     sys.path.insert(0, str(Path(__file__).resolve().parent))

@@ -4,6 +4,50 @@
 
 ---
 
+## 2026-08-14 · refactor (v42) — Auditoría de líneas: 415 → 269 en Odoo (−35%)
+
+**Tipo**: `refactor` (sin cambio de comportamiento), **solo STAGING**, pendiente de prod.
+
+Auditoría del código que vive **dentro** de Odoo (los Server Actions; los scripts de
+`scripts/` corren fuera y no cuentan), pedida antes de desplegar a producción.
+
+**Código muerto eliminado** (verificado con análisis AST, no a ojo):
+- `posiciones` en `agregar_personalizacion`: se calculaba y **nunca se leía** (quedó al mover
+  el `context_json` a `confirmar_aprobacion`).
+- `_notif()`: función de 4 líneas que quedó **con un solo llamador** cuando los avisos de
+  aprobación pasaron al diálogo; se pone en línea.
+- `fuente`: variable que solo alimentaba el `log`.
+- Cabecera desactualizada (decía que usaba `json`/`datetime`, que ya no usa).
+
+**`abrir_wizard_personalizacion_por_linea` ya NO se despliega** (decisión JC): está probado y
+versionado, pero **ningún botón lo llama** — Studio no permite botones en la lista de líneas.
+Para habilitarlo basta con volver a agregar su tupla en `SERVER_ACTIONS`. −27 líneas.
+
+**El deploy ahora quita comentarios y blancos al subir** (`limpiar_codigo()`, se puede
+desactivar con `--con-comentarios`): el repo conserva toda la documentación y Odoo recibe solo
+código ejecutable. Es conservador: solo borra líneas cuyo primer carácter no-espacio es `#`,
+así que nunca toca un `#` dentro de una cadena. **Validado comparando el AST**: el código
+subido es sintácticamente idéntico al del repo. −117 líneas.
+
+| | Antes | Ahora |
+|---|---:|---:|
+| Server Actions desplegados | 6 | 5 |
+| Líneas dentro de Odoo | 415 | **269** |
+
+**Revisado también** (sin cambios): la duplicación de `_upsert` entre `agregar` y `aprobar`
+(~21 líneas) se **conserva a propósito** — los Server Actions no comparten funciones y hacer
+que uno llame al otro añadiría acoplamiento frágil en el flujo que fija precios. Y se
+detectaron 2 campos sin uso (`x_channel_id`, `x_assigned_user_id` en `x_approval_request`),
+reservados para el agente de WhatsApp; se dejan.
+
+**Regresión en staging con el código ya limpio**: precio de venta, línea de setup, diálogo de
+confirmación (no crea la solicitud hasta aceptar) e idempotencia — los 4 correctos.
+
+> Nota: no se pudo verificar que Odoo cobre por línea de Python en Server Actions; conviene
+> confirmarlo si esa premisa guía decisiones. La limpieza vale igual por mantenibilidad.
+
+---
+
 ## 2026-08-13 · chore (v41) — Scripts de despliegue/rollback + revisión pre-producción
 
 **Tipo**: `chore` (tooling + revisión). **Producción sigue sin tocarse.**

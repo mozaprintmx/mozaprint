@@ -14,7 +14,8 @@
 #   - x_approval_request es modelo manual: sus campos llevan prefijo x_ (x_sale_order_id, ...).
 #   - price_unit se re-escribe tras crear la línea (el compute de servicios con list_price=0 lo pisa).
 #
-# Vars del sandbox usadas: env, record, log, UserError, json, datetime.
+# Vars del sandbox usadas: env, record, log, UserError.
+# (la solicitud de aprobación la crea confirmar_aprobacion.py; ahí sí se usan json/datetime)
 
 wiz = record if record else env['x_wizard_personalizacion'].browse(env.context.get('active_id'))
 line = wiz.x_sale_order_line_id
@@ -24,14 +25,7 @@ tmpl = line.product_id.product_tmpl_id
 tec = wiz.x_tecnica_id or tmpl.x_tecnica_default_id
 qty = wiz.x_qty or int(line.product_uom_qty or 0) or 1
 tintas = wiz.x_tintas or 1
-posiciones = wiz.x_posiciones or 1
 area = wiz.x_area_cm2 or 0.0
-
-
-def _notif(titulo, mensaje, tipo):
-    return {'type': 'ir.actions.client', 'tag': 'display_notification',
-            'params': {'title': titulo, 'message': mensaje, 'type': tipo, 'sticky': tipo != 'success',
-                       'next': {'type': 'ir.actions.act_window_close'}}}
 
 
 def _pedir_confirmacion(motivo):
@@ -137,7 +131,6 @@ if cand:
         qty_linea, precio = qty, costo
 
     SOL = env['sale.order.line']
-    fuente = 'externo' if cand.x_personalizacion_externa else (cand.x_proveedor_id.name or '')
     nombre = '%s - %s - %d tinta(s) - %d pza(s)' % (servicio.name, tec.x_name, tintas, qty)
 
     # Secciones (idempotente) y sección destino
@@ -171,5 +164,10 @@ if cand:
     _upsert(True, ps, 1, 'Setup / preparacion - %s' % tec.x_name)
 
     order.write({'x_customization_cost_source': 'parametrized', 'x_requires_human_approval': False})
-    log('Personalizacion parametrizada (order=%s servicio=%s precio=%.2f x%d fuente=%s)' % (order.id, servicio.id, precio, qty_linea, fuente))
-    action = _notif('Personalizacion agregada', '%s : $%.2f (%s)' % (nombre, precio, cand.x_unidad_cobro), 'success')
+    log('Personalizacion parametrizada (order=%s servicio=%s precio=%.2f x%d fuente=%s)'
+        % (order.id, servicio.id, precio, qty_linea,
+           'externo' if cand.x_personalizacion_externa else (cand.x_proveedor_id.name or '')))
+    action = {'type': 'ir.actions.client', 'tag': 'display_notification',
+              'params': {'title': 'Personalizacion agregada', 'type': 'success',
+                         'message': '%s : $%.2f (%s)' % (nombre, precio, cand.x_unidad_cobro),
+                         'next': {'type': 'ir.actions.act_window_close'}}}
