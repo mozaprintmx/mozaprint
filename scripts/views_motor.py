@@ -228,8 +228,10 @@ def ARCHS(aid: dict, o=None) -> list[dict]:
                   "type": "form", "arch": tec_form}},
     ]
     if base_form:
-        # Vista heredada: es la ÚNICA que puede romper el form de ventas para todos.
-        # El deploy la valida con get_views justo después de crearla.
+        # Vista heredada: es la ÚNICA que puede romper el form de ventas para todos,
+        # y la única que un upgrade de Odoo puede DESACTIVAR (si `//header` dejara de
+        # resolver). Se valida con `--verificar`, que renderiza el form con get_views
+        # y confirma que el botón sale; correrlo después de cada actualización.
         v.append({"name": "sale.order.personalizar.header.button",
                   "vals": {"name": "sale.order.personalizar.header.button", "model": "sale.order",
                            "inherit_id": base_form, "arch": header_btn, "active": True}})

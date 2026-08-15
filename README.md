@@ -223,6 +223,12 @@ Cada trimestre, revisar:
 - ¿Algún spec quedó desactualizado vs realidad en Odoo?
 - ¿Algún ADR quedó superseded? Marcarlo
 - ¿Hay workflows en n8n que no estén versionados aquí?
+- ¿El motor de cotización sigue completo en Odoo? (solo lectura, ~20 s):
+  ```bash
+  python scripts/deploy_motor_cotizacion.py --target prod --verificar
+  ```
+  **Correrlo también después de cada actualización de Odoo** — es cuando puede
+  desactivarse la vista heredada. Procedimiento: `docs/procedimiento-upgrade-odoo.md`.
 
 ## Siguiente paso si llegas nuevo al proyecto
 

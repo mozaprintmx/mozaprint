@@ -6,6 +6,9 @@
 >
 > Diseño: `specs/motor-cotizacion.md` · Detalle de objetos:
 > `odoo-extensions/studio-fields.yaml` · Guía conceptual: `docs/guia-motor-cotizacion.md`
+>
+> 🔄 **Para las actualizaciones de Odoo que vengan después**, el procedimiento vive en
+> [procedimiento-upgrade-odoo.md](procedimiento-upgrade-odoo.md), no aquí.
 
 ## 0. Versiones y compatibilidad (verificado 2026-08-13)
 
@@ -87,7 +90,15 @@ Esperado: **1 a crear** (el mínimo de cilindros), **127 a actualizar**, 0 error
 ⚠️ `seed_costos.py` usa `ODOO_URL` del entorno → apunta a producción por defecto. **Correcto
 aquí**, pero verifica la URL que imprime antes de aceptar.
 
-### Paso 4 — Verificación funcional (manual, en la UI)
+### Paso 4 — Verificación
+
+Primero la automática (solo lectura, ~20 s; sale con código 1 si falta algo):
+```bash
+python scripts/deploy_motor_cotizacion.py --target prod --verificar
+```
+Comprueba que los 76 objetos existan, que los archivables sigan **activos** y que el
+formulario de ventas **renderice** el botón. Luego, la funcional en la UI:
+
 - [ ] **Ventas → Configuración → Costos de personalización** abre y se puede editar.
 - [ ] **Ventas → Configuración → Técnicas de personalización** abre.
 - [ ] **Ventas → Aprobaciones personalización** abre (vacío).

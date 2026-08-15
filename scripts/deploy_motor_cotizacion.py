@@ -18,6 +18,7 @@ Uso:
     python scripts/deploy_motor_cotizacion.py --target test --apply    # ejecuta en STAGING
     python scripts/deploy_motor_cotizacion.py --target prod            # simulacro en prod
     python scripts/deploy_motor_cotizacion.py --target prod --apply --si-produccion
+    python scripts/deploy_motor_cotizacion.py --target prod --verificar  # salud, solo lectura
 
 Variables de entorno (analysis/supplier-sync/.env):
     ODOO_URL, ODOO_TEST_URL, ODOO_DB, ODOO_USER, ODOO_PASSWORD
@@ -58,6 +59,14 @@ RENAMES = {
     "Bolsas ≤603 cm²": "Bolsas (Textiles) máximo 603 cm2",
     "Bolsas >603 cm²": "Bolsas (Textiles) mayor a 603 cm2",
 }
+
+# Modelos del motor que tienen campo `active`. Odoo OCULTA los archivados en `search`
+# (active_test), así que hay que buscarlos explícitamente: si no, el deploy no ve el
+# objeto desactivado y crea un DUPLICADO en vez de repararlo.
+# Escenario real que esto cubre: un upgrade de Odoo desactiva la vista heredada cuando
+# su xpath deja de resolver. La reparación correcta es reactivarla, no crear otra.
+ARCHIVABLES = {"ir.ui.view", "ir.ui.menu", "res.partner"}
+CTX_ARCHIVADOS = {"context": {"active_test": False}}
 
 
 # ---------------------------------------------------------------- conexión ---
@@ -383,10 +392,19 @@ def ensure_acl(o: Odoo, model: str, group_id: int, man: dict):
 
 
 def upsert(o: Odoo, model: str, domain: list, vals: dict, etiqueta: str, man: dict, key: str):
-    ids = o.read_call(model, "search", domain)
+    arch = model in ARCHIVABLES
+    ids = o.read_call(model, "search", domain, **(CTX_ARCHIVADOS if arch else {}))
     if ids:
+        nota = "actualizado"
+        if arch:
+            # Se fuerza active=True: re-correr el deploy es el procedimiento de
+            # reparación cuando un upgrade deja algo desactivado (ver ARCHIVABLES).
+            vals = {**vals, "active": True}
+            if not o.read_call(model, "read", ids[:1], fields=["active"])[0]["active"]:
+                nota = "REACTIVADO (estaba desactivado)"
+                o.cambios.append(f"REACTIVAR {etiqueta}")
         o.write_call(model, "write", ids, vals)
-        print(f"  [ ok] {etiqueta} (id={ids[0]}, actualizado)")
+        print(f"  [ ok] {etiqueta} (id={ids[0]}, {nota})")
         return ids[0]
     nid = _id(o.write_call(model, "create", [vals]))
     man[key].append({"model": model, "id": nid, "label": etiqueta})
@@ -424,14 +442,18 @@ def inventariar(o: Odoo, target: str) -> dict:
                          [["res_model", "in", ["x_approval_request", "x_costo_personalizacion",
                                                "x_tecnica_personalizacion"]]], fields=["name"]):
         man["actions"].append({"model": "ir.actions.act_window", "id": a["id"], "label": a["name"]})
+    # Los tres modelos archivables se buscan incluyendo archivados: si un upgrade
+    # desactivó la vista heredada, el manifiesto debe seguir pudiendo borrarla.
     nombres_vista = [v["name"] for v in ARCHS_NOMBRES]
-    for v in o.read_call("ir.ui.view", "search_read", [["name", "in", nombres_vista]], fields=["name"]):
+    for v in o.read_call("ir.ui.view", "search_read", [["name", "in", nombres_vista]],
+                         fields=["name"], **CTX_ARCHIVADOS):
         man["views"].append({"model": "ir.ui.view", "id": v["id"], "label": v["name"]})
     for mu in o.read_call("ir.ui.menu", "search_read",
                           [["name", "in", ["Aprobaciones personalización", "Costos de personalización",
-                                           "Técnicas de personalización"]]], fields=["name"]):
+                                           "Técnicas de personalización"]]],
+                          fields=["name"], **CTX_ARCHIVADOS):
         man["menus"].append({"model": "ir.ui.menu", "id": mu["id"], "label": mu["name"]})
-    for p in o.read_call("res.partner", "search", [["name", "=", PARTNER_EXTERNO]]):
+    for p in o.read_call("res.partner", "search", [["name", "=", PARTNER_EXTERNO]], **CTX_ARCHIVADOS):
         man["partners"].append({"model": "res.partner", "id": p, "label": PARTNER_EXTERNO})
     for model in ("x_costo_personalizacion", "x_approval_request"):
         f = o.read_call("ir.model.fields", "search", [["model", "=", model], ["name", "=", "x_markup"]])
@@ -461,6 +483,157 @@ ARCHS_NOMBRES = [{"name": n} for n in (
     "x_tecnica_personalizacion.list", "x_tecnica_personalizacion.form",
     "sale.order.personalizar.header.button")]
 
+MENUS_ESPERADOS = ["Aprobaciones personalización", "Costos de personalización",
+                   "Técnicas de personalización"]
+MODELOS_CON_MENU = ["x_approval_request", "x_costo_personalizacion", "x_tecnica_personalizacion"]
+BOTON_HEADER = "Agregar personalización"
+
+
+# ------------------------------------------------------------- verificación ---
+def verificar(o: Odoo, target: str) -> int:
+    """Revisión de SALUD del motor. SOLO LECTURA. Devuelve el número de problemas.
+
+    Para correr después de cualquier actualización de Odoo — ver
+    `docs/procedimiento-upgrade-odoo.md`. Comprueba tres cosas distintas, de menos
+    a más exigente:
+
+      1. que los objetos EXISTAN (un upgrade no los borra, pero conviene confirmarlo);
+      2. que los archivables sigan ACTIVOS — Odoo desactiva las vistas heredadas
+         cuyo xpath deja de resolver: no se pierde nada, pero el botón se apaga
+         para todos y `search` deja de verlas;
+      3. que el formulario de ventas RENDERICE el botón. Esta es la prueba de
+         verdad: valida que la herencia se aplica, no solo que la vista existe.
+    """
+    problemas: list[str] = []
+    print("\n=== VERIFICACIÓN DE SALUD (solo lectura, no escribe nada) ===")
+    print(f"  Odoo {o.version()}  ·  {o.url}  ·  db={o.db}\n")
+
+    def grupo(etiqueta: str, hay: int, esperado: int, detalles: list[str]):
+        ok = not detalles and hay == esperado
+        print(f"  {'✓' if ok else '✗'} {etiqueta:<24} {hay}/{esperado}")
+        for d in detalles:
+            print(f"        · {d}")
+        problemas.extend(detalles)
+
+    modelos = ("x_approval_request", "x_wizard_personalizacion")
+    falta = [f"falta el modelo {m}" for m in modelos
+             if not o.read_call("ir.model", "search_count", [["model", "=", m]])]
+    grupo("modelos", len(modelos) - len(falta), len(modelos), falta)
+
+    # Los campos se piden por modelo (2-3 llamadas) en vez de uno por uno (49).
+    esperados: dict[str, set] = {}
+    for m, n, *_ in CAMPOS:
+        esperados.setdefault(m, set()).add(n)
+    total, falta = sum(len(v) for v in esperados.values()), []
+    for m, nombres in esperados.items():
+        try:
+            hay = {f["name"] for f in o.read_call("ir.model.fields", "search_read",
+                                                  [["model", "=", m]], fields=["name"])}
+        except xmlrpc.client.Fault:
+            hay = set()
+        falta += [f"falta el campo {m}.{n}" for n in sorted(nombres - hay)]
+    grupo("campos", total - len(falta), total, falta)
+
+    falta = [f"falta el ACL de {m}" for m in modelos
+             if not o.read_call("ir.model.access", "search_count", [["model_id.model", "=", m]])]
+    grupo("ACLs", len(modelos) - len(falta), len(modelos), falta)
+
+    lineas, falta = 0, []
+    for _, nombre, _, _ in SERVER_ACTIONS:
+        regs = o.read_call("ir.actions.server", "search_read", [["name", "=", nombre]], fields=["code"])
+        if not regs:
+            falta.append(f"falta el Server Action «{nombre}»")
+        elif not (regs[0]["code"] or "").strip():
+            falta.append(f"el Server Action «{nombre}» quedó SIN CÓDIGO")
+        else:
+            lineas += len(regs[0]["code"].splitlines())
+    grupo("Server Actions", len(SERVER_ACTIONS) - len(falta), len(SERVER_ACTIONS), falta)
+    print(f"        · {lineas} líneas de Python viviendo dentro de Odoo")
+
+    nombres_v = [v["name"] for v in ARCHS_NOMBRES]
+    por_nombre = {r["name"]: r for r in
+                  o.read_call("ir.ui.view", "search_read", [["name", "in", nombres_v]],
+                              fields=["name", "active"], **CTX_ARCHIVADOS)}
+    falta = []
+    for n in nombres_v:
+        r = por_nombre.get(n)
+        if not r:
+            falta.append(f"falta la vista {n}")
+        elif not r["active"]:
+            falta.append(f"la vista {n} está DESACTIVADA (típico tras un upgrade)")
+    grupo("vistas", len(nombres_v) - len(falta), len(nombres_v), falta)
+
+    hay = o.read_call("ir.actions.act_window", "search_count", [["res_model", "in", MODELOS_CON_MENU]])
+    grupo("acciones de ventana", hay, 3, [] if hay >= 3 else [f"solo hay {hay} de 3"])
+
+    por_nombre = {r["name"]: r for r in
+                  o.read_call("ir.ui.menu", "search_read", [["name", "in", MENUS_ESPERADOS]],
+                              fields=["name", "active"], **CTX_ARCHIVADOS)}
+    falta = []
+    for n in MENUS_ESPERADOS:
+        r = por_nombre.get(n)
+        if not r:
+            falta.append(f"falta el menú «{n}»")
+        elif not r["active"]:
+            falta.append(f"el menú «{n}» está ARCHIVADO")
+    grupo("menús", len(MENUS_ESPERADOS) - len(falta), len(MENUS_ESPERADOS), falta)
+
+    regs = o.read_call("res.partner", "search_read", [["name", "=", PARTNER_EXTERNO]],
+                       fields=["active"], **CTX_ARCHIVADOS)
+    falta = ([] if regs and regs[0]["active"]
+             else [f"falta el contacto «{PARTNER_EXTERNO}»"] if not regs
+             else [f"el contacto «{PARTNER_EXTERNO}» está ARCHIVADO"])
+    grupo("contacto externo", 0 if falta else 1, 1, falta)
+
+    hay = 0
+    for m in ("x_costo_personalizacion", "x_approval_request"):
+        f = o.read_call("ir.model.fields", "search", [["model", "=", m], ["name", "=", "x_markup"]])
+        if f and o.read_call("ir.default", "search_count", [["field_id", "=", f[0]]]):
+            hay += 1
+    grupo("defaults de markup", hay, 2, [] if hay == 2 else [f"solo hay {hay} de 2 defaults"])
+
+    # --- La prueba de verdad: ¿el formulario de ventas abre y muestra el botón? ---
+    print("\n  --- prueba funcional ---")
+    try:
+        arch = json.dumps(o.read_call("sale.order", "get_views", [[False, "form"]]), ensure_ascii=False)
+        if BOTON_HEADER in arch:
+            print(f"  ✓ el formulario de ventas renderiza el botón «{BOTON_HEADER}»")
+        else:
+            problemas.append("el formulario de ventas ABRE pero NO muestra el botón: la vista "
+                             "heredada existe y su xpath ya no aplica")
+            print(f"  ✗ el formulario de ventas NO muestra «{BOTON_HEADER}»")
+    except xmlrpc.client.Fault as e:
+        msg = e.faultString.strip().splitlines()[-1][:120]
+        problemas.append(f"el formulario de ventas NO ABRE: {msg}")
+        print(f"  ✗ el formulario de ventas NO ABRE → {msg}")
+
+    # --- Datos (informativo; solo el markup faltante cuenta como problema) ---
+    print("\n  --- datos ---")
+    try:
+        tarifas = o.read_call("x_costo_personalizacion", "search_count", [])
+        sin_mk = o.read_call("x_costo_personalizacion", "search_count", [["x_markup", "<=", 0]])
+        pend = o.read_call("x_approval_request", "search_count", [["x_status", "=", "pending"]])
+        usos = o.read_call("sale.order.line", "search_count", [["x_source_line_id", "!=", False]])
+        print(f"  · {tarifas} tarifas en la matriz · {pend} aprobaciones pendientes "
+              f"· {usos} líneas de personalización en cotizaciones")
+        if sin_mk:
+            problemas.append(f"{sin_mk} tarifas sin markup (no calculan precio de venta)")
+            print(f"  ✗ {sin_mk} tarifas SIN markup")
+    except xmlrpc.client.Fault as e:
+        print(f"  ⚠ no se pudieron leer los datos: {e.faultString.strip().splitlines()[-1][:90]}")
+
+    prod = " --si-produccion" if target == "prod" else ""
+    print("\n" + "=" * 74)
+    if problemas:
+        print(f"  ✗ {len(problemas)} PROBLEMA(S): el motor NO está completo.")
+        print(f"     Reparar: python scripts/deploy_motor_cotizacion.py --target {target} "
+              f"--apply{prod} --saltar-datos")
+        print("     Procedimiento completo: docs/procedimiento-upgrade-odoo.md")
+    else:
+        print("  ✓ El motor está completo y operativo.")
+    print("=" * 74)
+    return len(problemas)
+
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -475,6 +648,9 @@ def main() -> int:
     ap.add_argument("--inventario", action="store_true",
                     help="NO despliega: escribe un manifiesto de lo que ya existe "
                          "(para revertir un despliegue hecho a mano o recuperar un manifiesto perdido)")
+    ap.add_argument("--verificar", action="store_true",
+                    help="NO despliega: revisión de salud de solo lectura. Sale con código 1 "
+                         "si falta o está desactivado algo. Correr tras cada upgrade de Odoo.")
     args = ap.parse_args()
 
     load_dotenv(REPO / "analysis" / "supplier-sync" / ".env")
@@ -493,6 +669,9 @@ def main() -> int:
     print(f"  MOTOR DE COTIZACIÓN — despliegue  [{args.target.upper()}]  ·  {modo}")
     print(f"  {o.url}  (db={db})")
     print("=" * 74)
+
+    if args.verificar:
+        return 1 if verificar(o, args.target) else 0
 
     if args.inventario:
         print("\n=== INVENTARIO (no despliega) ===")

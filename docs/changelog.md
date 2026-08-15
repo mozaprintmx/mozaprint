@@ -4,6 +4,43 @@
 
 ---
 
+## 2026-08-14 · hardening (v45) — supervivencia del motor ante actualizaciones de Odoo
+
+**Tipo**: `hardening`. Solo scripts y documentación; **nada nuevo en Odoo**.
+
+Pregunta de JC: *"¿el cambio puede perderse luego de una actualización de Odoo?"*.
+Respuesta corta: **no se borra** — los 76 objetos del motor son datos (`state='manual'`),
+no código de módulo. Lo que un upgrade sí puede hacer es **desactivar** la vista heredada
+`sale.order.personalizar.header.button` si su `xpath expr="//header"` dejara de resolver:
+el botón desaparece y todo lo demás sigue vivo.
+
+**Bug encontrado al revisar el camino de recuperación** (`upsert` en
+`scripts/deploy_motor_cotizacion.py`): buscaba con `search` sin `active_test=False`. Odoo
+oculta los archivados, así que en el escenario más probable —el upgrade desactiva la vista—
+el deploy de reparación **no la habría encontrado y habría creado una vista DUPLICADA** en
+lugar de reactivarla. Aplicaba a los 3 modelos archivables del motor: `ir.ui.view`,
+`ir.ui.menu` y `res.partner` (este último lo archiva el propio rollback cuando no puede
+borrarlo). El rollback no estaba afectado: borra por id desde el manifiesto.
+
+Corregido: `upsert` e `inventariar` buscan incluyendo archivados y `upsert` fuerza
+`active=True` al reparar, reportando `REACTIVADO (estaba desactivado)`.
+
+**Nuevo `--verificar`** (solo lectura, ~20 s, sale con código 1 si algo falta). Revisa tres
+niveles: que los objetos existan, que los archivables sigan activos, y —la prueba de
+verdad— que el formulario de ventas **renderice** el botón vía `get_views`. De paso, esto
+cumple lo que un comentario de `views_motor.py` afirmaba desde v40 y el código nunca hacía.
+
+**Probado** (2026-08-14): en producción sale limpio (49/49 campos, 5 acciones/269 líneas,
+9/9 vistas, botón renderiza). En staging se simuló el fallo real — desactivar la vista →
+`--verificar` reporta los 2 problemas y sale 1 → deploy de reparación **reactiva el mismo
+id 5301** → verificación en verde con **una sola** vista. Ciclo completo cerrado.
+
+Nuevo `docs/procedimiento-upgrade-odoo.md`: qué es frágil y qué no, los tres tipos de
+actualización, qué hacer antes y después de un upgrade mayor, y reparación por síntoma.
+Enlazado desde el bloque de mantenimiento trimestral del README.
+
+---
+
 ## 2026-08-14 · release (v44) — 🚀 MOTOR DE COTIZACIÓN EN PRODUCCIÓN
 
 **Tipo**: `release`. **Aplicado a producción** (`mozaprintmx.odoo.com`, Odoo 19.0+e).
