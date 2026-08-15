@@ -2,11 +2,6 @@
 
 Última actualización: 2026-08-15. Pegar/leer al iniciar un chat nuevo para retomar con contexto mínimo.
 
-> ⚠️ Las secciones de Fase 2 y del sync siguen siendo válidas, pero este documento
-> se quedó corto entre junio y agosto: el **motor de cotización ya está en
-> producción** (2026-08-14, 76 objetos) — ver `docs/changelog.md` v32–v46 y
-> `docs/upgrades/`.
-
 ## Cómo trabajar (para ahorrar tokens)
 - Un chat nuevo por pieza de trabajo; cortar al cerrar cada pieza, no a media tarea.
 - No pegar salidas completas de Claude Code: resumir ("aplicó OK, 3 archivos, 0 errores") + solo el dato para decidir.
@@ -45,14 +40,22 @@ Horarios reales (Task Scheduler, no en código): stock_sync INN 09:15/13:15/17:1
 - **Filtro de técnica DESCARTADO/baja prioridad**: por experiencia del operador, el cliente busca producto y luego pregunta por personalización; no navega por técnica. (Odoo no tiene reporte de términos de búsqueda para confirmarlo con datos.)
 - Si se hiciera técnica-como-filtro algún día: requiere modelarla como product.attribute con create_variant="no_variant" (no se puede filtrar /shop por campo custom en Online sin tocar el controlador).
 
+## Fase 3 — Motor de cotización — EN PRODUCCIÓN (2026-08-14)
+- **Qué hace**: en una cotización, botón "Agregar personalización" → wizard (producto, proveedor, técnica, cantidad, tintas) → busca en la matriz `x_costo_personalizacion` → agrega la línea de servicio al **precio de venta** (costo × markup, default en `ir.default`) más una **segunda línea de setup**. Si ninguna tarifa aplica NO inventa precio: pide confirmación y crea una **solicitud de aprobación**; al aprobarla se genera la línea y, opcionalmente, se guarda la tarifa en la matriz (el motor "aprende").
+- **Qué se desplegó**: 76 objetos — 2 modelos (`x_approval_request` + wizard transitorio), 49 campos, 2 ACLs, **5 Server Actions (269 líneas de Python dentro de Odoo)**, 9 vistas, 3 menús (Ventas → Aprobaciones personalización; Configuración → Costos / Técnicas), 1 contacto "Personalización Externa". **128 tarifas** cargadas (INN + PO).
+- **El repo es la fuente de verdad, no Odoo**: `scripts/deploy_motor_cotizacion.py` es idempotente y reconstruye todo desde cero (ensayado con rollback total + redeploy en staging). `--verificar` = salud de solo lectura; `rollback_motor_cotizacion.py` + manifiesto en `backups/`; `seed_costos.py` carga la matriz desde el CSV de `analysis/` (gitignored).
+- **Único punto frágil ante upgrades**: la vista heredada que inyecta el botón en el formulario de ventas (si el xpath deja de resolver, Odoo la desactiva y el botón desaparece). Ver `docs/upgrades/`.
+- El **área de impresión** sigue en texto sin parsear (`x_area_impresion` / `x_medidas`); el wizard la pide a mano.
+- **Docs**: diseño `specs/motor-cotizacion.md` · despliegue `docs/checklist-deploy-produccion.md` · manual del equipo `docs/manual-personalizacion-cotizacion.md` (publicado en Knowledge).
+
 ## PENDIENTES / próximas piezas (cada una = chat nuevo)
 - **Vigilar** primeras corridas: desactivación de sobrantes (riesgo API inestable bajo umbral 10%); que imágenes AVIF se conviertan/salten; que la derivación se dispare sola post-sync; que el backup productos_INN_*.json se genere. Revisar logs en ProductSync\logs\.
 - **Limpieza fina opcional** (higiene, sin prisa): borrar de verdad los atributos basura; limpiar valores de Color (10 huérfanos + 40 de-1-producto).
 - **Piezas de Fase 2 sin tocar**: swatches de color, optional/accessory products. **Descripciones con IA DESCARTADAS del cierre de Fase 2** (2026-07-06) — reencuadradas como iniciativa SEO DIRIGIDA de Fase 9, condicionada a diagnóstico GSC. Señal: clientes que buscan productos agotados en otros revendedores caen aquí, pero compartimos la descripción duplicada del proveedor → Google deprioritiza. Palanca real = title/H1 únicos, no el body. Ver `decisions/006` y roadmap Fase 9.
 - **15 kits multicomponente**: refinamiento manual de default (cosmético).
 - **Backlog del sync** (Fase 8 / mini-proyectos): XML-RPC→JSON-2; precio en pricelist en vez de ×1.5 en código; supplierinfo completo (product_code/min_qty para matriz de costos Fase 3); Materiales[] en PO/4P; tags de material palabra-completa vs primera palabra; "esperar 2-3 corridas antes de desactivar sobrantes".
-- **changelog.md** del repo: confirmar entrada de alto nivel del fix INN.
-- **Fases siguientes**: 3 (motor cotización / matriz de costos por técnica×área×cantidad×proveedor — el área viene en texto sin parsear en x_area_impresion/x_medidas), 4-6 (WhatsApp+n8n, agente), 7+ (SEO, expansión).
+- **Cerrar Fase 3**: faltan los **costos de 4P** (único proveedor sin lista tabulada — mientras tanto sus cotizaciones caen al flujo de aprobación, que ya funciona) y las **tarifas de personalización externa** (mecanismo listo y probado, faltan los datos). Opcional: botón **por línea** vía Studio (el Server Action ya está escrito y probado, sin desplegar). Higiene: partners de proveedor duplicados (INN 82/32, PO 11/8).
+- **Fases siguientes**: cerrar 3, luego 4-6 (WhatsApp+n8n, agente), 7+ (SEO, expansión).
 
 ## Upgrades de Odoo (apartado nuevo, 2026-08-15)
 - Test corre **saas~19.2**, producción **19.0**: test va una versión adelante y sirve de aviso anticipado. Todo el seguimiento vive en `docs/upgrades/` (README + checklist + incidencias).

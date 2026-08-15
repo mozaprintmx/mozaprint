@@ -58,6 +58,15 @@ se movió ahí como `motor-cotizacion.md`; referencias actualizadas en README y
 Ambas bases salen limpias hoy: prod 19.0 ✓, test saas~19.2 ✓. Queda pendiente la
 revisión manual de JC (§2-§5 del checklist), que el propio checklist trackea.
 
+**Punto de control al día** (misma fecha, sin versión propia por ser solo doc):
+`docs/punto-de-control.md` traía un aviso de *"este documento se quedó corto"* remitiendo a
+15 entradas del changelog, justo lo contrario de su propósito — y listaba la Fase 3 como
+"fase siguiente" cuando el motor lleva un día en producción. Ahora el motor tiene sección
+propia (qué hace, qué se desplegó, que el repo es la fuente de verdad y cuál es el único
+punto frágil ante upgrades) y los pendientes reales: costos de 4P, tarifas externas, botón
+por línea, partners duplicados. Se cerró un pendiente ya cumplido: la entrada del fix de
+truncación INN sí estaba registrada aquí.
+
 ---
 
 ## 2026-08-14 · hardening (v45) — supervivencia del motor ante actualizaciones de Odoo
