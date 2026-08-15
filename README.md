@@ -13,7 +13,12 @@ mozaprint-context/
 │   ├── architecture.md          ← Diagrama y responsabilidades
 │   ├── glossary.md              ← Términos del negocio
 │   ├── roadmap.md               ← Qué está hecho, qué falta
-│   └── changelog.md             ← Historial de cambios técnicos
+│   ├── changelog.md             ← Historial de cambios técnicos
+│   └── upgrades/                ← Actualizaciones de Odoo: checklist e incidencias
+│       ├── README.md            ← Índice, estado por base y los dos comandos
+│       ├── checklist-post-upgrade.md  ← Qué revisar tras cada actualización
+│       ├── motor-cotizacion.md  ← Procedimiento específico del motor
+│       └── incidencias/         ← Un archivo por fallo real, con causa y reparación
 │
 ├── specs/                       ← Especificaciones técnicas estables
 │   ├── data-model.md            ← Modelos custom de Odoo
@@ -32,6 +37,8 @@ mozaprint-context/
 │   ├── audit_catalog.py         ← Auditoría de catálogo (solo lectura)
 │   ├── audit_atributos.py       ← Auditoría de atributos /shop (solo lectura)
 │   ├── audit_tags.py            ← Auditoría de product tags (solo lectura)
+│   ├── audit_post_upgrade.py    ← Salud tras una actualización de Odoo (solo lectura)
+│   ├── fix_vista_terminos_producto.py ← Repara la ficha de producto tras el salto a 19.2
 │   ├── cleanup_tags.py         ← Borrado por reglas de product tags (lista blanca)
 │   ├── dump_tecnica_values.py   ← Volcado de valores de x_tecnica_impresion
 │   ├── dump_color_values.py     ← Volcado de valores del atributo Color (solo lectura)
@@ -228,7 +235,13 @@ Cada trimestre, revisar:
   python scripts/deploy_motor_cotizacion.py --target prod --verificar
   ```
   **Correrlo también después de cada actualización de Odoo** — es cuando puede
-  desactivarse la vista heredada. Procedimiento: `docs/procedimiento-upgrade-odoo.md`.
+  desactivarse la vista heredada.
+- ¿El sitio web y las vistas sobrevivieron la última actualización? (solo lectura):
+  ```bash
+  python scripts/audit_post_upgrade.py --target prod
+  ```
+  Apartado completo de actualizaciones — checklist, incidencias y reparaciones:
+  `docs/upgrades/README.md`.
 
 ## Siguiente paso si llegas nuevo al proyecto
 

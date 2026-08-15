@@ -7,8 +7,9 @@
 > Diseño: `specs/motor-cotizacion.md` · Detalle de objetos:
 > `odoo-extensions/studio-fields.yaml` · Guía conceptual: `docs/guia-motor-cotizacion.md`
 >
-> 🔄 **Para las actualizaciones de Odoo que vengan después**, el procedimiento vive en
-> [procedimiento-upgrade-odoo.md](procedimiento-upgrade-odoo.md), no aquí.
+> 🔄 **Para las actualizaciones de Odoo que vengan después**, el apartado completo vive
+> en [upgrades/](upgrades/README.md), no aquí: checklist de revisión, incidencias
+> registradas y el procedimiento específico del motor.
 
 ## 0. Versiones y compatibilidad (verificado 2026-08-13)
 

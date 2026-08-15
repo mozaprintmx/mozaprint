@@ -161,6 +161,9 @@ python3 scripts/rollback_category_images.py --from backups/category_images_AAAAM
 - APIs externas y proveedores: `specs/integrations.md`
 - Agente "Moza" (identidad, prompts, tools): `specs/ai-agent-spec.md`
 - Motor de cotización (matriz de costos → línea de cotización, wizard, Server Action): `specs/motor-cotizacion.md`
+- Actualizaciones de Odoo (checklist, incidencias, reparaciones): `docs/upgrades/README.md`.
+  Test corre **saas~19.2** y producción **19.0**: lo que falla en test es aviso
+  anticipado de lo que fallará en producción — no lo repares antes de tiempo.
 
 <!-- Único import always-on. glossary.md ayuda a la adherencia de terminología
      en toda sesión. Si crece mucho (>~150 líneas), conviértelo también en

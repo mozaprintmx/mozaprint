@@ -4,6 +4,62 @@
 
 ---
 
+## 2026-08-15 · fix + apartado de upgrades (v46) — la ficha de producto se caía en 19.2
+
+**Tipo**: `fix` (aplicado a **staging**) + `docs`. **Producción no se tocó.**
+
+JC reportó `Internal Server Error` al abrir un producto en el sitio de test. No era
+un producto: eran **las 5,000+ fichas**. `/shop`, carrito, home y `/contactanos`
+seguían en 200, así que el catálogo se veía sano desde fuera.
+
+**Causa**: el salto de test a `saas~19.2` reestructuró
+`website_sale.product_terms_and_conditions` — en 19.0 es una plantilla independiente
+invocada con `t-call`; en 19.2 es una vista **heredada** de `website_sale.product`. El
+upgrade convirtió la vista genérica y le puso `inherit_id` a **nuestra copia traducida
+al español** (id 3951, creada por el editor del sitio vía COW), pero le dejó el `arch`
+viejo. Una vista con `inherit_id` y sin `position`/`xpath`/`<data>` no se puede
+combinar → excepción → 500.
+
+Lo que costó el diagnóstico: **no hay traza**. `ir.logging` solo tenía autenticaciones
+RPC, y el 500 llega como HTML crudo de werkzeug (265 bytes) sin la página de error de
+Odoo **ni con sesión de administrador** — porque el manejador de errores también
+necesita combinar vistas para dibujarse. Los datos del producto se leen perfectos por
+RPC (208 campos, variantes, precio). Regla que queda: *500 sin página de error de Odoo
+y sin traza ⇒ capa de vistas, no datos.*
+
+**`scripts/fix_vista_terminos_producto.py`** (nuevo): dry-run por defecto, respaldo en
+`backups/` y `--rollback`. Convierte el `arch` al formato de herencia **conservando el
+texto en español** — borrar la copia también arreglaría el 500 pero devolvería el
+bloque a inglés. Aplicado en test: **7 de 7 fichas de 500 a 200**, texto intacto.
+
+⚠️ **Producción tiene la misma copia y caerá igual cuando Odoo la suba a 19.2.** El fix
+NO se aplica hoy: en 19.0 esa vista debe seguir siendo plantilla independiente y
+"arreglarla" rompería lo que funciona. Queda registrado para el día del upgrade.
+
+**`scripts/audit_post_upgrade.py`** (nuevo, solo lectura): barre las ~4,800 vistas
+buscando los modos de fallo que un upgrade sí produce — herencia inválida, `t-call` a
+plantillas inexistentes, keys duplicadas, censo de objetos custom y barrido HTTP de
+rutas públicas (resuelve 3 fichas reales desde `/shop`). Con `--comparar` diffea test
+contra prod **por id de vista, no por key**: comparar por key daba 3 falsos positivos
+porque en 19.2 se fusionó `website_sale_comparison` en `website_sale` (14 vistas
+renombradas, mismos ids, mismo estado). Resultado real del diff: **el upgrade no
+desactivó ni una sola vista**.
+
+Dos falsos positivos más, corregidos durante la construcción: las vistas de backend
+(kanban/form) resuelven `t-call` contra plantillas OWL de cliente que no viven en
+`ir.ui.view` — la revisión se acotó a `type='qweb'`.
+
+**Nuevo apartado `docs/upgrades/`**: README con estado por base y las dos comandos,
+`checklist-post-upgrade.md` (automático → sitio → backend → motor → integraciones →
+cierre) e `incidencias/` con un archivo por fallo real. `procedimiento-upgrade-odoo.md`
+se movió ahí como `motor-cotizacion.md`; referencias actualizadas en README y
+`checklist-deploy-produccion.md`.
+
+Ambas bases salen limpias hoy: prod 19.0 ✓, test saas~19.2 ✓. Queda pendiente la
+revisión manual de JC (§2-§5 del checklist), que el propio checklist trackea.
+
+---
+
 ## 2026-08-14 · hardening (v45) — supervivencia del motor ante actualizaciones de Odoo
 
 **Tipo**: `hardening`. Solo scripts y documentación; **nada nuevo en Odoo**.

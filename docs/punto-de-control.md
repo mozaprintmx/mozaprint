@@ -1,6 +1,11 @@
 # Punto de control — Mozaprint MX
 
-Última actualización: 2026-06-26. Pegar/leer al iniciar un chat nuevo para retomar con contexto mínimo.
+Última actualización: 2026-08-15. Pegar/leer al iniciar un chat nuevo para retomar con contexto mínimo.
+
+> ⚠️ Las secciones de Fase 2 y del sync siguen siendo válidas, pero este documento
+> se quedó corto entre junio y agosto: el **motor de cotización ya está en
+> producción** (2026-08-14, 76 objetos) — ver `docs/changelog.md` v32–v46 y
+> `docs/upgrades/`.
 
 ## Cómo trabajar (para ahorrar tokens)
 - Un chat nuevo por pieza de trabajo; cortar al cerrar cada pieza, no a media tarea.
@@ -48,3 +53,9 @@ Horarios reales (Task Scheduler, no en código): stock_sync INN 09:15/13:15/17:1
 - **Backlog del sync** (Fase 8 / mini-proyectos): XML-RPC→JSON-2; precio en pricelist en vez de ×1.5 en código; supplierinfo completo (product_code/min_qty para matriz de costos Fase 3); Materiales[] en PO/4P; tags de material palabra-completa vs primera palabra; "esperar 2-3 corridas antes de desactivar sobrantes".
 - **changelog.md** del repo: confirmar entrada de alto nivel del fix INN.
 - **Fases siguientes**: 3 (motor cotización / matriz de costos por técnica×área×cantidad×proveedor — el área viene en texto sin parsear en x_area_impresion/x_medidas), 4-6 (WhatsApp+n8n, agente), 7+ (SEO, expansión).
+
+## Upgrades de Odoo (apartado nuevo, 2026-08-15)
+- Test corre **saas~19.2**, producción **19.0**: test va una versión adelante y sirve de aviso anticipado. Todo el seguimiento vive en `docs/upgrades/` (README + checklist + incidencias).
+- **Incidencia resuelta**: el salto a 19.2 tumbó TODAS las fichas de producto (500 sin traza). Causa: la copia por-website traducida de `website_sale.product_terms_and_conditions` quedó con `inherit_id` y arch de plantilla suelta. Reparado en test con `scripts/fix_vista_terminos_producto.py`. **Producción caerá igual el día que Odoo la suba a 19.2** — el fix NO se aplica antes.
+- Dos comandos de salud, solo lectura: `scripts/audit_post_upgrade.py --comparar` (sitio y vistas) y `deploy_motor_cotizacion.py --verificar` (motor).
+- **Pendiente de JC**: revisión manual §2-§5 del checklist (sitio a ojo, backend, prueba funcional del motor, integraciones).
