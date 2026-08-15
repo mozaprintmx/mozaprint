@@ -4,6 +4,45 @@
 
 ---
 
+## 2026-08-14 · chore (v43) — Ensayo general (rollback total + redeploy) en STAGING
+
+**Tipo**: `chore` (validación). **Producción sigue sin tocarse.**
+
+Como Odoo Online no permite descargar un snapshot de la base (demasiado grande), se hizo el
+mejor sustituto: **desmontar el motor completo en staging y volver a instalarlo desde cero con
+los scripts** — el mismo escenario de base limpia que tendrá producción.
+
+**Encontró 3 bugs que habrían roto el despliegue en producción** (ninguno era visible en
+staging, porque ahí los objetos ya existían):
+
+1. **El simulacro abortaba en base limpia**: en dry-run los modelos no se crean, así que al
+   llegar a los campos no los encontraba. Solo funcionaba donde ya existían.
+2. **La prueba de campos computed dependía de `x_tintas`**, que aún no existe cuando corre
+   (los campos se crean después) → *"Campo desconocido x_tintas en la dependencia"*, deploy
+   abortado justo después de crear los 2 modelos. Ahora depende de `create_date`.
+3. **La prueba creaba un registro antes de que existieran los ACLs** → *"Ningún grupo permite
+   esta operación"*. Los ACLs se movieron antes de la prueba (solo dependen de los modelos).
+
+**También se corrigió el rollback**: el contacto de personalización externa **no se puede
+borrar** si alguna tarifa lo referencia (*"How about archiving the record instead?"*). Ahora,
+si el borrado falla, lo **archiva** — que es el equivalente correcto.
+
+**Resultado del ensayo**:
+- Rollback: **limpió los 77 objetos** del motor y dejó **intactos** los datos preexistentes
+  (131 tarifas, 20 servicios, 20 técnicas).
+- Redeploy desde cero: **73 objetos creados, 0 errores**, prueba de computed OK y smoke test OK.
+- Regresión funcional sobre el motor recién instalado: precio de venta, línea de setup, diálogo
+  de confirmación, **aprobación con markup** (costo × 1.275) e idempotencia — los 5 correctos.
+
+**Añadido `--inventario`** al deploy: construye un manifiesto a partir de lo que ya existe.
+Sirvió para revertir el despliegue que staging tenía hecho a mano, y queda como red por si se
+pierde el manifiesto de un deploy real.
+
+> ⏱️ **El rollback tarda más de 2 minutos** (borra objeto por objeto vía XML-RPC). No
+> interrumpirlo; si se corta, es seguro volver a correrlo (lo ya borrado se reporta y sigue).
+
+---
+
 ## 2026-08-14 · refactor (v42) — Auditoría de líneas: 415 → 269 en Odoo (−35%)
 
 **Tipo**: `refactor` (sin cambio de comportamiento), **solo STAGING**, pendiente de prod.

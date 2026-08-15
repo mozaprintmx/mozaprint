@@ -34,8 +34,17 @@ Sondeo de compatibilidad contra producción (solo lectura) — **sin bloqueantes
       modifica cotizaciones, pero el rollback sí deja huella si ya se usó el motor).
 - [ ] Tener a mano `analysis/supplier-sync/.env` con `ODOO_URL`, `ODOO_DB`, `ODOO_USER`,
       `ODOO_PASSWORD` (admin).
-- [ ] **Snapshot de Odoo Online** (Ajustes → *Duplicar/backup* de la base). Es la red de
-      seguridad real: el rollback por script es fino, pero un snapshot revierte todo.
+- [ ] **Snapshot de la base**. ⚠️ Odoo Online **no deja descargarla** (demasiado grande, probado
+      2026-08-14). Alternativas, en orden: **duplicar** la base desde el gestor (es del lado del
+      servidor, a veces sí funciona), o pedir a soporte de Odoo un respaldo/restauración —
+      ellos mantienen respaldos automáticos.
+      **Si no hay snapshot, el riesgo sigue siendo acotado**: el deploy solo *crea* objetos
+      (reversibles con el rollback) y el único dato preexistente que modifica son las tarifas
+      de `x_costo_personalizacion`, que el propio script respalda a JSON antes de tocarlas.
+      No toca productos, cotizaciones, clientes ni facturas.
+- [x] **Ensayo general hecho en staging** (2026-08-14): rollback total + redeploy desde cero,
+      con regresión funcional. Encontró 3 bugs que habrían roto el despliegue en producción
+      (ver changelog v43). Ya corregidos y re-probados.
 - [ ] Estar en horario de baja actividad: la vista heredada del formulario de ventas se
       recarga para todos los usuarios.
 
@@ -104,7 +113,17 @@ python scripts/rollback_motor_cotizacion.py --manifiesto backups/manifiesto_moto
 ```
 Borra en **orden inverso** (menús → acciones → vistas → Server Actions → ACLs → defaults →
 campos → modelos → contacto) y restaura nombre/alcance de la matriz desde el respaldo JSON.
-Probado en staging: borra solo lo del manifiesto y deja el resto intacto.
+Probado en staging con un ciclo completo: limpió los 77 objetos del motor y dejó intactos los
+datos preexistentes (tarifas, servicios, técnicas).
+
+> ⏱️ **Tarda más de 2 minutos** (borra objeto por objeto vía XML-RPC). **No lo interrumpas**;
+> si se corta, es seguro volver a correrlo: lo ya borrado se reporta como error y continúa.
+>
+> 📌 Si perdiste el manifiesto, genera uno del estado actual:
+> `python scripts/deploy_motor_cotizacion.py --target prod --inventario`
+>
+> 📌 El contacto de personalización externa **no se puede borrar** si alguna tarifa lo usa;
+> el script lo **archiva** en ese caso (equivalente correcto).
 
 **Lo que el rollback NO deshace** (lo avisa al correr):
 - Las **líneas de personalización ya agregadas** a cotizaciones: al borrarse los campos

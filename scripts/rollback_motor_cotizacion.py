@@ -135,7 +135,22 @@ def main() -> int:
                 print(f"  {'✓' if args.apply else '·'} {mdl} id={oid} {etiqueta}")
                 total += 1
             except xmlrpc.client.Fault as e:
-                print(f"  ✗ {mdl} id={oid} {etiqueta}: {e.faultString.strip().splitlines()[-1][:90]}")
+                msg = e.faultString.strip().splitlines()[-1][:90]
+                # Odoo bloquea el borrado de registros referenciados (ej. el contacto de
+                # personalización externa si alguna tarifa lo usa). Archivar es el
+                # equivalente correcto: deja de aparecer y no rompe las referencias.
+                archivado = False
+                if args.apply and mdl in ("res.partner",):
+                    try:
+                        call(mdl, "write", [oid], {"active": False})
+                        archivado = True
+                    except xmlrpc.client.Fault:
+                        pass
+                if archivado:
+                    print(f"  ⇢ {mdl} id={oid} {etiqueta}: no se puede borrar (referenciado) → ARCHIVADO")
+                    total += 1
+                else:
+                    print(f"  ✗ {mdl} id={oid} {etiqueta}: {msg}")
 
     print("\n" + "=" * 74)
     print(f"  {'REVERTIDO' if args.apply else 'SIMULACRO'}: {total} objetos "

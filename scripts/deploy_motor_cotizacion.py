@@ -292,12 +292,16 @@ def probe_computed(o: Odoo) -> bool:
         print("  · (dry-run) prueba de campos computed: se hará al aplicar")
         return True
     mid = _id(o.read_call("ir.model", "search", [["model", "=", "x_wizard_personalizacion"]]))
+    # OJO: la prueba corre ANTES de crear los campos del motor, así que no puede depender
+    # de ninguno de ellos. Se usa 'create_date' (existe en cualquier modelo) — si se pone
+    # un campo custom aquí, en una base limpia Odoo responde "Campo desconocido ... en la
+    # dependencia" y aborta el despliegue (pasó en el ensayo del 2026-08-14).
     fid = _id(o.write_call("ir.model.fields", "create", [{
         "name": "x_probe_computed", "field_description": "probe", "model_id": mid, "ttype": "integer",
-        "state": "manual", "store": True, "readonly": True, "depends": "x_tintas",
-        "compute": "for r in self:\n    r['x_probe_computed'] = (r.x_tintas or 0) * 7\n"}]))
+        "state": "manual", "store": True, "readonly": True, "depends": "create_date",
+        "compute": "for r in self:\n    r['x_probe_computed'] = 6 * 7\n"}]))
     try:
-        wid = _id(o.write_call("x_wizard_personalizacion", "create", [{"x_tintas": 6}]))
+        wid = _id(o.write_call("x_wizard_personalizacion", "create", [{}]))
         val = o.read_call("x_wizard_personalizacion", "read", [wid], fields=["x_probe_computed"])[0]["x_probe_computed"]
         o.write_call("x_wizard_personalizacion", "unlink", [wid])
         ok = val == 42
@@ -391,6 +395,73 @@ def upsert(o: Odoo, model: str, domain: list, vals: dict, etiqueta: str, man: di
     return nid
 
 
+def inventariar(o: Odoo, target: str) -> dict:
+    """Construye un manifiesto a partir de lo que YA existe en la instancia.
+
+    Sirve para dos cosas: ensayar el rollback sobre un despliegue hecho a mano (staging)
+    y recuperar la capacidad de revertir si se pierde el manifiesto de un deploy real."""
+    man = {"target": target, "url": o.url, "db": o.db, "ts": datetime.now().isoformat(timespec="seconds"),
+           "models": [], "fields": [], "acls": [], "actions": [], "views": [], "menus": [],
+           "partners": [], "defaults": [], "data_backup": None}
+
+    for tech in ("x_approval_request", "x_wizard_personalizacion"):
+        for i in o.read_call("ir.model", "search", [["model", "=", tech]]):
+            man["models"].append({"model": tech, "id": i})
+    for model, name, *_ in CAMPOS:
+        for i in o.read_call("ir.model.fields", "search", [["model", "=", model], ["name", "=", name]]):
+            man["fields"].append({"model": model, "name": name, "id": i})
+    for tech in ("x_approval_request", "x_wizard_personalizacion"):
+        mid = _id(o.read_call("ir.model", "search", [["model", "=", tech]]))
+        if mid:
+            for i in o.read_call("ir.model.access", "search", [["model_id", "=", mid]]):
+                man["acls"].append({"model": "ir.model.access", "id": i, "label": tech})
+    # Incluye también acciones del motor RETIRADAS de SERVER_ACTIONS: si quedaran vivas
+    # apuntando a un modelo que el rollback borra, bloquearían el borrado.
+    nombres_act = [n for _, n, _, _ in SERVER_ACTIONS] + ["Abrir wizard personalización (por línea)"]
+    for a in o.read_call("ir.actions.server", "search_read", [["name", "in", nombres_act]], fields=["name"]):
+        man["actions"].append({"model": "ir.actions.server", "id": a["id"], "label": a["name"]})
+    for a in o.read_call("ir.actions.act_window", "search_read",
+                         [["res_model", "in", ["x_approval_request", "x_costo_personalizacion",
+                                               "x_tecnica_personalizacion"]]], fields=["name"]):
+        man["actions"].append({"model": "ir.actions.act_window", "id": a["id"], "label": a["name"]})
+    nombres_vista = [v["name"] for v in ARCHS_NOMBRES]
+    for v in o.read_call("ir.ui.view", "search_read", [["name", "in", nombres_vista]], fields=["name"]):
+        man["views"].append({"model": "ir.ui.view", "id": v["id"], "label": v["name"]})
+    for mu in o.read_call("ir.ui.menu", "search_read",
+                          [["name", "in", ["Aprobaciones personalización", "Costos de personalización",
+                                           "Técnicas de personalización"]]], fields=["name"]):
+        man["menus"].append({"model": "ir.ui.menu", "id": mu["id"], "label": mu["name"]})
+    for p in o.read_call("res.partner", "search", [["name", "=", PARTNER_EXTERNO]]):
+        man["partners"].append({"model": "res.partner", "id": p, "label": PARTNER_EXTERNO})
+    for model in ("x_costo_personalizacion", "x_approval_request"):
+        f = o.read_call("ir.model.fields", "search", [["model", "=", model], ["name", "=", "x_markup"]])
+        if f:
+            for d in o.read_call("ir.default", "search", [["field_id", "=", f[0]]]):
+                man["defaults"].append({"model": "ir.default", "id": d, "label": f"markup {model}"})
+
+    filas = o.read_call("x_costo_personalizacion", "search_read", [],
+                        fields=["id", "x_name", "x_alcance_producto", "x_costo_unit", "x_costo_setup"])
+    BACKUP_DIR.mkdir(exist_ok=True)
+    b = BACKUP_DIR / f"costos_inventario_{target}_{datetime.now():%Y%m%d_%H%M%S}.json"
+    b.write_text(json.dumps(filas, ensure_ascii=False, indent=1), encoding="utf-8")
+    man["data_backup"] = str(b)
+
+    print(f"  modelos={len(man['models'])} campos={len(man['fields'])} acls={len(man['acls'])} "
+          f"acciones={len(man['actions'])} vistas={len(man['views'])} menús={len(man['menus'])} "
+          f"contactos={len(man['partners'])} defaults={len(man['defaults'])}")
+    print(f"  respaldo de datos ({len(filas)} filas): {b.name}")
+    return man
+
+
+# Nombres de las vistas (para el inventario, sin necesidad de los ids de las acciones).
+ARCHS_NOMBRES = [{"name": n} for n in (
+    "x_wizard_personalizacion.form", "x_wizard_personalizacion.confirmar",
+    "x_approval_request.list", "x_approval_request.form",
+    "x_costo_personalizacion.list", "x_costo_personalizacion.form",
+    "x_tecnica_personalizacion.list", "x_tecnica_personalizacion.form",
+    "sale.order.personalizar.header.button")]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--target", choices=("test", "prod"), required=True)
@@ -401,6 +472,9 @@ def main() -> int:
     ap.add_argument("--con-comentarios", action="store_true",
                     help="sube el código con comentarios (por defecto se quitan para "
                          "minimizar las líneas dentro de Odoo)")
+    ap.add_argument("--inventario", action="store_true",
+                    help="NO despliega: escribe un manifiesto de lo que ya existe "
+                         "(para revertir un despliegue hecho a mano o recuperar un manifiesto perdido)")
     args = ap.parse_args()
 
     load_dotenv(REPO / "analysis" / "supplier-sync" / ".env")
@@ -419,6 +493,15 @@ def main() -> int:
     print(f"  MOTOR DE COTIZACIÓN — despliegue  [{args.target.upper()}]  ·  {modo}")
     print(f"  {o.url}  (db={db})")
     print("=" * 74)
+
+    if args.inventario:
+        print("\n=== INVENTARIO (no despliega) ===")
+        man = inventariar(o, args.target)
+        BACKUP_DIR.mkdir(exist_ok=True)
+        p = BACKUP_DIR / f"manifiesto_INVENTARIO_{args.target}_{datetime.now():%Y%m%d_%H%M%S}.json"
+        p.write_text(json.dumps(man, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"\n  Manifiesto: {p}")
+        return 0
 
     if preflight(o, args.target):
         print("\n✗ ABORTADO: corrige los problemas de preflight antes de desplegar.")
@@ -444,6 +527,14 @@ def main() -> int:
     ensure_model(o, "x_approval_request", "Solicitud de aprobación", False, man)
     ensure_model(o, "x_wizard_personalizacion", "Wizard personalización", True, man)
 
+    # Los ACLs van ANTES de la prueba: en una base limpia, sin ellos ni el admin puede
+    # crear el registro desechable que la prueba necesita ("Ningún grupo permite esta
+    # operación"). Solo dependen de que los modelos existan. (Ensayo 2026-08-14.)
+    print("\n=== ACLs ===")
+    gid = o.xmlid("base", "group_user")
+    for m in ("x_approval_request", "x_wizard_personalizacion"):
+        ensure_acl(o, m, gid, man)
+
     if not probe_computed(o):
         print("\n✗ ABORTADO: esta versión de Odoo no calcula campos manuales computed.")
         print("  Ejecuta scripts/rollback_motor_cotizacion.py con el manifiesto para limpiar.")
@@ -453,11 +544,6 @@ def main() -> int:
     print("\n=== CAMPOS ===")
     for model, name, ttype, label, extra in CAMPOS:
         ensure_field(o, model, name, ttype, label, extra, man)
-
-    print("\n=== ACLs ===")
-    gid = o.xmlid("base", "group_user")
-    for m in ("x_approval_request", "x_wizard_personalizacion"):
-        ensure_acl(o, m, gid, man)
 
     print("\n=== CONTACTO EXTERNO Y DEFAULTS ===")
     pid = upsert(o, "res.partner", [["name", "=", PARTNER_EXTERNO]],
