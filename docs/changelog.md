@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-08-14 · release (v44) — 🚀 MOTOR DE COTIZACIÓN EN PRODUCCIÓN
+
+**Tipo**: `release`. **Aplicado a producción** (`mozaprintmx.odoo.com`, Odoo 19.0+e).
+
+Desplegado con `scripts/deploy_motor_cotizacion.py --target prod --apply --si-produccion`:
+**76 objetos creados, 0 errores.**
+
+| Paso | Resultado |
+|---|---|
+| Simulacro previo | 76 cambios, idéntico a lo revisado; preflight OK en 19.0 |
+| Respaldo automático | 127 tarifas a `backups/costos_pre_motor_prod_*.json` |
+| Prueba de campos computed en 19.0 | **OK (6×7=42)** — era el único punto sin verificar |
+| Deploy | 2 modelos, 49 campos, 2 ACLs, 5 Server Actions (**269 líneas**), 9 vistas, 3 acciones, 3 menús, 1 contacto, 2 defaults |
+| Datos | markup 1.275 en 127 filas + 20 renombres de alcance |
+| Smoke test | OK; cotización desechable creada y borrada |
+| `seed_costos.py --apply` | 1 creada (mínimo de cilindros) + 127 actualizadas, 0 errores |
+| Manual | publicado en **Información (Knowledge)** de producción, sin el aviso de pruebas |
+
+**Verificación post-deploy**: 2/2 modelos, 5/5 Server Actions, 9/9 vistas, 3/3 menús, contacto
+creado; **el formulario de Ventas carga sin error** (el riesgo crítico, por la vista heredada);
+128 tarifas todas con markup y 0 con los nombres viejos; y los datos preexistentes intactos
+(20 servicios, 20 técnicas, 5,384 productos activos, 430 cotizaciones).
+
+**Rollback disponible**: `backups/manifiesto_motor_prod_20260814_222651.json` +
+`scripts/rollback_motor_cotizacion.py` (procedimiento en `docs/checklist-deploy-produccion.md`).
+
+`odoo-extensions/studio-fields.yaml` pasa de `status: staging` a `created` en los 56 campos del
+motor (v0.8.0).
+
+**Pendiente**: la verificación funcional en la UI la hace JC (checklist paso 4). Sigue abierto:
+tarifas de personalización externa (mecanismo listo, faltan datos) y costos de 4P.
+
+---
+
 ## 2026-08-14 · chore (v43) — Ensayo general (rollback total + redeploy) en STAGING
 
 **Tipo**: `chore` (validación). **Producción sigue sin tocarse.**

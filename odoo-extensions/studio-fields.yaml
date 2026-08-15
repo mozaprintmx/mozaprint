@@ -17,8 +17,8 @@
 # - default: valor por defecto
 # - relation: solo para many2one/many2many/one2many
 
-version: '0.7.0'
-last_updated: 2026-08-08
+version: '0.8.0'
+last_updated: 2026-08-14
 
 # =============================================================================
 # NOTA IMPORTANTE — PREFIJO x_studio_ (depende de CÓMO se crea el campo)
@@ -37,7 +37,7 @@ last_updated: 2026-08-08
 #
 # En este archivo:
 #   status: created   → campo existe en PRODUCCIÓN (nombre técnico real)
-#   status: staging   → creado en STAGING (ODOO_TEST_URL), pendiente de replicar a prod
+#   status: created   → creado en STAGING (ODOO_TEST_URL), pendiente de replicar a prod
 #   status: planned   → planeado, aún no creado en ningún entorno
 # =============================================================================
 
@@ -331,13 +331,13 @@ extensions:
     - field_name: x_requires_human_approval
       field_type: boolean
       string: 'Requiere aprobación humana'
-      status: staging
+      status: created
 
     - field_name: x_approval_request_id
       field_type: many2one
       relation: x_approval_request
       string: 'Solicitud de aprobación'
-      status: staging
+      status: created
 
     - field_name: x_approval_status
       field_type: selection
@@ -354,7 +354,7 @@ extensions:
       field_type: selection
       string: 'Fuente del costo de personalización'
       default: no_aplica
-      status: staging
+      status: created
       selection:
         - [parametrized, 'Parametrizado en sistema']
         - [manually_approved, 'Aprobado manualmente']
@@ -373,7 +373,7 @@ extensions:
       field_type: many2one
       relation: sale.order.line
       string: 'Línea de producto origen (personalización)'
-      status: staging
+      status: created
     # Distingue la línea de SETUP (cargo único por orden) de la de personalización.
     # La idempotencia del motor es por (x_source_line_id, x_es_setup).
     # Ver specs/motor-cotizacion.md §9.
@@ -381,7 +381,7 @@ extensions:
       field_type: boolean
       default: false
       string: 'Es línea de setup (personalización)'
-      status: staging
+      status: created
 
 # =============================================================================
 # MODELOS NUEVOS
@@ -433,7 +433,7 @@ new_models:
   x_approval_request:
     display_name: 'Solicitud de Aprobación'
     description: 'Solicitudes humanas para costos no parametrizados'
-    status: staging
+    status: created
     # ⚠ Creado en STAGING 2026-08-08 (motor de cotización). Modelo manual → sus
     # campos LLEVAN prefijo x_ (Odoo exige x_ en campos manuales de modelos custom);
     # los nombres sin prefijo de la spec original NO son posibles. Nombres reales:
@@ -442,7 +442,7 @@ new_models:
         field_type: char
         required: true
         string: 'Descripción'
-        status: staging
+        status: created
 
       - field_name: x_sale_order_id
         field_type: many2one
@@ -450,44 +450,44 @@ new_models:
         required: true
         on_delete: cascade
         string: 'Cotización'
-        status: staging
+        status: created
 
       - field_name: x_channel_id
         field_type: many2one
         relation: discuss.channel
         string: 'Conversación WA'
-        status: staging
+        status: created
 
       - field_name: x_reason
         field_type: text
         string: 'Razón'
-        status: staging
+        status: created
 
       - field_name: x_context_json
         field_type: text
         string: 'Contexto (JSON)'
-        status: staging
+        status: created
 
       - field_name: x_requested_at
         field_type: datetime
         string: 'Solicitado en'
-        status: staging
+        status: created
 
       - field_name: x_responded_at
         field_type: datetime
         string: 'Respondido en'
-        status: staging
+        status: created
 
       - field_name: x_responded_by_id
         field_type: many2one
         relation: res.users
         string: 'Respondido por'
-        status: staging
+        status: created
 
       - field_name: x_status
         field_type: selection
         string: 'Estado'
-        status: staging
+        status: created
         selection:
           - [pending, 'Pendiente']
           - [approved, 'Aprobada']
@@ -496,29 +496,29 @@ new_models:
       - field_name: x_approved_cost_unit
         field_type: float
         string: 'Costo unitario aprobado'
-        status: staging
+        status: created
 
       - field_name: x_approved_setup_cost
         field_type: float
         string: 'Costo de setup aprobado'
-        status: staging
+        status: created
 
       - field_name: x_approved_servicio_id
         field_type: many2one
         relation: product.product
         string: 'Servicio aplicado'
-        status: staging
+        status: created
 
       - field_name: x_notes
         field_type: text
         string: 'Notas internas'
-        status: staging
+        status: created
 
       - field_name: x_assigned_user_id
         field_type: many2one
         relation: res.users
         string: 'Asignado a'
-        status: staging
+        status: created
       # Añadidos 2026-08-08 (administración de aprobaciones): permiten reconstruir y
       # generar la línea de personalización al aprobar. Ver specs/motor-cotizacion.md §8.
       - field_name: x_sale_order_line_id
@@ -526,21 +526,21 @@ new_models:
         relation: sale.order.line
         on_delete: cascade
         string: 'Línea de producto (origen)'
-        status: staging
+        status: created
       - field_name: x_tecnica_id
         field_type: many2one
         relation: x_tecnica_personalizacion
         on_delete: set null
         string: 'Técnica'
-        status: staging
+        status: created
       - field_name: x_qty
         field_type: integer
         string: 'Cantidad'
-        status: staging
+        status: created
       - field_name: x_approved_unidad
         field_type: selection
         string: 'Unidad del costo aprobado'
-        status: staging
+        status: created
         selection:
           - [pieza, 'Por pieza']
           - [lote, 'Por lote']
@@ -550,7 +550,7 @@ new_models:
         field_type: selection
         string: '¿Guardar esta tarifa en la matriz de costos?'
         default: 'no'
-        status: staging
+        status: created
         selection:
           - ['no', 'No guardar (solo esta cotización)']
           - [proveedor, 'Guardar como tarifa del proveedor del producto']
@@ -558,28 +558,28 @@ new_models:
       - field_name: x_alcance_nuevo
         field_type: char
         string: 'Alcance de la nueva tarifa'
-        status: staging
+        status: created
       - field_name: x_tarifa_qty_from
         field_type: integer
         string: 'Tarifa: cantidad desde'
-        status: staging
+        status: created
       - field_name: x_tarifa_qty_to
         field_type: integer
         string: 'Tarifa: cantidad hasta (0 = sin límite)'
-        status: staging
+        status: created
       - field_name: x_tintas
         field_type: integer
         string: 'Número de tintas'
-        status: staging
+        status: created
       - field_name: x_markup
         field_type: float
         default: 1.275
         string: 'Markup (factor sobre el costo)'
-        status: staging
+        status: created
       - field_name: x_approved_precio_venta
         field_type: float
         string: 'Precio de venta (calculado)'
-        status: staging
+        status: created
         store: true
         readonly: false
         depends: x_approved_cost_unit,x_markup
@@ -589,7 +589,7 @@ new_models:
       - field_name: x_approved_precio_setup
         field_type: float
         string: 'Precio de venta del setup (calculado)'
-        status: staging
+        status: created
         store: true
         readonly: false
         depends: x_approved_setup_cost,x_markup
@@ -606,14 +606,14 @@ new_models:
     display_name: 'Wizard personalización'
     description: 'Wizard transitorio: agrega personalización a una línea de cotización'
     transient: true
-    status: staging
+    status: created
     fields:
       - field_name: x_order_id
         field_type: many2one
         relation: sale.order
         on_delete: cascade
         string: 'Cotización'
-        status: staging
+        status: created
       # required=False a propósito: en cotizaciones multi-línea el wizard abre con
       # el selector de línea vacío (los modelos manuales no tienen onchange). La
       # obligatoriedad se valida en el Server Action Aplicar, no a nivel modelo.
@@ -622,7 +622,7 @@ new_models:
         relation: sale.order.line
         on_delete: cascade
         string: 'Línea de cotización'
-        status: staging
+        status: created
       # COMPUTED + STORE + EDITABLE (2026-08-08): se autollenan desde la línea (y se
       # recalculan al cambiarla en el formulario), pero el vendedor puede sobrescribirlos.
       # NO pueden ser `related`: un related editable escribiría de vuelta en el producto.
@@ -631,7 +631,7 @@ new_models:
         relation: x_tecnica_personalizacion
         on_delete: cascade
         string: 'Técnica'
-        status: staging
+        status: created
         store: true
         readonly: false
         depends: x_sale_order_line_id
@@ -641,7 +641,7 @@ new_models:
       - field_name: x_qty
         field_type: integer
         string: 'Cantidad'
-        status: staging
+        status: created
         store: true
         readonly: false
         depends: x_sale_order_line_id
@@ -651,16 +651,16 @@ new_models:
       - field_name: x_tintas
         field_type: integer
         string: 'Número de tintas'
-        status: staging
+        status: created
       - field_name: x_markup
         field_type: float
         default: 1.275
         string: 'Markup (factor sobre el costo)'
-        status: staging
+        status: created
       - field_name: x_approved_precio_venta
         field_type: float
         string: 'Precio de venta (calculado)'
-        status: staging
+        status: created
         store: true
         readonly: false
         depends: x_approved_cost_unit,x_markup
@@ -670,7 +670,7 @@ new_models:
       - field_name: x_approved_precio_setup
         field_type: float
         string: 'Precio de venta del setup (calculado)'
-        status: staging
+        status: created
         store: true
         readonly: false
         depends: x_approved_setup_cost,x_markup
@@ -680,17 +680,17 @@ new_models:
       - field_name: x_posiciones
         field_type: integer
         string: 'Número de posiciones'
-        status: staging
+        status: created
       - field_name: x_area_cm2
         field_type: float
         string: 'Área (cm²)'
-        status: staging
+        status: created
       - field_name: x_candidato_elegido_id
         field_type: many2one
         relation: x_costo_personalizacion
         on_delete: set null
         string: 'Candidato elegido'
-        status: staging
+        status: created
       # Regla híbrida de proveedor (2026-08-08): amarre al proveedor del producto +
       # opción manual de proveedor externo. Ver specs/motor-cotizacion.md §7.
       # RELATED (2026-08-08): se resuelven solos desde la línea, también al cambiarla en el
@@ -703,7 +703,7 @@ new_models:
         readonly: true
         store: false
         string: 'Proveedor del producto'
-        status: staging
+        status: created
         # seller_ids está ordenado por sequence → [:1] es el proveedor preferido, el mismo
         # criterio que usa el motor. Acota el dominio de x_candidato_elegido_id.
       - field_name: x_producto_id
@@ -713,7 +713,7 @@ new_models:
         readonly: true
         store: false
         string: 'Producto'
-        status: staging
+        status: created
         # Referencia visible con SKU ("[JM 045 BE] DOMINÓ KATAVI"): el selector de línea
         # muestra la descripción larga (display_name nativo de sale.order.line).
       # Referencia de técnicas del producto (2026-08-08): el selector de Técnica deja elegir
@@ -726,14 +726,14 @@ new_models:
         readonly: true
         store: false
         string: 'Técnicas del producto'
-        status: staging
+        status: created
       - field_name: x_aviso_tecnica
         field_type: char
         readonly: true
         store: false
         depends: x_sale_order_line_id,x_tecnica_id
         string: '¿Asignada al producto?'
-        status: staging
+        status: created
         compute: |
           for r in self:
               comp = r.x_sale_order_line_id.product_id.product_tmpl_id.x_tecnicas_compatibles_ids
@@ -748,18 +748,18 @@ new_models:
         relation: x_costo_personalizacion
         on_delete: set null
         string: 'Proveedor externo (opcional)'
-        status: staging
+        status: created
       # Permite pedir aprobación aunque el motor SÍ encuentre candidatos: el alcance del
       # producto no está tabulado. Ver specs/motor-cotizacion.md §8.1.
       - field_name: x_forzar_aprobacion
         field_type: boolean
         default: false
         string: 'Ninguna tarifa aplica - solicitar aprobación'
-        status: staging
+        status: created
       - field_name: x_msg_confirmacion
         field_type: text
         string: 'Aviso'
-        status: staging
+        status: created
         # Motivo que muestra el diálogo Aceptar/Cancelar antes de crear la solicitud.
         # Lo escribe agregar_personalizacion; lo lee confirmar_aprobacion. Ver specs §11.
         # Elige una fila con x_personalizacion_externa=True (maquila in-house), independiente
@@ -912,7 +912,7 @@ new_models:
         field_type: boolean
         default: false
         string: 'Personalización externa (no ligada al proveedor del producto)'
-        status: staging
+        status: created
 
       # Costo vs precio de venta (2026-08-12). Ver specs/motor-cotizacion.md §10.
       # El motor cotiza con x_precio_venta / x_precio_setup; el costo queda de referencia.
@@ -920,11 +920,11 @@ new_models:
         field_type: float
         default: 1.275
         string: 'Markup (factor sobre el costo)'
-        status: staging
+        status: created
       - field_name: x_precio_venta
         field_type: float
         string: 'Precio de venta (MXN)'
-        status: staging
+        status: created
         store: true
         readonly: false
         depends: x_costo_unit,x_markup
@@ -934,7 +934,7 @@ new_models:
       - field_name: x_precio_setup
         field_type: float
         string: 'Precio de venta del setup (MXN)'
-        status: staging
+        status: created
         store: true
         readonly: false
         depends: x_costo_setup,x_markup

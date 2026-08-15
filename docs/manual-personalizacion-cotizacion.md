@@ -3,8 +3,8 @@
 > Para el equipo de ventas. Explica cómo agregar el costo de personalización
 > (serigrafía, bordado, láser, etc.) a una cotización, paso a paso.
 >
-> **Estado**: funcionalidad **en pruebas (staging)**. Este manual describe la versión
-> probada; cuando se active en producción, los pasos son los mismos.
+> **Estado**: **activo en producción** desde el 2026-08-14. También publicado en
+> **Información (Knowledge)** de Odoo para el equipo.
 
 ---
 

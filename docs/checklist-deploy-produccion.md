@@ -1,7 +1,8 @@
 # Checklist — despliegue del motor de cotización a PRODUCCIÓN
 
-> Estado: **NADA aplicado a producción todavía.** Este documento es el plan de
-> ejecución + rollback. Todo lo de aquí ya se probó contra staging.
+> Estado: ✅ **EJECUTADO EN PRODUCCIÓN el 2026-08-14** — 76 objetos creados, 0 errores.
+> Este documento queda como registro de lo hecho y como procedimiento de rollback.
+> Manifiesto para revertir: `backups/manifiesto_motor_prod_20260814_222651.json`.
 >
 > Diseño: `specs/motor-cotizacion.md` · Detalle de objetos:
 > `odoo-extensions/studio-fields.yaml` · Guía conceptual: `docs/guia-motor-cotizacion.md`

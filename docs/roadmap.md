@@ -53,7 +53,7 @@
 - [ ] ~~Generar descripciones de producto con AI Fields (masivo)~~ → **DESCARTADO de Fase 2** (no bloquea el cierre). Reencuadrado como iniciativa SEO **dirigida** de Fase 9, condicionada a diagnóstico GSC. Ver Fase 9 y `decisions/006-descripciones-ia-seo-dirigido.md`
 
 ### FASE 3: Motor de cotización
-**Estado**: 🟡 En progreso (semana 7-8) — motor **probado en STAGING** (pendiente prod); costos INN+PO cargados, falta 4P
+**Estado**: 🟡 En progreso (semana 7-8) — **motor EN PRODUCCIÓN** (2026-08-14); costos INN+PO cargados, falta 4P
 **Notas**:
 - INN: manual de costos por PDF (`MANUAL-SI-OK.pdf`, no el flippingbook — el visor JS del link
   público no se pudo leer, se usó el PDF exportado). Ver `analysis/costos-personalizacion/COSTOS_INN_20260805.md`.
@@ -79,15 +79,15 @@
       toggle que activar. Convención: 2 secciones fijas "Producto" / "Personalización"
       (`sale.order.line.display_type='line_section'`). Documentado en `specs/ai-agent-spec.md`
       (tool `create_quote_draft`)
-- [~] Implementar Server Action de auto-populado de servicios — **✓ implementado y
-      probado en STAGING (2026-08-08), pendiente de replicar a PRODUCCIÓN** (espera
-      visto bueno). Wizard transitorio `x_wizard_personalizacion` + Server Action
-      `agregar_personalizacion` (matching §2 + resultado §4) + abridor desde botón de
-      encabezado + prerequisitos creados en staging (`x_approval_request`, campos en
-      `sale.order`/`sale.order.line`). 3 casos probados (1/N/0 candidatos) + idempotencia.
-      Ver `docs/changelog.md` v32, `specs/motor-cotizacion.md` §6 y
-      `docs/guia-motor-cotizacion.md`. Sub-pendientes: replicar a prod; (opcional) botón
-      por línea vía Studio (el widget `sol_o2m` no admite botón de fila solo por API).
+- [x] Implementar Server Action de auto-populado de servicios — **✓ EN PRODUCCIÓN (2026-08-14)**,
+      desplegado con `scripts/deploy_motor_cotizacion.py` (76 objetos, 0 errores) tras un ensayo
+      general de rollback+redeploy en staging. Incluye: wizard `x_wizard_personalizacion`,
+      matching contra la matriz, proveedor externo, línea de **setup**, **precio de venta**
+      (costo × markup), diálogo de confirmación y administración de **aprobaciones** (que al
+      aprobar generan la línea y opcionalmente guardan la tarifa). Manual publicado en Knowledge.
+      Ver `docs/checklist-deploy-produccion.md` y `docs/changelog.md` v32–v44.
+      Sub-pendiente opcional: botón **por línea** vía Studio (el widget `sol_o2m` no admite
+      botón de fila solo por API; el Server Action ya está escrito y probado).
 - [ ] Crear AI Cotizador asistente para vendedor
 
 ### FASE 4: Setup técnico WhatsApp + n8n
