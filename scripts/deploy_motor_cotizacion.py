@@ -73,6 +73,10 @@ class Odoo:
         self._m = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/object")
         self._sim = 0
         self.cambios: list[str] = []
+        # Modelos que en DRY-RUN "se crearían": permiten simular sus campos/ACLs sin
+        # abortar. Sin esto el simulacro solo funcionaría donde los modelos YA existen,
+        # es decir, nunca en la base limpia donde de verdad hace falta.
+        self.simulados: set[str] = set()
 
     def read_call(self, model: str, method: str, *args, **kw):
         return self._m.execute_kw(self.db, self.uid, self.pwd, model, method, list(args), kw)
@@ -312,9 +316,12 @@ def ensure_model(o: Odoo, tech: str, label: str, transient: bool, man: dict) -> 
     if transient:
         vals["transient"] = True
     nid = _id(o.write_call("ir.model", "create", [vals]))
-    man["models"].append({"model": tech, "id": nid})
+    if not o.apply:
+        o.simulados.add(tech)
+    else:
+        man["models"].append({"model": tech, "id": nid})
     o.cambios.append(f"CREAR modelo {tech}")
-    print(f"  [NEW] modelo {tech} (id={nid})")
+    print(f"  [NEW] modelo {tech}{'' if o.apply else ' (simulado)'}")
     return nid
 
 
@@ -325,6 +332,10 @@ def ensure_field(o: Odoo, model: str, name: str, ttype: str, label: str, extra: 
         return ids[0]
     mids = o.read_call("ir.model", "search", [["model", "=", model]])
     if not mids:
+        if model in o.simulados:      # dry-run sobre un modelo que se crearía en este mismo run
+            o.cambios.append(f"CREAR campo {model}.{name}")
+            print(f"  [NEW] {model}.{name} (simulado)")
+            return None
         raise SystemExit(f"✗ modelo {model} no existe al crear {name}")
     vals = {"name": name, "field_description": label, "model_id": mids[0], "ttype": ttype,
             "state": "manual", "store": extra.get("store", True),
@@ -348,6 +359,12 @@ def ensure_field(o: Odoo, model: str, name: str, ttype: str, label: str, extra: 
 
 def ensure_acl(o: Odoo, model: str, group_id: int, man: dict):
     mid = _id(o.read_call("ir.model", "search", [["model", "=", model]]))
+    if not mid:
+        if model in o.simulados:
+            o.cambios.append(f"CREAR ACL {model}")
+            print(f"  [NEW] ACL {model} (simulado)")
+            return None
+        raise SystemExit(f"✗ modelo {model} no existe al crear su ACL")
     ex = o.read_call("ir.model.access", "search", [["model_id", "=", mid], ["group_id", "=", group_id]])
     if ex:
         print(f"  [ ok] ACL {model}")
@@ -449,9 +466,14 @@ def main() -> int:
                  f"partner {PARTNER_EXTERNO}", man, "partners")
     for model in ("x_costo_personalizacion", "x_approval_request"):
         f = o.read_call("ir.model.fields", "search", [["model", "=", model], ["name", "=", "x_markup"]])
-        if f and not o.read_call("ir.default", "search", [["field_id", "=", f[0]]]):
+        if not f:
+            # El campo se crea en este mismo run (dry-run): el default también haría falta.
+            o.cambios.append(f"CREAR default markup en {model}")
+            print(f"  [NEW] default markup={MARKUP} en {model} (simulado)")
+        elif not o.read_call("ir.default", "search", [["field_id", "=", f[0]]]):
             nid = _id(o.write_call("ir.default", "create", [{"field_id": f[0], "json_value": str(MARKUP)}]))
             man["defaults"].append({"model": model, "id": nid})
+            o.cambios.append(f"CREAR default markup en {model}")
             print(f"  [NEW] default markup={MARKUP} en {model}")
         else:
             print(f"  [ ok] default markup en {model}")
@@ -465,6 +487,8 @@ def main() -> int:
         brutas += len(src.splitlines())
         limpias += len(code.splitlines())
         mid = _id(o.read_call("ir.model", "search", [["model", "=", modelo]]))
+        if not mid and modelo not in o.simulados:
+            raise SystemExit(f"✗ modelo {modelo} no existe al crear la acción {nombre}")
         aid[clave] = upsert(o, "ir.actions.server", [["name", "=", nombre]],
                             {"name": nombre, "model_id": mid, "state": "code", "code": code},
                             f"action {nombre}", man, "actions")
