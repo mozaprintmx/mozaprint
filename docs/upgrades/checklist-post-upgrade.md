@@ -180,7 +180,7 @@ que se encuentre aquí es trabajo adelantado para el día que Odoo suba producci
 |---|---|---|
 | Automático (auditor + los dos `--verificar`) | ✅ limpio | 2026-08-16 |
 | Ficha de producto | ✅ resuelto | [incidencia 2026-08-15](incidencias/2026-08-15-ficha-producto-500.md) — pendiente aplicar en prod el día del upgrade |
-| Columna de imagen del PDF | ✅ resuelto | [incidencia 2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md) — en prod conviene aplicarlo **antes** del upgrade |
+| Columna de imagen del PDF | ✅ resuelto | [incidencia 2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md) — **ya aplicado también en producción**, antes del upgrade |
 | PDF a ojo, 5 tipos de fila (§4) | ✅ validado | Cotización y proforma sobre S00474 |
 | Diseño del PDF (colores) | ✅ decidido | Cambia por `report_tables_id`; JC lo deja como quedó |
 | Rutas públicas (8 probadas) | ✅ 200 | Incluye 3 fichas reales |

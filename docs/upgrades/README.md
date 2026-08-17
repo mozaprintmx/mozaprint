@@ -30,8 +30,8 @@ traducida con el formato viejo, y **tumbó las 5,000+ fichas de producto con un
 
 | Base | Versión | Última auditoría | Resultado |
 |---|---|---|---|
-| Producción `mozaprintmx.odoo.com` | **19.0** | 2026-08-15 | ✓ limpia |
-| Test `mozaprintmx-test-saas19-0807.odoo.com` | **saas~19.2** | 2026-08-15 | ✓ limpia (tras reparar la ficha de producto) |
+| Producción `mozaprintmx.odoo.com` | **19.0** | 2026-08-16 | ✓ limpia (tras mover la columna de imagen a vistas propias) |
+| Test `mozaprintmx-test-saas19-0807.odoo.com` | **saas~19.2** | 2026-08-16 | ✓ limpia (tras reparar la ficha de producto y la columna de imagen) |
 
 **Test va una versión adelante de producción.** Eso no es un accidente: es el
 mejor activo que tenemos para estos upgrades. Cada fallo que aparece en test es
@@ -40,15 +40,21 @@ meses de anticipación para resolverlo.
 
 > ⚠️ Corolario: **no reparar en producción lo que solo falla en 19.2.** El fix de
 > la ficha de producto, aplicado hoy en producción (19.0), rompería lo que
-> funciona. Las reparaciones de este apartado se aplican **el día del upgrade**,
-> no antes. Cada incidencia dice explícitamente cuándo aplica.
+> funciona: ahí esa vista todavía debe ser plantilla independiente. Esas
+> reparaciones se aplican **el día del upgrade**, no antes.
+>
+> Pero no todo hallazgo es de ese tipo. Si el arreglo **funciona igual en las dos
+> versiones** y además corrige algo que producción ya tiene mal, conviene aplicarlo
+> **antes** — es el caso de la columna de imagen del PDF (2026-08-16). La pregunta
+> correcta no es "¿ya actualizamos?", sino "¿este cambio es válido en 19.0?".
+> Cada incidencia lo dice explícitamente en *¿Aplica a producción?*.
 
 ## Incidencias registradas
 
 | Fecha | Síntoma | Versión | Estado |
 |---|---|---|---|
 | [2026-08-15](incidencias/2026-08-15-ficha-producto-500.md) | Internal Server Error en **todas** las fichas de producto | saas~19.2 | ✓ resuelto en test · ⏳ pendiente aplicar en prod el día del upgrade |
-| [2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md) | Desapareció la columna de **Imagen** del PDF de cotización | saas~19.2 | ✓ resuelto en test · ⏳ pendiente aplicar en prod — **conviene ANTES del upgrade** |
+| [2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md) | Desapareció la columna de **Imagen** del PDF de cotización | saas~19.2 | ✓ **resuelto en test y en producción** — se aplicó antes del upgrade porque arreglaba descuadres ya existentes |
 
 > Las dos incidencias son la misma lección con distinta cara: **lo que Studio edita
 > dentro de una vista de módulo, el upgrade lo pisa**. La diferencia es que la primera

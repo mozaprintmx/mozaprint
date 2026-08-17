@@ -1,6 +1,6 @@
 # 2026-08-16 · La columna de Imagen desapareció del PDF de cotización
 
-**Versión**: `saas~19.2` (test). **Estado**: ✓ resuelto en test · ⏳ pendiente en producción.
+**Versión**: `saas~19.2` (test). **Estado**: ✓ **resuelto en test y en producción** (2026-08-16).
 
 ## Síntoma
 
@@ -82,13 +82,13 @@ dejaría el PDF duplicado para los clientes que lo reciban en el otro idioma.
 
 ## ¿Aplica a producción?
 
-**Sí, y conviene aplicarlo antes del upgrade**, no el día del upgrade. Motivos:
+**Sí, y se aplicó ANTES del upgrade** (2026-08-16), no el día del upgrade. Motivos:
 
-1. Arregla descuadres que producción **ya tiene hoy** (tabla de arriba).
+1. Arregla descuadres que producción **ya tenía** (tabla de arriba).
 2. Los 5 anclajes que usan las vistas existen igual en 19.0 y en saas~19.2 — verificado
    contra ambas bases, la misma vista sirve para las dos.
 3. Cuando Odoo suba producción a 19.2, la plantilla del módulo se reescribirá otra vez,
-   pero ya sin nada que perder: la columna vivirá en vistas propias.
+   pero ya sin nada que perder: la columna vive en vistas propias.
 
 ```bash
 python scripts/deploy_reporte_cotizacion.py --target prod --apply --si-produccion --limpiar-base
@@ -96,6 +96,27 @@ python scripts/deploy_reporte_cotizacion.py --target prod --verificar
 ```
 
 Revertible con `--rollback` (manifiesto en `backups/`, incluye el `arch` previo por idioma).
+
+### Cómo quedó producción
+
+| | |
+|---|---|
+| `mozaprint.report_saleorder_imagen` | id **5062**, activa |
+| `mozaprint.report_saleorder_proforma_columnas` | id **5063**, activa |
+| Plantilla del módulo | limpia en `en_US` y `es_419` (19,423 → 19,028 caracteres) |
+| Manifiesto de rollback | `backups/reporte_cotizacion_prod_20260816_225820.json` |
+
+Sobre los idiomas: al escribir `en_US` el valor de `es_419` quedó limpio **solo**, porque
+Studio había escrito el texto ya traducido al español como valor fuente — los dos idiomas
+compartían el mismo contenido. Se comprobó que la traducción **no se perdió**: `es_419`
+conserva «Descripción», «Cantidad», «Precio unitario», «Importe», «Vencimiento» y
+«Vendedor», sin ninguna etiqueta en inglés. Aun así el script sigue limpiando idioma por
+idioma: en otra base los valores sí pueden diferir.
+
+Validado sobre la orden real **S00432**: cotización 6 columnas, proforma 8, todas las
+filas cuadran y la imagen sale. Esa orden no tiene combo ni resumen agrupado — esos dos
+tipos de fila quedaron validados a nivel de arch (los cuatro escenarios de
+descuento/impuestos) y visualmente en test con S00474.
 
 ## Cómo se detecta automáticamente
 

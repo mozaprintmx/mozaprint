@@ -6,7 +6,7 @@
 
 ## 2026-08-16 · fix (v47) — la columna de Imagen del PDF de cotización, a prueba de upgrades
 
-**Tipo**: `fix` (aplicado a **test**) + `docs`. **Producción no se tocó todavía.**
+**Tipo**: `fix` (aplicado a **test** y a **PRODUCCIÓN**) + `docs`.
 
 JC reportó que en test ya no salía la columna de **Imagen** en el PDF de cotización, y
 que le había pasado antes en otra actualización. No era un error: la columna se había
@@ -52,6 +52,15 @@ Validado en test con la cotización **S00474**, armada para ejercitar los cinco 
 fila (sección, subsección, producto con descuento, nota, resumen colapsado, combo):
 cotización 7 columnas y proforma 9, todas las filas cuadran, en el arch y en el HTML
 renderizado.
+
+**Aplicado en producción el mismo día**, antes del upgrade y no el día del upgrade,
+porque el arreglo es válido en 19.0 y ya corregía descuadres existentes: vistas **5062**
+y **5063**, plantilla del módulo limpia (19,423 → 19,028 caracteres) y manifiesto en
+`backups/reporte_cotizacion_prod_20260816_225820.json`. Detalle de los idiomas: al
+escribir `en_US`, `es_419` quedó limpio solo — Studio había guardado el texto ya en
+español como valor fuente, así que ambos compartían contenido. Se verificó que la
+traducción sobrevivió (ninguna etiqueta volvió al inglés). Validado sobre la orden real
+**S00432**: cotización 6 columnas, proforma 8, todas cuadran.
 
 **Dos hallazgos no relacionados**, documentados en la incidencia: 19.2 agrega
 `res.company.report_tables_id` («Table Design», default `Striped`) que tiñe la fila de
