@@ -18,12 +18,16 @@ python scripts/audit_post_upgrade.py --target test
 
 # b) Salud del motor de cotización
 python scripts/deploy_motor_cotizacion.py --target test --verificar
+
+# c) Salud del PDF de cotización (columna de imagen + cuadre de columnas)
+python scripts/deploy_reporte_cotizacion.py --target test --verificar
 ```
 
-Los dos son **solo lectura** y salen con código 1 si hay hallazgos.
+Los tres son **solo lectura** y salen con código 1 si hay hallazgos.
 
 - [ ] **(a) sale limpio** — `✓ Sin hallazgos bloqueantes.`
 - [ ] **(b) sale limpio** — `✓ El motor está completo y operativo.`
+- [ ] **(c) sale limpio** — `✓ El reporte está completo y cuadrado.`
 
 Qué revisa (a), y qué significa cada hallazgo:
 
@@ -33,6 +37,8 @@ Qué revisa (a), y qué significa cada hallazgo:
 | **2** | `t-call` a plantillas que ya no existen | **Bloqueante.** 500 al renderizar esa página. Suele venir de un módulo que Odoo retiró |
 | **3** | Keys de vista duplicadas y activas para el mismo website | ⚠ No siempre rompe: qweb elige una arbitrariamente. Revisar si algo se ve raro |
 | **6** | Censo de modelos/campos `x_` y Server Actions | Compáralo con la corrida anterior. Un número que **baja** es señal de alarma |
+| **7** | Vistas de módulo editadas **in-place por Studio** | ⚠ Aviso. El upgrade REESCRIBE esas vistas y se lleva la personalización sin error ni traza — es el fallo del [2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md). Confirma que lo personalizado viva en una vista propia heredada |
+| **8** | Cuadre de columnas del reporte de cotización | **Bloqueante para el PDF.** Alguna fila (sección, combo, resumen) no suma las columnas del encabezado → el PDF sale corrido. Reparación: `deploy_reporte_cotizacion.py --apply` |
 | **5** | Barrido HTTP de rutas públicas (incluye 3 fichas de producto reales) | Cualquier cosa que no sea 2xx/3xx |
 
 ### Comparar contra la otra base
@@ -94,7 +100,7 @@ garantiza que se vea bien** — esto se revisa con los ojos.
 
 ---
 
-## 4. Motor de cotización — prueba funcional
+## 4. Motor de cotización y PDF — prueba funcional
 
 `--verificar` valida la estructura; esto valida el **comportamiento**. Correr el
 paso 4 del [checklist de despliegue](../checklist-deploy-produccion.md): casos
@@ -105,6 +111,23 @@ A/B/C, flujo de aprobación, línea de setup, y re-aplicar sin duplicar.
 - [ ] **Caso C** — sin tarifa → genera solicitud de aprobación
 - [ ] **Aprobación** — al aprobar, aparece la línea en la cotización
 - [ ] **Precio de venta** = costo × markup, y la **línea de setup** cuando aplica
+
+### El PDF, a ojo
+
+La revisión 8 del auditor cuadra las columnas, pero el aspecto se mira. En test hay
+una cotización de prueba permanente, **S00474** (cliente `ZZ PRUEBA COLUMNAS PDF`),
+armada para ejercitar los **cinco tipos de fila**: sección, subsección, producto con
+descuento, nota, resumen de sección colapsada y combo.
+
+- [ ] **Cotización** (`sale.report_saleorder`) — la columna de **Imagen** sale, y
+      ninguna fila queda corta ni corrida
+- [ ] **Proforma MX** (`sale.report_saleorder_pro_forma`) — igual, con sus dos
+      columnas extra (*Product code*, *Unit code*)
+- [ ] **Diseño** — si los colores cambiaron, es `res.company.report_tables_id`
+      («Table Design»), no una pérdida. Ver la incidencia del [2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md)
+
+> Los PDFs se pueden bajar sin abrir Odoo: `/report/pdf/sale.report_saleorder/474`
+> y `/report/pdf/sale.report_saleorder_pro_forma/474` con sesión iniciada.
 
 ---
 
@@ -155,8 +178,11 @@ que se encuentre aquí es trabajo adelantado para el día que Odoo suba producci
 
 | Área | Estado | Notas |
 |---|---|---|
-| Automático (auditor + `--verificar`) | ✅ limpio | 2026-08-15, tras reparar la ficha |
+| Automático (auditor + los dos `--verificar`) | ✅ limpio | 2026-08-16 |
 | Ficha de producto | ✅ resuelto | [incidencia 2026-08-15](incidencias/2026-08-15-ficha-producto-500.md) — pendiente aplicar en prod el día del upgrade |
+| Columna de imagen del PDF | ✅ resuelto | [incidencia 2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md) — en prod conviene aplicarlo **antes** del upgrade |
+| PDF a ojo, 5 tipos de fila (§4) | ✅ validado | Cotización y proforma sobre S00474 |
+| Diseño del PDF (colores) | ✅ decidido | Cambia por `report_tables_id`; JC lo deja como quedó |
 | Rutas públicas (8 probadas) | ✅ 200 | Incluye 3 fichas reales |
 | Sitio web a ojo (§2) | ⏳ **pendiente** | Requiere revisión visual de JC |
 | Backend / operación (§3) | ⏳ **pendiente** | |

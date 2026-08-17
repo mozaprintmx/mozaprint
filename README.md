@@ -39,6 +39,7 @@ mozaprint-context/
 │   ├── audit_tags.py            ← Auditoría de product tags (solo lectura)
 │   ├── audit_post_upgrade.py    ← Salud tras una actualización de Odoo (solo lectura)
 │   ├── fix_vista_terminos_producto.py ← Repara la ficha de producto tras el salto a 19.2
+│   ├── deploy_reporte_cotizacion.py ← Columna de imagen del PDF, en vistas propias (idempotente)
 │   ├── cleanup_tags.py         ← Borrado por reglas de product tags (lista blanca)
 │   ├── dump_tecnica_values.py   ← Volcado de valores de x_tecnica_impresion
 │   ├── dump_color_values.py     ← Volcado de valores del atributo Color (solo lectura)
@@ -239,6 +240,11 @@ Cada trimestre, revisar:
 - ¿El sitio web y las vistas sobrevivieron la última actualización? (solo lectura):
   ```bash
   python scripts/audit_post_upgrade.py --target prod
+  ```
+- ¿El PDF de cotización sigue con su columna de imagen y las columnas cuadradas?
+  (solo lectura):
+  ```bash
+  python scripts/deploy_reporte_cotizacion.py --target prod --verificar
   ```
   Apartado completo de actualizaciones — checklist, incidencias y reparaciones:
   `docs/upgrades/README.md`.

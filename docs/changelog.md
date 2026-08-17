@@ -4,6 +4,65 @@
 
 ---
 
+## 2026-08-16 · fix (v47) — la columna de Imagen del PDF de cotización, a prueba de upgrades
+
+**Tipo**: `fix` (aplicado a **test**) + `docs`. **Producción no se tocó todavía.**
+
+JC reportó que en test ya no salía la columna de **Imagen** en el PDF de cotización, y
+que le había pasado antes en otra actualización. No era un error: la columna se había
+agregado con **Studio editando en sitio** `sale.report_saleorder_document` (id 1025),
+una vista del módulo `sale` con `noupdate=False`. Cada upgrade recarga los datos XML del
+módulo y **reescribe `arch_db`** — la personalización se va sin error ni traza. Las
+fechas lo confirman: `write_date` en prod = 2025-11-05 (la edición), en test =
+2026-08-07 17:50 = el upgrade. Studio, al editar reportes de módulos estándar, no hace
+copia-al-escribir: modifica el original y deja una copia inerte
+`web_studio.__backup__._1025_.…`.
+
+**`scripts/deploy_reporte_cotizacion.py`** (nuevo): idempotente, dry-run por defecto,
+`--verificar`, `--rollback` y guardarraíl `--si-produccion`. Crea dos **vistas propias
+heredadas** que el upgrade no reescribe: `mozaprint.report_saleorder_imagen` (la
+columna) y `mozaprint.report_saleorder_proforma_columnas` (la proforma MX). Comprueba
+los 5 anclajes antes de escribir: si un upgrade se lleva uno, se detiene en vez de crear
+una vista que Odoo desactivaría.
+
+**El diseño evita toda aritmética de `colspan`**: por cada columna agregada al
+encabezado y a la fila de producto, una **celda vacía** en las demás filas. La fórmula
+del colspan y hasta la estructura de la fila de combo cambian entre 19.0 y 19.2; las
+celdas vacías no dependen de ninguna. La misma vista sirve para las dos versiones —
+verificado contra ambas bases.
+
+**Descuadres que ya existían en producción**, encontrados al auditar: `tr_combo` y
+`tr_section_group` van cortas por 1 en la cotización, y la proforma por 2-3. Los 2 de la
+proforma son **bug de fábrica de `l10n_mx_edi_sale`**, que agrega *Product code* y *Unit
+code* sin ajustar las filas de sección ni combo: en test, antes de instalar nada, ya
+salía descuadrada. Aplicar el script en producción los arregla de paso.
+
+⚠️ **`arch_db` es un campo traducido**: en producción la edición de Studio está en
+`en_US` y en `es_419`. `--limpiar-base` limpia idioma por idioma — limpiar uno solo
+dejaría la columna duplicada para los clientes que reciban el PDF en el otro.
+
+**Dos revisiones nuevas en `scripts/audit_post_upgrade.py`**: **[7]** vistas de módulo
+editadas in-place por Studio (aviso: delata el patrón que causa la pérdida silenciosa) y
+**[8]** cuadre de columnas del reporte — suma las columnas de cada fila del arch
+combinado en los cuatro escenarios de descuento/impuestos y las compara con el
+encabezado. El invariante correcto no es "existe la columna" sino "ninguna fila queda
+corta". Ya caza los descuadres de producción.
+
+Validado en test con la cotización **S00474**, armada para ejercitar los cinco tipos de
+fila (sección, subsección, producto con descuento, nota, resumen colapsado, combo):
+cotización 7 columnas y proforma 9, todas las filas cuadran, en el arch y en el HTML
+renderizado.
+
+**Dos hallazgos no relacionados**, documentados en la incidencia: 19.2 agrega
+`res.company.report_tables_id` («Table Design», default `Striped`) que tiñe la fila de
+sección con el color secundario de la compañía en vez del gris de 19.0 — es un ajuste,
+no una pérdida, y JC decidió dejarlo. Y cotización y proforma usan **motores de PDF
+distintos** (el propio de Odoo vs `wkhtmltopdf 0.12.6.1`), con el mismo reparto en 19.0
+y en 19.2, lo que explica que ante una descripción larga una empuje la fila a la hoja
+siguiente y la otra la parta.
+
+---
+
 ## 2026-08-15 · fix + apartado de upgrades (v46) — la ficha de producto se caía en 19.2
 
 **Tipo**: `fix` (aplicado a **staging**) + `docs`. **Producción no se tocó.**

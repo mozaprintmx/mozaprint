@@ -48,6 +48,11 @@ meses de anticipación para resolverlo.
 | Fecha | Síntoma | Versión | Estado |
 |---|---|---|---|
 | [2026-08-15](incidencias/2026-08-15-ficha-producto-500.md) | Internal Server Error en **todas** las fichas de producto | saas~19.2 | ✓ resuelto en test · ⏳ pendiente aplicar en prod el día del upgrade |
+| [2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md) | Desapareció la columna de **Imagen** del PDF de cotización | saas~19.2 | ✓ resuelto en test · ⏳ pendiente aplicar en prod — **conviene ANTES del upgrade** |
+
+> Las dos incidencias son la misma lección con distinta cara: **lo que Studio edita
+> dentro de una vista de módulo, el upgrade lo pisa**. La diferencia es que la primera
+> falla ruidosamente (500) y la segunda en silencio.
 
 ## Los dos comandos
 
@@ -58,10 +63,14 @@ python scripts/audit_post_upgrade.py --comparar        # test vs prod, lado a la
 
 # Salud del motor de cotización  (solo lectura)
 python scripts/deploy_motor_cotizacion.py --target test --verificar
+
+# Salud del PDF de cotización: columna de imagen y cuadre de columnas  (solo lectura)
+python scripts/deploy_reporte_cotizacion.py --target test --verificar
 ```
 
-Los dos son de solo lectura y salen con código 1 si encuentran algo. Se
-complementan: el primero cubre el sitio y las vistas, el segundo el motor.
+Los tres son de solo lectura y salen con código 1 si encuentran algo. Se
+complementan: el primero cubre el sitio y las vistas, el segundo el motor de
+cotización y el tercero el PDF.
 
 ## Cómo se registra una incidencia nueva
 

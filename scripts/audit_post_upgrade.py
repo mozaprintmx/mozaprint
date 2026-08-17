@@ -19,6 +19,8 @@ Revisiones
 4. Vistas desactivadas por el upgrade (compara con la otra base)
 5. Barrido HTTP de rutas públicas clave (la ficha se toma del /shop real)
 6. Campos manuales `x_` y Server Actions manuales (censo, para comparar bases)
+7. Vistas de módulo editadas IN-PLACE por Studio     → el upgrade las pisa sin avisar
+8. Cuadre de columnas del reporte de cotización      → filas cortas o corridas
 
 Uso:
     python scripts/audit_post_upgrade.py --target test
@@ -56,6 +58,8 @@ REPO = Path(__file__).resolve().parent.parent
 # injertarlo y revienta al combinar. `<t/>` vacío es legítimo (marcador COW).
 SPEC_HERENCIA = re.compile(r"\b(position=|xpath\b|<data\b)", re.I)
 T_CALL = re.compile(r"""t-call=["']([a-zA-Z0-9_]+\.[a-zA-Z0-9_]+)["']""")
+# Respaldo que Studio deja al editar in-place la vista de un módulo (revisión 7).
+BACKUP_STUDIO = re.compile(r"^web_studio\.__backup__\._(\d+)_\.")
 
 # Rutas públicas que deben responder 200. La ficha de producto se resuelve en
 # vivo desde /shop porque los slugs cambian con el catálogo.
@@ -167,6 +171,51 @@ def rev_censo(b: Base) -> dict:
     }
 
 
+def rev_studio_inplace(b: Base) -> list[str]:
+    """7. Vistas de MÓDULO que Studio editó in-place. Aviso, no fallo.
+
+    Al editar un reporte de un módulo estándar, Studio NO hace copia-al-escribir:
+    modifica el `arch_db` del registro del módulo y guarda una copia inerte con key
+    `web_studio.__backup__._<id>_.<key>`. Como esa vista pertenece al módulo (con
+    `ir.model.data` y `noupdate=False`), **cada actualización la reescribe** y la
+    personalización desaparece sin error ni traza.
+
+    Es lo que pasó con la columna de Imagen del PDF de cotización
+    (ver `docs/upgrades/incidencias/`). La existencia del respaldo delata el patrón:
+    lo que hay que confirmar es que la personalización viva hoy en una vista PROPIA.
+    """
+    avisos = []
+    for v in b.vistas():
+        m = BACKUP_STUDIO.match(v["key"] or "")
+        if not m:
+            continue
+        orig = next((o for o in b.vistas() if o["id"] == int(m.group(1))), None)
+        avisos.append(f"id={m.group(1)} {orig['key'] if orig else '(ya no existe)'} "
+                      f"— respaldo Studio id={v['id']}")
+    return avisos
+
+
+def rev_cuadre_reporte(b: Base) -> list[str]:
+    """8. Todas las filas de la tabla del reporte suman las mismas columnas.
+
+    El invariante real de la tabla de líneas: si un módulo (o nosotros) agrega una
+    columna y no ajusta las filas de sección, combo o resumen, esas filas quedan
+    cortas y el PDF sale corrido. Reutiliza el detector de
+    `deploy_reporte_cotizacion.py` para no tener dos copias de la misma lógica.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from deploy_reporte_cotizacion import KEY_BASE, KEY_PROFORMA, cuadre_columnas
+
+    out = []
+    for etiqueta, key in (("cotización", KEY_BASE), ("proforma MX", KEY_PROFORMA)):
+        v = next((x for x in b.vistas() if x["key"] == key), None)
+        if not v:
+            continue
+        arch = b.call("ir.ui.view", "get_combined_arch", [v["id"]])
+        out.extend(f"{etiqueta}: {h}" for h in cuadre_columnas(arch))
+    return out
+
+
 def rev_http(b: Base) -> list[tuple[str, str]]:
     """5. Barrido de rutas públicas. La ficha se toma del /shop real."""
     s = requests.Session()
@@ -244,6 +293,32 @@ def auditar(b: Base, con_http: bool) -> bool:
     if c["server_actions_sin_codigo"]:
         sano = False
         print(f"  ✗ Server Actions SIN CÓDIGO: {c['server_actions_sin_codigo']}")
+
+    print("\n[7] Vistas de módulo editadas in-place por Studio")
+    inplace = rev_studio_inplace(b)
+    if inplace:
+        print(f"  ⚠ {len(inplace)} — un upgrade REESCRIBE estas vistas y se lleva la "
+              f"personalización sin avisar:")
+        for a in inplace:
+            print(f"      {a}")
+        print("      Confirma que lo personalizado viva hoy en una vista PROPIA heredada")
+        print("      (ver docs/upgrades/ y scripts/deploy_reporte_cotizacion.py).")
+    else:
+        print("  ✓ ninguna")
+
+    print("\n[8] Cuadre de columnas del reporte de cotización")
+    descuadres = rev_cuadre_reporte(b)
+    if descuadres:
+        sano = False
+        print(f"  ✗ {len(descuadres)} fila(s) no suman las columnas del encabezado:")
+        for d in descuadres[:12]:
+            print(f"      {d}")
+        if len(descuadres) > 12:
+            print(f"      … y {len(descuadres) - 12} más")
+        print("      Reparación: python scripts/deploy_reporte_cotizacion.py --target "
+              f"{b.target} --apply")
+    else:
+        print("  ✓ todas las filas cuadran")
 
     if con_http:
         print("\n[5] Rutas públicas")
