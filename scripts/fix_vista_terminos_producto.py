@@ -76,6 +76,14 @@ def conectar(url: str, db: str, user: str, pwd: str):
     return call
 
 
+def idiomas(call) -> list[str]:
+    """`arch_db` es un campo TRADUCIDO: escribir sin fijar idioma deja los demás
+    con el arch viejo. Se escribe en todos, empezando por el origen `en_US`."""
+    activos = [l["code"] for l in
+               call("res.lang", "search_read", [["active", "=", True]], fields=["code"])]
+    return list(dict.fromkeys(["en_US"] + activos))
+
+
 def cuerpo_interno(arch: str) -> str:
     """Extrae el contenido de dentro del `<t t-name=...>` raíz."""
     m = re.match(r"\s*<t\b[^>]*>(.*)</t>\s*$", arch, re.S)
@@ -125,19 +133,29 @@ def main() -> int:
     if args.rollback:
         return rollback(call, args)
 
+    langs = idiomas(call)
     vistas = call("ir.ui.view", "search_read", [["key", "=", KEY]],
-                  fields=["id", "name", "active", "website_id", "inherit_id", "arch_db"],
+                  fields=["id", "name", "active", "website_id", "inherit_id"],
                   context={"active_test": False})
     if not vistas:
         print(f"✗ No existe ninguna vista con key {KEY}.")
         return 1
 
-    rotas = [v for v in vistas
-             if v["inherit_id"] and not SPEC_HERENCIA.search(v["arch_db"] or "")]
-
-    print(f"\nVistas con key {KEY}: {len(vistas)}")
+    # `arch_db` es traducido: se lee (y se repara) idioma por idioma.
     for v in vistas:
-        estado = "ROTA" if v in rotas else "ok"
+        v["archs"] = {
+            lang: call("ir.ui.view", "read", [v["id"]], fields=["arch_db"],
+                       context={"lang": lang})[0]["arch_db"] or ""
+            for lang in langs
+        }
+        v["rotos"] = [lang for lang, a in v["archs"].items()
+                      if v["inherit_id"] and not SPEC_HERENCIA.search(a)]
+
+    rotas = [v for v in vistas if v["rotos"]]
+
+    print(f"\nVistas con key {KEY}: {len(vistas)}   ·   idiomas: {', '.join(langs)}")
+    for v in vistas:
+        estado = f"ROTA en {', '.join(v['rotos'])}" if v["rotos"] else "ok"
         print(f"  id={v['id']:5}  act={v['active']}  website={v['website_id']}  "
               f"inherit={v['inherit_id']}  [{estado}]")
 
@@ -147,16 +165,22 @@ def main() -> int:
 
     respaldo = {"target": args.target, "url": url, "db": db,
                 "fecha": datetime.now().isoformat(timespec="seconds"),
-                "vistas": [{"id": v["id"], "arch_db": v["arch_db"]} for v in rotas]}
+                "idiomas": langs,
+                "vistas": [{"id": v["id"], "archs": v["archs"]} for v in rotas]}
 
     for v in rotas:
-        nuevo = envolver(cuerpo_interno(v["arch_db"]))
         print(f"\n--- id={v['id']} ---")
-        print("ANTES:\n" + (v["arch_db"] or "").strip())
-        print("\nDESPUÉS:\n" + nuevo)
-        if args.apply:
-            call("ir.ui.view", "write", [v["id"]], {"arch_db": nuevo})
-            print("→ escrito")
+        for lang in langs:
+            if lang not in v["rotos"]:
+                print(f"[{lang}] ya está bien, no se toca")
+                continue
+            nuevo = envolver(cuerpo_interno(v["archs"][lang]))
+            print(f"\n[{lang}] ANTES:\n" + v["archs"][lang].strip())
+            print(f"\n[{lang}] DESPUÉS:\n" + nuevo)
+            if args.apply:
+                call("ir.ui.view", "write", [v["id"]], {"arch_db": nuevo},
+                     context={"lang": lang})
+                print("→ escrito")
 
     if args.apply:
         BACKUP_DIR.mkdir(exist_ok=True)
@@ -177,10 +201,14 @@ def rollback(call, args) -> int:
     datos = json.loads(reps[-1].read_text(encoding="utf-8"))
     print(f"Respaldo: {reps[-1].name} ({datos['fecha']})")
     for v in datos["vistas"]:
-        print(f"  id={v['id']} → restaurar arch original ({len(v['arch_db'])} chars)")
-        if args.apply:
-            call("ir.ui.view", "write", [v["id"]], {"arch_db": v["arch_db"]})
-            print("    → restaurado")
+        # Respaldos nuevos guardan un arch por idioma; los viejos, uno solo.
+        archs = v.get("archs") or {"en_US": v["arch_db"]}
+        for lang, arch in archs.items():
+            print(f"  id={v['id']} [{lang}] → restaurar arch original ({len(arch)} chars)")
+            if args.apply:
+                call("ir.ui.view", "write", [v["id"]], {"arch_db": arch},
+                     context={"lang": lang})
+                print("    → restaurado")
     if not args.apply:
         print("\n(simulacro) Agrega --apply para restaurar.")
     return 0

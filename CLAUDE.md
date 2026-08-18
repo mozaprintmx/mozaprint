@@ -15,7 +15,7 @@ Karina Asomoza (Marketing) será dueña del knowledge base del agente "Moza".
 
 ## Stack (resumen — detalle en `docs/architecture.md`)
 
-- **Odoo Online 19.0 Custom** (`mozaprint.odoo.com`): datos, CRM, ventas,
+- **Odoo Online saas~19.2 Custom** (`mozaprint.odoo.com`): datos, CRM, ventas,
   catálogo, inventario, sitio web. Toda la lógica de negocio vive aquí.
 - **n8n self-hosted** (VPS Hetzner): orquestador y **router único** del webhook
   de WhatsApp (Cloud API permite 1 webhook por número).
@@ -172,8 +172,12 @@ python3 scripts/rollback_category_images.py --from backups/category_images_AAAAM
   (`specs/motor-cotizacion.md`) solo aplica si se reconstruye. Hoy las
   personalizaciones se cotizan **a mano** consultando la matriz `x_costo_personalizacion`.
 - Actualizaciones de Odoo (checklist, incidencias, reparaciones): `docs/upgrades/README.md`.
-  Test corre **saas~19.2** y producción **19.0**: lo que falla en test es aviso
-  anticipado de lo que fallará en producción — no lo repares antes de tiempo.
+  **Las dos bases corren saas~19.2** desde 2026-08-17. Cuando vuelvan a divergir,
+  lo que falla en test es aviso anticipado de producción — no lo repares antes de
+  tiempo, salvo que el arreglo también sea válido en la versión vieja.
+- **`arch_db` y demás campos traducidos**: al escribirlos por API, itera los idiomas
+  (`en_US` primero, luego los activos). Escribir solo el de la sesión deja el sitio
+  roto para el visitante con el backend viéndose bien. Ya mordió a dos scripts.
 
 <!-- Único import always-on. glossary.md ayuda a la adherencia de terminología
      en toda sesión. Si crece mucho (>~150 líneas), conviértelo también en

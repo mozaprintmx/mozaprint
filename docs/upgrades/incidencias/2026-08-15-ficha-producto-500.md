@@ -1,6 +1,7 @@
 # 2026-08-15 · Internal Server Error en todas las fichas de producto
 
-**Base**: test (`saas~19.2`) · **Estado**: ✓ resuelto en test · ⏳ pendiente en producción
+**Base**: test (`saas~19.2`) · **Estado**: ✓ **resuelto en test y en producción**
+**Aplicado en producción**: 2026-08-17, el mismo día que Odoo subió la base a `saas~19.2`
 **Severidad si pasara en producción**: **crítica** — el catálogo completo deja de ser
 comprable. Ningún cliente puede abrir un producto.
 
@@ -99,26 +100,40 @@ Resultado (`<data>` envolviendo el mismo contenido):
 español sigue saliendo. Respaldo del arch original en
 `backups/vista_terminos_test_20260815_001317.json`.
 
-## ¿Aplica a producción?
+## ¿Aplica a producción? — SÍ, y ya se aplicó
 
-**Hoy no. El día del upgrade, sí — y es lo primero que hay que correr.**
-
-Producción corre 19.0, donde esa vista todavía es plantilla independiente y
-funciona. Tiene la **misma copia por-website** (mismo id 3951, mismo arch), así
-que en cuanto Odoo la suba a 19.2 el fallo aparece idéntico.
-
-Aplicar el fix hoy en producción **rompería** lo que funciona: convertiría a
-herencia una vista que en 19.0 debe seguir siendo plantilla suelta.
-
-El script detecta el estado real antes de escribir (marca `[ok]` / `[ROTA]` por
-registro), así que correrlo por error contra 19.0 no hace daño: reporta "nada que
-reparar" y sale. Aun así, el orden correcto es:
+**Odoo subió producción a `saas~19.2` el 2026-08-17** y el fallo apareció idéntico,
+como estaba previsto: mismo id de vista (3951), mismo arch, y las **5,012 fichas
+publicadas** devolviendo 500. El resto del sitio (`/`, `/shop`, carrito,
+`/contactanos`, `/terms`) siguió en 200, igual que en test.
 
 ```bash
-# El día del upgrade, con producción ya en 19.2:
 python scripts/fix_vista_terminos_producto.py --target prod                      # simulacro
 python scripts/fix_vista_terminos_producto.py --target prod --apply --si-produccion
 ```
+
+Reparado en un solo registro. Verificación inmediata: **10 de 10 fichas en 200**
+con el bloque en español intacto, y el auditor pasó de `✗ BLOQUEANTE — 1` a
+`✓ ninguna`. Respaldo en `backups/vista_terminos_prod_20260817_234900.json`.
+
+### El detalle que se descubrió al aplicarlo: `arch_db` es un campo traducido
+
+El script escribía `arch_db` **una sola vez, sin fijar idioma**. En un campo
+traducido (`translate=xml_translate`) eso arriesga reparar `en_US` y dejar
+`es_419` con el arch viejo — y `es_419` es justo el idioma que ve el cliente. El
+sondeo previo confirmó que **los dos idiomas estaban rotos**, con el mismo texto
+en español en ambos.
+
+Es exactamente la trampa que ya había mordido a `deploy_reporte_cotizacion.py` en
+su función `limpiar_base`. Se endureció igual: leer y escribir **idioma por
+idioma**, empezando por el origen `en_US`.
+
+> Regla que deja el incidente: **antes de escribir `arch_db` —o cualquier campo
+> traducido— por API, itera los idiomas.** Reparar solo el idioma de la sesión
+> deja el sitio roto para los visitantes y el error no se ve desde el backend.
+
+El respaldo también pasó a guardar un arch **por idioma**; el `--rollback` sigue
+leyendo los respaldos viejos de un solo idioma.
 
 ## Cómo se detecta automáticamente
 

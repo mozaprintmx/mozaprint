@@ -4,6 +4,52 @@
 
 ---
 
+## 2026-08-17 · upgrade (v50) — producción sube a saas~19.2: un solo daño, reparado el mismo día
+
+**Tipo**: `upgrade` (**PRODUCCIÓN**) + `fix` + `docs`.
+
+Odoo subió `mozaprintmx.odoo.com` de **19.0 a saas~19.2**. Como test corría esa
+versión desde el 2026-08-07, los dos fallos previstos ya estaban diagnosticados y con
+reparación lista. El día del upgrade fue ejecutar y verificar, no investigar.
+
+**Lo que se rompió (1)** — las **5,012 fichas de producto** publicadas, con 500 crudo
+de werkzeug. Causa exacta a la documentada en test: la copia por-website traducida de
+`website_sale.product_terms_and_conditions` (id **3951**) quedó con `inherit_id` nuevo
+y `arch` de plantilla suelta. Reparado con
+`scripts/fix_vista_terminos_producto.py --target prod --apply --si-produccion`.
+Verificación: **10 de 10 fichas en 200** con el texto en español intacto, y el auditor
+pasó de `✗ BLOQUEANTE — 1` a `✓ ninguna`.
+
+**Lo que aguantó solo (2)** — la **columna de Imagen del PDF** sobrevivió intacta por
+primera vez. Las vistas propias heredadas (**5062**, **5063**, aplicadas antes del
+upgrade) no las toca la migración: plantilla del módulo limpia, columnas cuadradas e
+imagen presente en los 4 casos (cotización y proforma × `en_US` y `es_419`). Y las
+**líneas facturables siguen en 0** tras el retiro del motor.
+
+**Bug encontrado al aplicar el fix**: `fix_vista_terminos_producto.py` escribía
+`arch_db` una sola vez sin fijar idioma. `arch_db` es un campo **traducido**
+(`translate=xml_translate`), y el sondeo previo confirmó que **los dos idiomas
+estaban rotos** — reparar solo el de la sesión habría dejado el sitio caído para el
+visitante en `es_419` con el backend viéndose bien. Es la misma trampa que ya había
+mordido a `deploy_reporte_cotizacion.py` en `limpiar_base`. Se endureció igual: leer y
+escribir **idioma por idioma**, empezando por el origen `en_US`; el respaldo pasó a
+guardar un arch por idioma y el `--rollback` sigue leyendo los respaldos viejos.
+
+**Avisos abiertos, ninguno del upgrade**: 2 keys de vista duplicadas y la vista
+respaldo de Studio id 4315 (basura inerte). Ambos preexistentes y de urgencia baja.
+
+**Consecuencia de calendario**: test y producción quedan **en la misma versión**. Se
+pierde el margen de aviso anticipado hasta que Odoo libere la siguiente y test la tome
+primero.
+
+**Docs**: `docs/upgrades/README.md` (estado de las dos bases, corolario validado),
+`docs/upgrades/checklist-post-upgrade.md` (§3 y §4 sin las referencias al motor
+retirado, más el balance del upgrade), la incidencia
+`docs/upgrades/incidencias/2026-08-15-ficha-producto-500.md` (aplicada en producción +
+la lección del campo traducido) y `docs/punto-de-control.md`.
+
+---
+
 ## 2026-08-17 · retiro (v49) — el motor de cotización sale de producción: Odoo cobra por línea de código
 
 **Tipo**: `refactor`/`retiro` (aplicado a **PRODUCCIÓN**) + `docs`.

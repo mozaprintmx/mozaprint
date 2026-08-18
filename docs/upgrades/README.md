@@ -31,18 +31,22 @@ traducida con el formato viejo, y **tumbó las 5,000+ fichas de producto con un
 
 | Base | Versión | Última auditoría | Resultado |
 |---|---|---|---|
-| Producción `mozaprintmx.odoo.com` | **19.0** | 2026-08-16 | ✓ limpia (tras mover la columna de imagen a vistas propias) |
+| Producción `mozaprintmx.odoo.com` | **saas~19.2** | 2026-08-17 | ✓ limpia (tras reparar la ficha de producto; el PDF sobrevivió solo) |
 | Test `mozaprintmx-test-saas19-0807.odoo.com` | **saas~19.2** | 2026-08-16 | ✓ limpia (tras reparar la ficha de producto y la columna de imagen) |
+
+**Las dos bases van parejas desde el 2026-08-17.** Se pierde el margen de aviso
+anticipado hasta que Odoo libere la siguiente versión y test la tome primero.
 
 **Test va una versión adelante de producción.** Eso no es un accidente: es el
 mejor activo que tenemos para estos upgrades. Cada fallo que aparece en test es
 un fallo que producción va a tener cuando Odoo la suba a 19.2, con semanas o
 meses de anticipación para resolverlo.
 
-> ⚠️ Corolario: **no reparar en producción lo que solo falla en 19.2.** El fix de
-> la ficha de producto, aplicado hoy en producción (19.0), rompería lo que
-> funciona: ahí esa vista todavía debe ser plantilla independiente. Esas
-> reparaciones se aplican **el día del upgrade**, no antes.
+> ⚠️ Corolario: **no reparar en producción lo que solo falla en la versión nueva.**
+> El fix de la ficha de producto, aplicado en producción mientras corría 19.0,
+> habría roto lo que funcionaba: ahí esa vista todavía debía ser plantilla
+> independiente. Se aplicó **el día del upgrade** (2026-08-17) y funcionó a la
+> primera — la estrategia se validó en la práctica.
 >
 > Pero no todo hallazgo es de ese tipo. Si el arreglo **funciona igual en las dos
 > versiones** y además corrige algo que producción ya tiene mal, conviene aplicarlo
@@ -54,7 +58,7 @@ meses de anticipación para resolverlo.
 
 | Fecha | Síntoma | Versión | Estado |
 |---|---|---|---|
-| [2026-08-15](incidencias/2026-08-15-ficha-producto-500.md) | Internal Server Error en **todas** las fichas de producto | saas~19.2 | ✓ resuelto en test · ⏳ pendiente aplicar en prod el día del upgrade |
+| [2026-08-15](incidencias/2026-08-15-ficha-producto-500.md) | Internal Server Error en **todas** las fichas de producto | saas~19.2 | ✓ **resuelto en test y en producción** — el fix preparado en test se aplicó el día del upgrade (2026-08-17) |
 | [2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md) | Desapareció la columna de **Imagen** del PDF de cotización | saas~19.2 | ✓ **resuelto en test y en producción** — se aplicó antes del upgrade porque arreglaba descuadres ya existentes |
 
 > Las dos incidencias son la misma lección con distinta cara: **lo que Studio edita

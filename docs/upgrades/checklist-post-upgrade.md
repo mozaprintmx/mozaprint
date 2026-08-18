@@ -90,31 +90,30 @@ garantiza que se vea bien** — esto se revisa con los ojos.
 - [ ] **CRM**: el pipeline abre, las tarjetas se mueven de etapa, las etiquetas siguen
 - [ ] **Automation Rules**: notificación de lead web + las 3 alertas de seguimiento
       (Ajustes → Técnico → Automatizaciones; que sigan **activas**)
-- [ ] **Cotización**: abre una `sale.order` en borrador — el formulario **debe abrir**
-      y mostrar el botón «Agregar personalización» en el encabezado
+- [ ] **Cotización**: abre una `sale.order` en borrador — el formulario **debe abrir**.
+      (El botón «Agregar personalización» ya **no** existe: el motor se retiró el
+      2026-08-17, ver [ADR 007](../../decisions/007-retiro-motor-cotizacion-costo-codigo.md))
 - [ ] **Campos `x_` en producto**: abre una ficha en backend y confirma que
       `x_tecnica_default_id`, `x_tecnicas_compatibles_ids`, `x_area_impresion` y
       `x_material` tienen valor
-- [ ] **Menús del motor**: Ventas → Configuración → *Costos de personalización*,
-      *Técnicas de personalización* y *Solicitudes de aprobación*
+- [ ] **Menús de la matriz**: Ventas → Configuración → *Costos de personalización* y
+      *Técnicas de personalización*. (*Solicitudes de aprobación* se retiró con el motor)
 - [ ] **Knowledge**: el manual de personalización sigue publicado
 
-> Si el formulario de ventas **no abre**, es la vista heredada del motor: ve a
-> [motor-cotizacion.md](motor-cotizacion.md) § *Reparación por síntoma*.
+> Si el formulario de ventas **no abre**, ya no puede ser la vista del motor (se
+> borró). Busca la vista culpable con la revisión **[1]** del auditor.
 
 ---
 
-## 4. Motor de cotización y PDF — prueba funcional
+## 4. El PDF de cotización — prueba funcional
 
-`--verificar` valida la estructura; esto valida el **comportamiento**. Correr el
-paso 4 del [checklist de despliegue](../checklist-deploy-produccion.md): casos
-A/B/C, flujo de aprobación, línea de setup, y re-aplicar sin duplicar.
+`--verificar` valida la **estructura** (que las vistas propias existan y que las
+columnas cuadren); esto valida cómo se **ve**.
 
-- [ ] **Caso A** — técnica con tarifa parametrizada → línea directa
-- [ ] **Caso B** — varios alcances → pide elegir candidato
-- [ ] **Caso C** — sin tarifa → genera solicitud de aprobación
-- [ ] **Aprobación** — al aprobar, aparece la línea en la cotización
-- [ ] **Precio de venta** = costo × markup, y la **línea de setup** cuando aplica
+> La prueba funcional del motor de cotización (casos A/B/C, aprobación, línea de
+> setup) ya no aplica: el motor se retiró de producción el 2026-08-17
+> ([ADR 007](../../decisions/007-retiro-motor-cotizacion-costo-codigo.md)). Hoy las
+> personalizaciones se cotizan a mano desde la matriz.
 
 ### El PDF, a ojo
 
@@ -177,28 +176,41 @@ Cuando Odoo avise con anticipación:
 
 ## Revisión de `saas~19.2` — estado
 
-Test corre `saas~19.2` desde el 2026-08-07; producción sigue en `19.0`. Todo lo
-que se encuentre aquí es trabajo adelantado para el día que Odoo suba producción.
+**Producción subió a `saas~19.2` el 2026-08-17.** Test ya corría esa versión desde
+el 2026-08-07, así que los dos fallos que iba a traer estaban documentados y con
+reparación lista. Resultado del día:
 
 | Área | Estado | Notas |
 |---|---|---|
-| Automático (auditor + los dos `--verificar`) | ✅ limpio | 2026-08-16 |
-| Ficha de producto | ✅ resuelto | [incidencia 2026-08-15](incidencias/2026-08-15-ficha-producto-500.md) — pendiente aplicar en prod el día del upgrade |
-| Columna de imagen del PDF | ✅ resuelto | [incidencia 2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md) — **ya aplicado también en producción**, antes del upgrade |
-| PDF a ojo, 5 tipos de fila (§4) | ✅ validado | Cotización y proforma sobre S00474 |
-| Diseño del PDF (colores) | ✅ decidido | Cambia por `report_tables_id`; JC lo deja como quedó |
-| Rutas públicas (8 probadas) | ✅ 200 | Incluye 3 fichas reales |
-| Sitio web a ojo (§2) | ⏳ **pendiente** | Requiere revisión visual de JC |
-| Backend / operación (§3) | ⏳ **pendiente** | |
-| Motor — prueba funcional (§4) | ⏳ **pendiente** | La estructura ya sale limpia |
-| Integraciones (§5) | ⏳ **pendiente** | |
+| Automático (auditor + los dos `--verificar`) | ✅ limpio | 2026-08-17, en **producción** |
+| Ficha de producto | ✅ **reparado en producción** | [incidencia 2026-08-15](incidencias/2026-08-15-ficha-producto-500.md) — cayeron las 5,012 fichas; el fix las devolvió a 200 |
+| Columna de imagen del PDF | ✅ **sobrevivió sin tocar nada** | [incidencia 2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md) — primera actualización que no se la lleva, gracias a las vistas propias aplicadas antes |
+| Líneas facturables | ✅ 0 bloques | El retiro del motor aguantó el upgrade |
+| Rutas públicas (8 + 10 fichas reales) | ✅ 200 | |
+| Sitio web y operación a ojo (§2, §3) | ✅ revisado por JC | Sin errores reportados |
+| Integraciones (§5) | ⏳ pendiente | XML-RPC quedó probado de rebote (todos los scripts lo usan) |
+
+### Lo que dejó aprendido
+
+1. **La estrategia de test-una-versión-adelante funcionó.** Los dos fallos estaban
+   diagnosticados, con script y respaldo, semanas antes. El día del upgrade fue
+   ejecutar y verificar, no investigar.
+2. **La reparación de raíz del PDF se pagó sola.** Mover la personalización de
+   Studio a vistas propias heredadas la hizo inmune al upgrade — el mismo cambio
+   que antes se perdía en silencio en cada actualización.
+3. **`arch_db` es un campo traducido.** Repararlo sin iterar idiomas deja el sitio
+   roto para el visitante aunque el backend se vea bien. Ya mordió dos scripts.
+
+### Avisos abiertos, ninguno causado por el upgrade
+
+| Aviso | Qué es | Urgencia |
+|---|---|---|
+| **[3]** `website.step_wizard` ×3 y `website_sale.filter_products_price` ×2 | Keys duplicadas y activas. **Preexistentes**, estaban igual en 19.0 | Baja — decidir cuál se queda |
+| **[7]** vista respaldo `web_studio.__backup__._1025_.` (id 4315) | Basura inerte de cuando la columna de imagen vivía en Studio. Hoy es falso positivo: el verificador del PDF confirma que la plantilla del módulo está limpia | Baja — borrarla devolvería sentido al aviso |
 
 ### Diferencias test vs prod ya explicadas (no investigar de nuevo)
 
 | Diferencia | Explicación |
 |---|---|
 | 14 vistas cambiaron de key | `website_sale_comparison` se fusionó en `website_sale` en 19.2. Mismos ids, mismo estado |
-| `campos_manual` 101 vs 100 | Un campo `x_` de más en `sale.order.line` en test (pruebas del botón por línea) |
-| `server_actions_code` 224 vs 205 | Server Actions extra en test, de los ensayos del motor |
-| `website.step_wizard` ×3 y `website_sale.filter_products_price` ×2 duplicadas | **Preexistentes: están igual en producción.** No las causó el upgrade. Higiene pendiente, no urgente |
 | Vista kanban de `social_twitter` con `t-call` "roto" | Falso positivo ya corregido en el auditor: las vistas de backend resuelven `t-call` contra plantillas OWL de cliente, que no viven en `ir.ui.view` |
