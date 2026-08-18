@@ -40,6 +40,7 @@ mozaprint-context/
 │   ├── audit_post_upgrade.py    ← Salud tras una actualización de Odoo (solo lectura)
 │   ├── fix_vista_terminos_producto.py ← Repara la ficha de producto tras el salto a 19.2
 │   ├── deploy_reporte_cotizacion.py ← Columna de imagen del PDF, en vistas propias (idempotente)
+│   ├── audit_lineas_facturables.py ← Código de Studio que Odoo COBRA por cada 100 líneas
 │   ├── cleanup_tags.py         ← Borrado por reglas de product tags (lista blanca)
 │   ├── dump_tecnica_values.py   ← Volcado de valores de x_tecnica_impresion
 │   ├── dump_color_values.py     ← Volcado de valores del atributo Color (solo lectura)
@@ -231,12 +232,13 @@ Cada trimestre, revisar:
 - ¿Algún spec quedó desactualizado vs realidad en Odoo?
 - ¿Algún ADR quedó superseded? Marcarlo
 - ¿Hay workflows en n8n que no estén versionados aquí?
-- ¿El motor de cotización sigue completo en Odoo? (solo lectura, ~20 s):
+- ¿Se coló código que Odoo factura? Cobra **cada 100 líneas** de Server Actions con
+  código y campos calculados (solo lectura):
   ```bash
-  python scripts/deploy_motor_cotizacion.py --target prod --verificar
+  python scripts/audit_lineas_facturables.py --target prod
   ```
-  **Correrlo también después de cada actualización de Odoo** — es cuando puede
-  desactivarse la vista heredada.
+  Producción debe salir en **0 bloques**. El motor de cotización se retiró por esto
+  el 2026-08-17 — ver `decisions/007-retiro-motor-cotizacion-costo-codigo.md`.
 - ¿El sitio web y las vistas sobrevivieron la última actualización? (solo lectura):
   ```bash
   python scripts/audit_post_upgrade.py --target prod

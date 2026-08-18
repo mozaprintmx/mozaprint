@@ -1,8 +1,14 @@
 # Checklist — despliegue del motor de cotización a PRODUCCIÓN
 
-> Estado: ✅ **EJECUTADO EN PRODUCCIÓN el 2026-08-14** — 76 objetos creados, 0 errores.
-> Este documento queda como registro de lo hecho y como procedimiento de rollback.
-> Manifiesto para revertir: `backups/manifiesto_motor_prod_20260814_222651.json`.
+> Estado: desplegado el 2026-08-14 y **REVERTIDO el 2026-08-17** — el motor ya no
+> existe en producción. Se retiró porque Odoo cobra por cada 100 líneas de código de
+> Studio; ver `decisions/007-retiro-motor-cotizacion-costo-codigo.md`.
+>
+> El rollback fue **quirúrgico**: 64 de los 76 objetos. Se conservaron las vistas y
+> menús de la matriz de costos y de las técnicas (son datos, no código, y no se
+> facturan). Manifiesto usado: `backups/manifiesto_motor_prod_QUIRURGICO.json`.
+>
+> Este documento queda como registro y como procedimiento si se reconstruye.
 >
 > Diseño: `specs/motor-cotizacion.md` · Detalle de objetos:
 > `odoo-extensions/studio-fields.yaml` · Guía conceptual: `docs/guia-motor-cotizacion.md`

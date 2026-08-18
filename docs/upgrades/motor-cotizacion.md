@@ -1,5 +1,14 @@
 # Procedimiento ante una actualización de Odoo
 
+> ## ⚠️ HISTÓRICO — el motor se retiró de producción el 2026-08-17
+>
+> Nada de este documento aplica hoy: el motor ya no existe en Odoo (ver
+> `decisions/007-retiro-motor-cotizacion-costo-codigo.md`). Se conserva porque sigue
+> siendo el procedimiento correcto **si algún día se reconstruye**.
+>
+> Lo vigente para upgrades: [checklist-post-upgrade.md](checklist-post-upgrade.md) y
+> [revision-saas-19-2.md](revision-saas-19-2.md).
+
 > Qué revisar —y cómo reparar— cuando Odoo Online actualiza la base donde vive el
 > motor de cotización. Complementa `docs/checklist-deploy-produccion.md` (que cubre
 > el despliegue inicial, hecho el 2026-08-14).

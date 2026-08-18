@@ -4,6 +4,101 @@
 
 ---
 
+## 2026-08-17 · retiro (v49) — el motor de cotización sale de producción: Odoo cobra por línea de código
+
+**Tipo**: `refactor`/`retiro` (aplicado a **PRODUCCIÓN**) + `docs`.
+Decisión completa en `decisions/007-retiro-motor-cotizacion-costo-codigo.md`.
+
+JC detectó **3 cargos** de «Mantenimiento de código personalizado» en la factura de
+Odoo, concepto que se cobra **cada 100 líneas** y aplica a código de Studio: acciones
+automatizadas y campos calculados. La medición confirmó el origen: **289 líneas → 3
+bloques**, y **el 100% era el motor de cotización** (5 Server Actions = 269 líneas, 7
+campos calculados = 20). Las 4 automatizaciones del CRM no aportan una línea: son
+declarativas. Las vistas del PDF son XML.
+
+Se evaluaron cuatro caminos (rollback total, quitar solo el flujo de aprobación,
+refactor bajo 100 líneas, mover la lógica a n8n vía webhook) y se eligió **retirar
+todo lo facturable** y reconstruir con mecanismos nativos.
+
+**Rollback quirúrgico, no el estándar**: el script original borraba 76 objetos e
+incluía las vistas y menús de la matriz de costos y de las técnicas. Esas **no son
+facturables** —son datos— y sin ellas la matriz se queda sin pantalla. Se conservaron.
+Se borraron **64 objetos**: 5 Server Actions, 7 campos calculados, los modelos
+`x_approval_request` y `x_wizard_personalizacion` con sus 47 campos, 5 vistas, 1 menú,
+1 acción de ventana, 2 ACLs y 1 default. Antes de borrar se limpiaron las vistas de la
+matriz para que no quedaran apuntando a las columnas calculadas que desaparecían.
+
+**Conservado y verificado**: las **128 tarifas**, `x_markup` y
+`x_personalizacion_externa` (campos simples, no facturables), las 4 vistas y 2 menús de
+costos y técnicas, las **20 técnicas** y los **5,212 productos** con técnica asignada.
+Se quitó a propósito el `data_backup` del manifiesto: revertir nombres de 20 tarifas al
+estado pre-motor no tenía sentido con la matriz viva como tabla de trabajo.
+
+**Resultado verificado: 289 → 0 líneas facturables, de 3 bloques a 0.** El formulario
+de ventas abre sin el botón, las 1,300 líneas de cotización siguen ahí (la única línea
+de personalización viva quedó como línea de servicio normal con su precio), el auditor
+sale limpio y el PDF conserva la columna de imagen.
+
+**`scripts/audit_lineas_facturables.py`** (nuevo, solo lectura): mide el código que
+Odoo factura y falla si supera `--max-bloques` (default 0). Entra al checklist
+post-upgrade como tercer comando: la idea es que esto no se vuelva a colar sin querer.
+
+**Diseño de reemplazo evaluado, no construido**: las 128 tarifas se descomponen en 52
+combinaciones (técnica × proveedor × alcance × área), 33 con precio plano y 19 con
+tramos de cantidad — exactamente lo que hace `product.pricelist.item` con
+`min_quantity` y `fixed_price`, que son **datos y no se facturan**. Se descartaron las
+variantes con atributos porque el precio de variante es **aditivo** (`price_extra`) y
+la matriz no lo es. Hallazgo de paso: el mecanismo nativo estaba **instalado y sin
+estrenar** — 4 listas de precios con **0 reglas `min_quantity`**.
+
+Mientras tanto, **las personalizaciones se cotizan a mano** consultando la matriz en
+Ventas → Configuración → Costos de personalización.
+
+---
+
+## 2026-08-16/17 · docs (v48) — revisión completa de saas~19.2 antes de subir producción
+
+**Tipo**: `docs` + `test`. Nada se cambió en producción.
+
+`docs/upgrades/revision-saas-19-2.md` (nuevo): qué trae la versión, qué reportan otros
+en el foro, y sobre todo **qué se midió contra nuestras dos bases**.
+
+**Diff de esquema**: 18,388 campos en prod vs 18,998 en test — 406 quitados, 1,016
+nuevos. Los renombres que nos apuntan: `product.supplierinfo.product_uom_id` y
+`stock.quant.product_uom_id` → **`uom_id`** (el sync los tocará algún día),
+`res.partner.company_type`/`company_name` eliminados, y
+`website.prevent_zero_price_sale` → `prevent_sale` (**migró bien**, sigue activo).
+Módulos: 8 desaparecen, 16 llegan, **7 de ellos de IA**.
+
+**Tres cambios de comportamiento**: (1) los estados de pago se renombraron y la
+migración mapeó `in_process`→`paid` y `paid`→`reconciled`, así que **«Pagado» ya no
+implica conciliado**; (2) 20 categorías del eCommerce quedaron despublicadas por el
+campo nuevo `is_published` — 19 vacías y solo **JARDINERIA** con 1 producto; (3)
+`report_tables_id` («Table Design», nuevo, default `Striped`) tiñe la fila de sección
+con el color secundario de la compañía — JC revisó las opciones y **decidió dejarlo**.
+
+**Pruebas contra 19.2**: 0 campos custom perdidos, 0 vistas desactivadas, 4/4
+automatizaciones idénticas, render de 5 plantillas de correo con **0 marcadores sin
+resolver**, formulario web → lead → automatización → correo **end-to-end**, 8/8 rutas
+públicas en 200, y el **sync de producción corriendo contra TEST sin un solo error**
+(stock: 4,477 productos; productos: 195 procesados, ejercitando `supplierinfo`,
+variantes e imágenes). El endpoint de precio por variante —bug que reporta el foro—
+devuelve lo mismo en ambas versiones.
+
+**Hallazgo que cambia el procedimiento**: la base de test tiene el correo
+**neutralizado por Odoo** (`smtp_host: 'invalid'`), como hace al duplicar cualquier
+base. La **entrega** de correo no se puede probar en test — solo en producción, después
+del upgrade. Lo que sí se probó es el render de las plantillas, que es el fallo que
+reporta el foro.
+
+**Runbook del día**: hay una **caída garantizada** de las fichas de producto hasta que
+corra `fix_vista_terminos_producto.py`, y está verificado que **no se puede
+pre-aplicar** (en 19.0 esas vistas aún no tienen `inherit_id`; es el upgrade quien se
+lo pone). Riesgo de fondo que ninguna prueba elimina: **no hay respaldo descargable**
+—Odoo Online lo rechaza por tamaño— así que el rollback pasa por soporte.
+
+---
+
 ## 2026-08-16 · fix (v47) — la columna de Imagen del PDF de cotización, a prueba de upgrades
 
 **Tipo**: `fix` (aplicado a **test** y a **PRODUCCIÓN**) + `docs`.

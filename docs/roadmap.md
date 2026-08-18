@@ -79,7 +79,12 @@
       toggle que activar. Convención: 2 secciones fijas "Producto" / "Personalización"
       (`sale.order.line.display_type='line_section'`). Documentado en `specs/ai-agent-spec.md`
       (tool `create_quote_draft`)
-- [x] Implementar Server Action de auto-populado de servicios — **✓ EN PRODUCCIÓN (2026-08-14)**,
+- [~] Implementar Server Action de auto-populado de servicios — desplegado el 2026-08-14 y
+      **RETIRADO el 2026-08-17**: Odoo cobra por cada 100 líneas de código de Studio y el motor
+      sumaba 289 (3 cargos). Se rehará con mecanismos nativos —productos de servicio + reglas de
+      lista de precios con `min_quantity`— que no generan cargo. Ver
+      `decisions/007-retiro-motor-cotizacion-costo-codigo.md`. Lo que sigue describe lo que
+      llegó a existir:
       desplegado con `scripts/deploy_motor_cotizacion.py` (76 objetos, 0 errores) tras un ensayo
       general de rollback+redeploy en staging. Incluye: wizard `x_wizard_personalizacion`,
       matching contra la matriz, proveedor externo, línea de **setup**, **precio de venta**

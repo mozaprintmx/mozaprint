@@ -23,7 +23,8 @@ traducida con el formato viejo, y **tumbó las 5,000+ fichas de producto con un
 | Documento | Para qué |
 |---|---|
 | [checklist-post-upgrade.md](checklist-post-upgrade.md) | **Empieza aquí** tras cualquier actualización. Qué revisar, en qué orden y con qué comando |
-| [motor-cotizacion.md](motor-cotizacion.md) | Procedimiento específico del motor de cotización: qué es frágil, reparación por síntoma, reconstrucción desde cero |
+| [revision-saas-19-2.md](revision-saas-19-2.md) | **Antes del upgrade a 19.2**: qué cambia, campos renombrados, los 3 cambios de comportamiento, qué se probó y el runbook del día |
+| [motor-cotizacion.md](motor-cotizacion.md) | Procedimiento del motor de cotización. ⚠️ **El motor se retiró de producción el 2026-08-17** (ver [ADR 007](../../decisions/007-retiro-motor-cotizacion-costo-codigo.md)); vale solo si se reconstruye |
 | [incidencias/](incidencias/) | Un archivo por fallo real, con causa raíz y reparación. Se consultan por síntoma |
 
 ## Estado actual
@@ -60,23 +61,27 @@ meses de anticipación para resolverlo.
 > dentro de una vista de módulo, el upgrade lo pisa**. La diferencia es que la primera
 > falla ruidosamente (500) y la segunda en silencio.
 
-## Los dos comandos
+## Los tres comandos
 
 ```bash
-# Salud general: sitio web, vistas, metadatos custom  (solo lectura)
+# 1. Salud general: sitio web, vistas, metadatos custom  (solo lectura)
 python scripts/audit_post_upgrade.py --target test
 python scripts/audit_post_upgrade.py --comparar        # test vs prod, lado a lado
 
-# Salud del motor de cotización  (solo lectura)
-python scripts/deploy_motor_cotizacion.py --target test --verificar
-
-# Salud del PDF de cotización: columna de imagen y cuadre de columnas  (solo lectura)
+# 2. Salud del PDF de cotización: columna de imagen y cuadre de columnas
 python scripts/deploy_reporte_cotizacion.py --target test --verificar
+
+# 3. Que no se haya colado código que Odoo factura
+python scripts/audit_lineas_facturables.py --target test
 ```
 
 Los tres son de solo lectura y salen con código 1 si encuentran algo. Se
-complementan: el primero cubre el sitio y las vistas, el segundo el motor de
-cotización y el tercero el PDF.
+complementan: el primero cubre el sitio y las vistas, el segundo el PDF, y el
+tercero vigila que no reaparezca código facturable (ver
+[ADR 007](../../decisions/007-retiro-motor-cotizacion-costo-codigo.md)).
+
+> El cuarto comando histórico, `deploy_motor_cotizacion.py --verificar`, solo aplica
+> si algún día se reconstruye el motor: se retiró de producción el 2026-08-17.
 
 ## Cómo se registra una incidencia nueva
 

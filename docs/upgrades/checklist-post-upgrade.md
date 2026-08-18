@@ -16,18 +16,22 @@ la imprime en el encabezado (`Odoo saas~19.2`).
 # a) Salud general: vistas, sitio web, censo de objetos custom
 python scripts/audit_post_upgrade.py --target test
 
-# b) Salud del motor de cotización
-python scripts/deploy_motor_cotizacion.py --target test --verificar
-
-# c) Salud del PDF de cotización (columna de imagen + cuadre de columnas)
+# b) Salud del PDF de cotización (columna de imagen + cuadre de columnas)
 python scripts/deploy_reporte_cotizacion.py --target test --verificar
+
+# c) Que no se haya colado código que Odoo factura
+python scripts/audit_lineas_facturables.py --target test
 ```
 
 Los tres son **solo lectura** y salen con código 1 si hay hallazgos.
 
 - [ ] **(a) sale limpio** — `✓ Sin hallazgos bloqueantes.`
-- [ ] **(b) sale limpio** — `✓ El motor está completo y operativo.`
-- [ ] **(c) sale limpio** — `✓ El reporte está completo y cuadrado.`
+- [ ] **(b) sale limpio** — `✓ El reporte está completo y cuadrado.`
+- [ ] **(c) sale limpio** — `✓ Dentro del máximo tolerado.` (0 bloques)
+
+> El motor de cotización se **retiró de producción el 2026-08-17** por el cargo de
+> Odoo por línea de código ([ADR 007](../../decisions/007-retiro-motor-cotizacion-costo-codigo.md)).
+> `deploy_motor_cotizacion.py --verificar` solo aplica si se reconstruye.
 
 Qué revisa (a), y qué significa cada hallazgo:
 

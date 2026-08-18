@@ -1,5 +1,25 @@
 # Motor de cotización — matriz de costos → línea de cotización
 
+> ## ⚠️ RETIRADO DE PRODUCCIÓN — 2026-08-17
+>
+> El motor descrito aquí **ya no existe en Odoo**. Se retiró porque Odoo cobra
+> «Mantenimiento de código personalizado» **cada 100 líneas** de código de Studio, y
+> sus 5 Server Actions + 7 campos calculados sumaban **289 líneas = 3 cargos** — el
+> 100% del código facturable de la base.
+>
+> Esta spec se conserva por dos razones: describe el **algoritmo de matching**, que
+> sigue siendo válido y lo necesita el agente AI de Fases 4-6; y
+> `scripts/deploy_motor_cotizacion.py` puede reconstruir todo desde el repo si se
+> decide volver.
+>
+> **Lo vigente**: `decisions/007-retiro-motor-cotizacion-costo-codigo.md` — incluye el
+> diseño de reemplazo con mecanismos nativos (productos de servicio + reglas de lista
+> de precios con `min_quantity`), que no genera cargo.
+>
+> **Lo que se conservó en Odoo**: la matriz `x_costo_personalizacion` con sus 128
+> tarifas, sus vistas y su menú. Hoy las personalizaciones se cotizan **a mano**
+> consultando esa tabla.
+
 > Spec central del "matching" entre lo que pide el cliente (técnica, cantidad,
 > tintas, área) y `x_costo_personalizacion`. La usan DOS consumidores:
 > 1. **Server Action manual** (Fase 3, este doc) — botón/wizard que un vendedor

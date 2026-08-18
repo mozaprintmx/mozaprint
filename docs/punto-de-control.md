@@ -40,13 +40,36 @@ Horarios reales (Task Scheduler, no en código): stock_sync INN 09:15/13:15/17:1
 - **Filtro de técnica DESCARTADO/baja prioridad**: por experiencia del operador, el cliente busca producto y luego pregunta por personalización; no navega por técnica. (Odoo no tiene reporte de términos de búsqueda para confirmarlo con datos.)
 - Si se hiciera técnica-como-filtro algún día: requiere modelarla como product.attribute con create_variant="no_variant" (no se puede filtrar /shop por campo custom en Online sin tocar el controlador).
 
-## Fase 3 — Motor de cotización — EN PRODUCCIÓN (2026-08-14)
-- **Qué hace**: en una cotización, botón "Agregar personalización" → wizard (producto, proveedor, técnica, cantidad, tintas) → busca en la matriz `x_costo_personalizacion` → agrega la línea de servicio al **precio de venta** (costo × markup, default en `ir.default`) más una **segunda línea de setup**. Si ninguna tarifa aplica NO inventa precio: pide confirmación y crea una **solicitud de aprobación**; al aprobarla se genera la línea y, opcionalmente, se guarda la tarifa en la matriz (el motor "aprende").
-- **Qué se desplegó**: 76 objetos — 2 modelos (`x_approval_request` + wizard transitorio), 49 campos, 2 ACLs, **5 Server Actions (269 líneas de Python dentro de Odoo)**, 9 vistas, 3 menús (Ventas → Aprobaciones personalización; Configuración → Costos / Técnicas), 1 contacto "Personalización Externa". **128 tarifas** cargadas (INN + PO).
-- **El repo es la fuente de verdad, no Odoo**: `scripts/deploy_motor_cotizacion.py` es idempotente y reconstruye todo desde cero (ensayado con rollback total + redeploy en staging). `--verificar` = salud de solo lectura; `rollback_motor_cotizacion.py` + manifiesto en `backups/`; `seed_costos.py` carga la matriz desde el CSV de `analysis/` (gitignored).
-- **Único punto frágil ante upgrades**: la vista heredada que inyecta el botón en el formulario de ventas (si el xpath deja de resolver, Odoo la desactiva y el botón desaparece). Ver `docs/upgrades/`.
-- El **área de impresión** sigue en texto sin parsear (`x_area_impresion` / `x_medidas`); el wizard la pide a mano.
-- **Docs**: diseño `specs/motor-cotizacion.md` · despliegue `docs/checklist-deploy-produccion.md` · manual del equipo `docs/manual-personalizacion-cotizacion.md` (publicado en Knowledge).
+## Fase 3 — Motor de cotización — RETIRADO DE PRODUCCIÓN (2026-08-17)
+
+⚠️ **El motor ya no existe en producción.** Odoo cobra «Mantenimiento de código
+personalizado» **cada 100 líneas** de código de Studio (acciones automatizadas y campos
+calculados). El motor sumaba **289 líneas = 3 cargos**, y era el **100%** del código
+facturable de la base. Ver `decisions/007-retiro-motor-cotizacion-costo-codigo.md`.
+
+- **Estado hoy**: producción en **0 líneas facturables**. Se borraron 64 objetos
+  (5 Server Actions, 7 campos calculados, los modelos `x_approval_request` y
+  `x_wizard_personalizacion` con sus 47 campos, 5 vistas, 1 menú, 1 acción, 2 ACLs).
+- **Se conservó**: las **128 tarifas** de `x_costo_personalizacion` con `x_markup`, sus
+  vistas y menú, las **20 técnicas** con sus vistas, y los 5,212 productos con técnica.
+  La matriz sigue consultable en Ventas → Configuración → Costos de personalización.
+- **Mientras tanto, las personalizaciones se cotizan A MANO** consultando esa matriz.
+- **Reversible**: `scripts/deploy_motor_cotizacion.py` reconstruye los 76 objetos desde
+  el repo con un comando. Manifiesto quirúrgico en
+  `backups/manifiesto_motor_prod_QUIRURGICO.json`.
+- **Guarda permanente**: `scripts/audit_lineas_facturables.py` mide el código
+  facturable y falla si supera `--max-bloques` (default 0). Está en el checklist
+  post-upgrade.
+- **Próximo diseño (evaluado, NO construido)**: 52 productos de servicio + ~76 reglas
+  de `product.pricelist.item` con `min_quantity` — nativo, son datos, no se factura.
+  Las 128 tarifas se descomponen en 52 combinaciones (técnica × proveedor × alcance ×
+  área): 33 con precio plano y 19 con tramos. Descartadas las variantes con atributos:
+  `price_extra` es **aditivo** y la matriz no lo es. Hallazgo: las 4 listas de precios
+  existentes tienen **0 reglas `min_quantity`** — el mecanismo está sin estrenar.
+- **Docs históricos**: diseño `specs/motor-cotizacion.md` · despliegue
+  `docs/checklist-deploy-produccion.md` · manual del equipo
+  `docs/manual-personalizacion-cotizacion.md` (⚠️ desactualizado: describe un botón que
+  ya no existe).
 
 ## PENDIENTES / próximas piezas (cada una = chat nuevo)
 - **Vigilar** primeras corridas: desactivación de sobrantes (riesgo API inestable bajo umbral 10%); que imágenes AVIF se conviertan/salten; que la derivación se dispare sola post-sync; que el backup productos_INN_*.json se genere. Revisar logs en ProductSync\logs\.

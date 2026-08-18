@@ -77,6 +77,12 @@ Documentar cada campo nuevo de API en `specs/api-shapes.md`.
 - **Human-in-the-loop obligatorio** para: cotizaciones con costos no
   parametrizados, mensajes salientes a clientes nuevos, cambios masivos de
   catálogo (> 10 productos).
+- **Odoo COBRA por cada 100 líneas de código de Studio** («Mantenimiento de código
+  personalizado»): aplica a Server Actions tipo *Execute Code* y a campos
+  calculados. NO aplica a vistas, menús, campos simples, ACLs ni automatizaciones
+  declarativas. Antes de proponer o desplegar cualquiera de los dos primeros,
+  medir con `scripts/audit_lineas_facturables.py` y buscar alternativa nativa
+  (listas de precios, productos, opcionales, webhook a n8n). Ver `decisions/007`.
 - **JSON-2 API, no XML-RPC** para integraciones nuevas (XML-RPC se deprecia
   2027 en Online).
 
@@ -160,7 +166,11 @@ python3 scripts/rollback_category_images.py --from backups/category_images_AAAAM
 - Estado por fases: `docs/roadmap.md` y `docs/punto-de-control.md`
 - APIs externas y proveedores: `specs/integrations.md`
 - Agente "Moza" (identidad, prompts, tools): `specs/ai-agent-spec.md`
-- Motor de cotización (matriz de costos → línea de cotización, wizard, Server Action): `specs/motor-cotizacion.md`
+- Motor de cotización: **RETIRADO de producción el 2026-08-17** por el cargo por línea
+  de código. Decisión y diseño de reemplazo nativo en
+  `decisions/007-retiro-motor-cotizacion-costo-codigo.md`. La spec histórica
+  (`specs/motor-cotizacion.md`) solo aplica si se reconstruye. Hoy las
+  personalizaciones se cotizan **a mano** consultando la matriz `x_costo_personalizacion`.
 - Actualizaciones de Odoo (checklist, incidencias, reparaciones): `docs/upgrades/README.md`.
   Test corre **saas~19.2** y producción **19.0**: lo que falla en test es aviso
   anticipado de lo que fallará en producción — no lo repares antes de tiempo.
