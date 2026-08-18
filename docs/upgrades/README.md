@@ -23,7 +23,8 @@ traducida con el formato viejo, y **tumbó las 5,000+ fichas de producto con un
 | Documento | Para qué |
 |---|---|
 | [checklist-post-upgrade.md](checklist-post-upgrade.md) | **Empieza aquí** tras cualquier actualización. Qué revisar, en qué orden y con qué comando |
-| [revision-saas-19-2.md](revision-saas-19-2.md) | **Antes del upgrade a 19.2**: qué cambia, campos renombrados, los 3 cambios de comportamiento, qué se probó y el runbook del día |
+| [revision-saas-19-3.md](revision-saas-19-3.md) | **Antes del upgrade a 19.3**: qué cambia, qué se rompe, la imagen nativa del PDF, los módulos mexicanos y el runbook del día |
+| [revision-saas-19-2.md](revision-saas-19-2.md) | Histórico del salto a 19.2, ya aplicado en producción el 2026-08-17 |
 | [motor-cotizacion.md](motor-cotizacion.md) | Procedimiento del motor de cotización. ⚠️ **El motor se retiró de producción el 2026-08-17** (ver [ADR 007](../../decisions/007-retiro-motor-cotizacion-costo-codigo.md)); vale solo si se reconstruye |
 | [incidencias/](incidencias/) | Un archivo por fallo real, con causa raíz y reparación. Se consultan por síntoma |
 
@@ -32,10 +33,11 @@ traducida con el formato viejo, y **tumbó las 5,000+ fichas de producto con un
 | Base | Versión | Última auditoría | Resultado |
 |---|---|---|---|
 | Producción `mozaprintmx.odoo.com` | **saas~19.2** | 2026-08-17 | ✓ limpia (tras reparar la ficha de producto; el PDF sobrevivió solo) |
-| Test `mozaprintmx-test-saas19-0807.odoo.com` | **saas~19.2** | 2026-08-16 | ✓ limpia (tras reparar la ficha de producto y la columna de imagen) |
+| Test `mozaprintmx-test-saas19-0818.odoo.com` | **saas~19.3** | 2026-08-18 | ✓ limpia (tras reparar `/contactanos`) |
 
-**Las dos bases van parejas desde el 2026-08-17.** Se pierde el margen de aviso
-anticipado hasta que Odoo libere la siguiente versión y test la tome primero.
+**Test vuelve a ir una versión adelante.** La base de test anterior
+(`…-0807`, saas~19.2) caducó y Odoo la eliminó; la nueva se creó el 2026-08-18 como
+copia de producción. Revisión de la versión: [revision-saas-19-3.md](revision-saas-19-3.md).
 
 **Test va una versión adelante de producción.** Eso no es un accidente: es el
 mejor activo que tenemos para estos upgrades. Cada fallo que aparece en test es
@@ -60,10 +62,16 @@ meses de anticipación para resolverlo.
 |---|---|---|---|
 | [2026-08-15](incidencias/2026-08-15-ficha-producto-500.md) | Internal Server Error en **todas** las fichas de producto | saas~19.2 | ✓ **resuelto en test y en producción** — el fix preparado en test se aplicó el día del upgrade (2026-08-17) |
 | [2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md) | Desapareció la columna de **Imagen** del PDF de cotización | saas~19.2 | ✓ **resuelto en test y en producción** — se aplicó antes del upgrade porque arreglaba descuadres ya existentes |
+| [2026-08-18](incidencias/2026-08-18-contactanos-500.md) | Internal Server Error en **/contactanos** (el formulario del CRM) | saas~19.3 | ✓ resuelto en test · ⏳ pendiente aplicar en prod el día del upgrade |
 
-> Las dos incidencias son la misma lección con distinta cara: **lo que Studio edita
-> dentro de una vista de módulo, el upgrade lo pisa**. La diferencia es que la primera
-> falla ruidosamente (500) y la segunda en silencio.
+> Las tres incidencias son la misma lección con distinta cara: **lo que personalizamos
+> encima de algo que Odoo después reestructura, el upgrade lo pisa** — sea una edición
+> de Studio dentro de una vista de módulo, o una copia por-website del editor del sitio.
+> Cambia solo cómo avisan: 500 ruidoso, silencio total, o 500 con traceback.
+>
+> Y cambia dónde se cazan: las dos primeras eran **estructurales** (revisión [1] y [7]);
+> la tercera es un **error de ejecución** que solo ve el barrido HTTP [5] — por eso ese
+> barrido pasó a cubrir todas las páginas publicadas y no una lista fija.
 
 ## Los tres comandos
 

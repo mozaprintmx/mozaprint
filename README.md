@@ -39,6 +39,7 @@ mozaprint-context/
 │   ├── audit_tags.py            ← Auditoría de product tags (solo lectura)
 │   ├── audit_post_upgrade.py    ← Salud tras una actualización de Odoo (solo lectura)
 │   ├── fix_vista_terminos_producto.py ← Repara la ficha de producto tras el salto a 19.2
+│   ├── fix_vista_contactanos.py ← Repara /contactanos tras el salto a 19.3 (aborta en 19.2)
 │   ├── deploy_reporte_cotizacion.py ← Columna de imagen del PDF, en vistas propias (idempotente)
 │   ├── audit_lineas_facturables.py ← Código de Studio que Odoo COBRA por cada 100 líneas
 │   ├── cleanup_tags.py         ← Borrado por reglas de product tags (lista blanca)

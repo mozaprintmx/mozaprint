@@ -217,9 +217,23 @@ def rev_cuadre_reporte(b: Base) -> list[str]:
 
 
 def rev_http(b: Base) -> list[tuple[str, str]]:
-    """5. Barrido de rutas públicas. La ficha se toma del /shop real."""
+    """5. Barrido de rutas públicas. La ficha se toma del /shop real.
+
+    Barre TODAS las `website.page` publicadas, no una lista fija: el fallo de
+    `/contactanos` en saas~19.3 era un error de EJECUCIÓN (la vista combinaba
+    bien y reventaba al renderizar), así que ninguna revisión estructural lo veía
+    y solo salió porque esa ruta estaba en la lista. Cualquier página que reviente
+    en el futuro sale sola.
+    """
     s = requests.Session()
     rutas = list(RUTAS)
+    try:
+        pgs = b.call("website.page", "search_read", [["is_published", "=", True]],
+                     fields=["url"])
+        rutas.extend(p["url"] for p in pgs if p["url"] and p["url"].startswith("/"))
+        rutas = list(dict.fromkeys(rutas))
+    except Exception as e:
+        rutas.append(f"(no se pudieron leer las páginas: {type(e).__name__})")
     try:
         r = s.get(f"{b.url}/shop", timeout=90)
         slugs = re.findall(r'/shop/([a-z0-9][a-z0-9-]*-\d+)"', r.text)

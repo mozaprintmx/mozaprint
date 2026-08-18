@@ -172,9 +172,9 @@ python3 scripts/rollback_category_images.py --from backups/category_images_AAAAM
   (`specs/motor-cotizacion.md`) solo aplica si se reconstruye. Hoy las
   personalizaciones se cotizan **a mano** consultando la matriz `x_costo_personalizacion`.
 - Actualizaciones de Odoo (checklist, incidencias, reparaciones): `docs/upgrades/README.md`.
-  **Las dos bases corren saas~19.2** desde 2026-08-17. Cuando vuelvan a divergir,
-  lo que falla en test es aviso anticipado de producción — no lo repares antes de
-  tiempo, salvo que el arreglo también sea válido en la versión vieja.
+  Producción corre **saas~19.2**; test corre **saas~19.3**. Lo que falla en test es
+  aviso anticipado de producción — no lo repares antes de tiempo, salvo que el
+  arreglo también sea válido en la versión vieja.
 - **`arch_db` y demás campos traducidos**: al escribirlos por API, itera los idiomas
   (`en_US` primero, luego los activos). Escribir solo el de la sesión deja el sitio
   roto para el visitante con el backend viéndose bien. Ya mordió a dos scripts.

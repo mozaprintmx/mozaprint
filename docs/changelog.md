@@ -4,6 +4,53 @@
 
 ---
 
+## 2026-08-18 · revisión (v51) — saas~19.3 en test: base nueva, un fallo nuevo y un hueco del auditor
+
+**Tipo**: `revisión` + `fix` (TEST) + `tooling` + `docs`.
+Revisión completa en `docs/upgrades/revision-saas-19-3.md`.
+
+La base de test anterior (`…-0807`, saas~19.2) **caducó y Odoo la eliminó**. Se creó
+`mozaprintmx-test-saas19-0818` con **saas~19.3**, copia de producción. `ODOO_TEST_URL`
+actualizado; la BD se deriva del subdominio, así que ningún script necesitó cambio.
+**Test vuelve a ir una versión adelante** de producción (19.2).
+
+**Lo que se rompe en 19.3 (1)** — `/contactanos`, el formulario que alimenta el CRM. El
+método `_get_visitor_from_request()` **se mudó de `website.visitor` a `ir.http`**. Odoo
+migró su plantilla genérica (vista 2335) y dejó intacta **nuestra copia por-website**
+(vista 4122). Tercera incidencia con la misma causa raíz: lo que personalizamos encima
+de algo que Odoo después reestructura. Reparado en test con
+`scripts/fix_vista_contactanos.py`; **24/24 páginas publicadas en 200** (antes 22/24).
+
+**Guardarraíl del nuevo script, y el bug que lo motivó**: la primera versión solo
+imprimía un aviso de versión. El control contra producción reveló que **habría
+parcheado también la vista genérica de Odoo**, rompiendo 19.2. Ahora no se fía del
+número de versión: mira las vistas **genéricas de Odoo**, que son la fuente de verdad de
+dónde vive el método, y **aborta con código 1** si todavía lo llaman sobre el modelo
+viejo — aunque le pasen `--apply --si-produccion`. Y solo toca nuestras copias
+por-website.
+
+**Hueco del auditor, cerrado**: este fallo es de **ejecución**, no estructural — la
+vista combina bien y revienta al renderizar, así que ninguna revisión estática lo ve.
+Solo lo cazó el barrido HTTP [5], y de milagro: `/contactanos` estaba en su lista fija
+de 5 rutas. Ahora **[5] barre todas las `website.page` publicadas**, de 8 rutas a **26**.
+
+**Tres hallazgos más de 19.3**:
+1. **Imagen de producto NATIVA en el PDF de venta**, con interruptor
+   `res.company.display_product_images_on_so` (hoy `False`). No es columna: va dentro de
+   la celda de descripción, y **también sale en la cotización en línea del portal** —
+   algo que nuestra columna nunca hizo. Conflicto latente: si se activa, la imagen sale
+   dos veces. Decisión pendiente de JC.
+2. **`l10n_mx_reports_closing` y `l10n_mx_xml_polizas` desaparecen** como módulos; todo
+   apunta a que se absorbieron en `l10n_mx_reports`. **Verificar el XML de pólizas** —
+   es obligación del SAT.
+3. Ocho módulos nuevos, tres de AI (`ai_product`, `ai_website_sale`, `ai_html_builder`).
+
+**Lo que pasó limpio**: 0 campos `x_` perdidos (51 campos, 2 modelos), 4 automatizaciones
+activas, PDF cuadrado en los 4 casos, 0 líneas facturables, fichas de producto en 200
+(el fix de 19.2 aguantó el salto), y ninguna vista nuestra usa los campos que 19.3 quitó.
+
+---
+
 ## 2026-08-17 · upgrade (v50) — producción sube a saas~19.2: un solo daño, reparado el mismo día
 
 **Tipo**: `upgrade` (**PRODUCCIÓN**) + `fix` + `docs`.
