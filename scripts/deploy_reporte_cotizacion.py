@@ -466,6 +466,30 @@ def verificar(o: Odoo) -> int:
                 print(f"  ✓ {rotulo} (id={v['id']}): todas las filas cuadran · "
                       f"imagen={'sí' if img else 'NO'}")
 
+    # saas~19.3 trae imagen de producto NATIVA en el reporte, dentro de la celda de
+    # descripción, con interruptor en la compañía. JC la probó el 2026-08-18 y la
+    # descartó: recorta la imagen a un cuadrado y la deforma. Nos quedamos con
+    # nuestra columna, así que el interruptor debe seguir apagado — si alguien lo
+    # enciende, la imagen sale DOS veces. El campo no existe antes de 19.3.
+    print("\n[4] La imagen nativa de 19.3 no choca con nuestra columna")
+    try:
+        nativa = o.read_call("res.company", "search_read", [],
+                             fields=["name", "display_product_images_on_so"])
+    except Exception:
+        nativa = None
+    if nativa is None:
+        print("  · no aplica (esta versión no tiene la imagen nativa)")
+    else:
+        encendidas = [c["name"] for c in nativa if c.get("display_product_images_on_so")]
+        if encendidas:
+            problemas.append("la imagen nativa está ENCENDIDA y duplica nuestra columna "
+                             f"en: {', '.join(encendidas)}")
+            print("  ✗ «Mostrar imágenes del producto» está ENCENDIDA en "
+                  f"{', '.join(encendidas)} → la imagen sale dos veces")
+            print("      Ventas → Configuración → Ajustes → Cotizaciones y órdenes")
+        else:
+            print("  ✓ «Mostrar imágenes del producto» apagada — sin duplicado")
+
     print("\n" + "-" * 74)
     if problemas:
         print(f"  ✗ {len(problemas)} problema(s):")

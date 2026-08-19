@@ -90,47 +90,68 @@ además de las rutas fijas y 3 fichas reales. Pasó de 8 rutas a **26** en esta 
 
 ## Lo que cambia y sí nos toca
 
-### 1. El PDF de cotización ahora trae imagen de producto NATIVA
+### 1. El PDF de cotización trae imagen de producto NATIVA — probada y DESCARTADA
+
+> ✓ **Decidido el 2026-08-18: nos quedamos con nuestra columna.** JC probó la nativa y
+> la descartó porque **recorta la imagen a un cuadrado y la deforma** (`object-fit-cover`
+> sobre un contenedor cuadrado). El interruptor se queda **apagado**.
 
 19.3 agrega la imagen del producto al reporte de venta, con interruptor
-`res.company.display_product_images_on_so` («Display Product Images»).
+`res.company.display_product_images_on_so` («Mostrar imágenes del producto»), en
+**Ventas → Configuración → Ajustes → Cotizaciones y órdenes**.
 
 **No es una columna**: la dibuja **dentro de la celda de descripción**, en flex con el
-nombre:
+nombre y recortada a cuadrado:
 
 ```xml
 <td name="td_product_name">
   <div class="d-flex align-items-start">
-    <img t-if="doc.company_id.display_product_images_on_so and line.product_id.image_128" …/>
+    <img … class="o_sale_report_product_image me-2 rounded object-fit-cover align-top"/>
 ```
 
-**Hoy el interruptor está en `False`**, así que no hay conflicto: nuestra columna propia
-(`th_image`/`td_image`, vistas **5062** y **5063**) sigue siendo la única. Pero es un
-**conflicto latente**: si alguien activa esa opción en Ajustes, **la imagen sale dos
-veces** — una en nuestra columna y otra pegada al nombre.
+Ese `object-fit-cover` es la causa del recorte: la imagen se estira para llenar un
+cuadrado y se le cortan los bordes. Para un catálogo de artículos promocionales, donde
+la forma del producto es la información, es una pérdida real.
 
-> **Decisión pendiente para JC**, no urgente: adoptar la nativa y retirar nuestras dos
-> vistas (cero mantenimiento, alineado con el principio del
-> [ADR 007](../../decisions/007-retiro-motor-cotizacion-costo-codigo.md)), o conservar la
-> nuestra —que ya sobrevivió dos upgrades sin tocarla— y dejar el interruptor apagado a
-> propósito. La nativa **no** da columna con encabezado «Imagen»; es otro diseño, no el
-> mismo con menos trabajo.
+**Lo que se sacrifica al descartarla**: la nativa también aparecía en la **cotización en
+línea del portal**, cosa que nuestra columna no hace. Si algún día importa que el
+cliente vea imágenes al abrir la cotización por el link, la vía no es encender el
+interruptor —volvería el duplicado— sino heredar el portal igual que heredamos el PDF.
 
-### 2. Dos módulos de la localización mexicana desaparecen
+**Guarda automática**: `deploy_reporte_cotizacion.py --verificar` gana la revisión
+**[4]**, que falla si alguien enciende el interruptor mientras nuestras vistas siguen
+activas (saldría la imagen dos veces). En versiones sin el campo, reporta «no aplica».
+
+### 2. Dos módulos mexicanos desaparecen — FALSA ALARMA, se fusionaron
+
+> ✓ **Verificado el 2026-08-18: no se perdió nada.** La alerta inicial de este documento
+> era exagerada; queda corregida.
 
 | Módulo | En 19.2 | En 19.3 |
 |---|---|---|
-| `l10n_mx_reports_closing` — *Month 13 Trial Balance* | instalado | **no existe** |
-| `l10n_mx_xml_polizas` — *XML Pólizas Export* | instalado | **no existe** |
+| `l10n_mx_reports_closing` — *Month 13 Trial Balance* | instalado | absorbido en `l10n_mx_reports` |
+| `l10n_mx_xml_polizas` — *XML Pólizas Export* | instalado | absorbido en `l10n_mx_reports` |
 
-`l10n_mx_reports` sigue instalado, y las notas oficiales de 19.3 mencionan reportes
-mexicanos nuevos (balance NIF B-6, estado de resultados NIF B-3, y **generación del XML
-de balanza complementaria**). Todo apunta a que la funcionalidad **se absorbió** en
-`l10n_mx_reports`, no a que se perdiera.
+La prueba es que **el asistente de pólizas sigue existiendo, solo cambió de casa**:
 
-> ⚠️ **Verificar en test antes de subir producción**: que el **XML de pólizas** (lo que
-> pide el SAT) siga saliendo desde Contabilidad → Reportes. Es obligación fiscal; no se
-> descubre el día que se necesita.
+| | Modelo del asistente |
+|---|---|
+| PROD 19.2 | `l10n_mx_xml_polizas.xml_polizas_wizard` |
+| TEST 19.3 | `l10n_mx_reports.xml_polizas_wizard` |
+
+Conserva todos sus campos (`export_type`, `order_number`, `process_number` y los tres
+filtros). Se abre desde **Contabilidad → Reportes → Libros → Libro Mayor**, en el menú
+de descarga/exportación.
+
+Y 19.3 **suma** reportes mexicanos en vez de restar: de **1** (DIOT) a **4** —
+*Balance Sheet NIF B-6*, *Profit and Loss NIF B-3* y *Estados anuales*.
+
+> **Contexto que baja la urgencia**: hoy **no se timbra ninguna factura desde Odoo**
+> —0 CFDI emitidos, 0 documentos EDI, y la compañía ni siquiera tiene RFC cargado
+> (`vat` vacío)—. La contabilidad se lleva en Odoo (126 asientos, 21 facturas
+> publicadas, 82 cuentas) pero la presentación ante el SAT ocurre fuera. El XML de
+> pólizas no es una dependencia viva; si algún día se timbra desde Odoo, lo primero es
+> cargar el RFC.
 
 ### 3. Ocho módulos nuevos, tres de ellos de AI
 
@@ -182,12 +203,14 @@ Todo contra `mozaprintmx-test-saas19-0818` (`saas~19.3+e`), duplicado de producc
 | Barrido de **las 24 páginas publicadas** | 22/24 antes del fix → ✓ **24/24** después |
 | **PDF de cotización y proforma** | ✓ vistas 5062/5063 activas, plantilla del módulo limpia, columnas cuadradas e imagen presente en los 4 casos (2 reportes × 2 idiomas) |
 | **Líneas facturables** | ✓ 0 líneas / 0 bloques |
+| **Asistente de XML de pólizas** | ✓ existe, renombrado a `l10n_mx_reports.xml_polizas_wizard` |
+| **Reportes financieros mexicanos** | ✓ pasan de 1 a 4 |
 | Campos `x_`, modelos custom, automatizaciones | ✓ completos (51 campos, 2 modelos, 4 automatizaciones activas) |
 | XML-RPC y JSON-2 | ✓ funcionan |
 
 ### Pendiente de probar en test
 
-- [ ] **XML de pólizas / balanza** (punto 2 de arriba) — obligación fiscal
+- [x] ~~XML de pólizas~~ — resuelto: el asistente sobrevivió, solo cambió de módulo
 - [ ] Rearmar la **cotización de prueba de los 5 tipos de fila**. La S00474 vivía en la
       base de test vieja (0807), que Odoo eliminó al caducar; la base nueva es copia de
       producción y no la tiene

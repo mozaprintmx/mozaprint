@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-08-18 · decisiones (v52) — la imagen nativa se descarta y lo de pólizas era falsa alarma
+
+**Tipo**: `decisión` + `tooling` + `docs`. Ambos puntos venían de la revisión de 19.3 (v51).
+
+**1. Imagen nativa del PDF: probada y DESCARTADA.** JC la activó en test y la rechazó:
+`object-fit-cover` sobre un contenedor cuadrado **recorta y deforma** la imagen. Para un
+catálogo de artículos promocionales, donde la forma del producto es información, es una
+pérdida real. **Nos quedamos con nuestra columna** (vistas 5062/5063) y el interruptor
+`display_product_images_on_so` se queda apagado.
+
+Se sacrifica que la nativa también salía en la **cotización en línea del portal**, cosa
+que nuestra columna no hace. Si algún día importa, la vía es heredar el portal como
+heredamos el PDF — no encender el interruptor, que traería el duplicado.
+
+**Guarda nueva**: `deploy_reporte_cotizacion.py --verificar` gana la revisión **[4]**,
+que falla si alguien enciende el interruptor mientras nuestras vistas están activas. En
+versiones sin el campo (19.2 y anteriores) reporta «no aplica». Probada en las dos bases.
+
+**2. El XML de pólizas: falsa alarma, corregida.** La v51 marcó como riesgo fiscal alto
+la desaparición de `l10n_mx_xml_polizas` y `l10n_mx_reports_closing`. **No se perdió
+nada**: se absorbieron en `l10n_mx_reports` y el asistente sigue existiendo con todos sus
+campos, solo cambió de nombre —`l10n_mx_xml_polizas.xml_polizas_wizard` pasa a
+`l10n_mx_reports.xml_polizas_wizard`—. Se abre desde Contabilidad → Reportes → Libros →
+Libro Mayor. Y 19.3 **suma** reportes mexicanos: de 1 (DIOT) a 4, con Balance NIF B-6,
+Estado de resultados NIF B-3 y Estados anuales.
+
+Contexto que baja la urgencia y que conviene tener escrito: **no se timbra ninguna
+factura desde Odoo** (0 CFDI, 0 documentos EDI, y la compañía no tiene RFC cargado). La
+contabilidad se lleva en Odoo pero la presentación ante el SAT ocurre fuera. Si algún día
+se timbra desde Odoo, lo primero es cargar el RFC.
+
+---
+
 ## 2026-08-18 · revisión (v51) — saas~19.3 en test: base nueva, un fallo nuevo y un hueco del auditor
 
 **Tipo**: `revisión` + `fix` (TEST) + `tooling` + `docs`.

@@ -26,7 +26,8 @@ python scripts/audit_lineas_facturables.py --target test
 Los tres son **solo lectura** y salen con código 1 si hay hallazgos.
 
 - [ ] **(a) sale limpio** — `✓ Sin hallazgos bloqueantes.`
-- [ ] **(b) sale limpio** — `✓ El reporte está completo y cuadrado.`
+- [ ] **(b) sale limpio** — `✓ El reporte está completo y cuadrado.` Incluye la revisión
+      **[4]**: que la imagen nativa de 19.3 siga apagada, para que no duplique la nuestra
 - [ ] **(c) sale limpio** — `✓ Dentro del máximo tolerado.` (0 bloques)
 
 > El motor de cotización se **retiró de producción el 2026-08-17** por el cargo de
