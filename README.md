@@ -24,6 +24,7 @@ mozaprint-context/
 │   ├── data-model.md            ← Modelos custom de Odoo
 │   ├── integrations.md          ← APIs externas
 │   ├── ai-agent-spec.md         ← Identidad, prompts, tools del agente Moza
+│   ├── personalizacion-nativa.md ← Reemplazo del motor: productos + listas de precios
 │   └── api-shapes.md            ← Shapes de payloads JSON
 │
 ├── decisions/                   ← Architecture Decision Records (ADRs)
@@ -47,6 +48,7 @@ mozaprint-context/
 │   ├── dump_color_values.py     ← Volcado de valores del atributo Color (solo lectura)
 │   ├── seed_tecnicas.py         ← Carga el seed de técnicas (idempotente)
 │   ├── seed_costos.py          ← Carga costos de personalización (idempotente)
+│   ├── mapa_servicios_personalizacion.py ← Matriz de costos → diseño nativo (solo lectura)
 │   ├── derive_tecnicas.py       ← Deriva técnica canónica raw→modelo
 │   ├── colores_engine.py        ← Motor de color compartido (normalize/resolve/familia)
 │   ├── derive_colores.py        ← Deriva swatches html_color del atributo Color

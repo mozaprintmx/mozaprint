@@ -4,6 +4,61 @@
 
 ---
 
+## 2026-08-21 · diseño (v53) — arranca el reemplazo nativo de personalización: sondeo + mapa
+
+**Tipo**: `diseño` + `tooling` (TEST, solo lectura) + `docs`.
+Spec viva en `specs/personalizacion-nativa.md`.
+
+**Paso 0 — sondeo de capacidades** contra test `saas~19.3`, sin escribir nada. Todo lo
+que el diseño necesita existe: `product.pricelist.item` con `applied_on`, `min_quantity`,
+`fixed_price` y `base='pricelist'` (la delegación entre listas es viable);
+`sale.order.template.line.display_type` con `line_section`; y `product.supplierinfo` con
+`min_qty` para la fase 2.
+
+**Un cambio de Odoo 19 que ajusta el diseño**: `sale_line_warn` (el selector
+no-message/warning/block) **ya no existe**; queda solo `sale_line_warn_msg`. El aviso se
+simplificó a "si hay texto, se muestra" — mejor para nosotros, pero hay que confirmarlo a
+ojo al cargar el primero.
+
+**Tres hallazgos que condicionan la carga**:
+1. **Dos categorías de servicio duplicadas** — `[435] "Servicios de Personalización"` (los
+   20 servicios) y `[5] "Servicios de personalización"` (2 productos, solo cambia una
+   mayúscula). Hay que consolidarlas ANTES de crear las reglas de delegación, que se
+   apoyan en la categoría.
+2. Las **23 reglas de lista existentes son todas de imprenta** (Volantes, Tarjetas,
+   Banner) y no chocan. GMC tiene una regla global de 0% que es un no-op.
+3. Los **20 servicios `SERV-*` solo se usan en 1 línea** de cotización → reetiquetarlos no
+   rompe nada.
+
+**Paso 1 — el mapa**, con `scripts/mapa_servicios_personalizacion.py` (solo lectura,
+lee la matriz viva). De **126 tarifas activas** salen **51 productos, 74 reglas de precio
+y 2 setups**, a `analysis/costos-personalizacion/` (gitignored: son costos de proveedor).
+
+**El SKU costó dos vueltas.** La primera versión truncaba el alcance a 9 caracteres y
+produjo **3 colisiones** (`Reloj PD-001/002/003`, `Modelo TE-146/147/148/176`, `Cilindros`
+vs `Cilindros 350°`), además de generar `MODELOTE1`, que se lee como "lote" sin serlo. La
+segunda, con las primeras 6 letras, colisionó en otras 3 (`Llaveros y bolígrafos` vs
+`Llaveros de bambú`) porque **lo que distingue viene al final**. La definitiva toma **dos
+palabras significativas de 5 letras más los dígitos**, y marca el área con `-H` (hasta) o
+`-D` (desde) porque la matriz tiene tarifas distintas con el mismo número («máximo 603» vs
+«mayor a 603»). El generador **falla con código 1 si quedan duplicados**: el SKU es la
+llave del diseño y un choque haría que una tarifa pisara a la otra.
+
+También se capturan los tres casos que el vendedor puede equivocar, como texto de
+`sale_line_warn_msg`: 11 productos donde **la cantidad es el número de tintas**, 1 de lote
+puro, y 16 con **cantidad mínima > 1**. Y el setup de bordado, que es condicional (no se
+cobra a partir de 201 pzas).
+
+**Nada cargado en Odoo.** El siguiente punto de control es que JC revise
+`mapa_1_productos.csv` antes de escribir la primera línea del cargador.
+
+**Otros cierres del día**: se archivó en producción el artículo de Knowledge «Manual —
+Agregar personalización a una cotización» (id 73), que describía el botón retirado;
+archivado, no borrado. Y se descarta rearmar la cotización de prueba de los 5 tipos de
+fila en la base de test nueva.
+
+---
+
 ## 2026-08-18 · decisiones (v52) — la imagen nativa se descarta y lo de pólizas era falsa alarma
 
 **Tipo**: `decisión` + `tooling` + `docs`. Ambos puntos venían de la revisión de 19.3 (v51).
