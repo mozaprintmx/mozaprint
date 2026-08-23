@@ -49,7 +49,7 @@ costos de proveedor):
 
 | Archivo | Qué trae |
 |---|---|
-| `mapa_1_productos.csv` | 51 productos: SKU, nombre, precio, costo, markup, mínimo, aviso |
+| `mapa_1_productos.csv` | 51 productos: llave, SKU, nombre, descripción de venta, precio, costo, markup, mínimo, aviso |
 | `mapa_2_reglas_precio.csv` | 74 reglas `min_quantity` → `fixed_price` |
 | `mapa_3_setups.csv` | 2 productos de setup, con su condición |
 
@@ -68,15 +68,61 @@ comparten prefijo y lo que las separa viene después — colisionaban. `-H603` e
 El generador **falla ruidosamente si dos combinaciones caen en el mismo SKU**. Es la
 llave del diseño entero: un choque haría que una tarifa pisara a la otra.
 
-### Los tres casos que el vendedor puede equivocar
+**Los SKU revisados a mano mandan.** JC corrigió los 51 el 2026-08-22; desde entonces el
+generador relee la hoja anterior y **conserva el SKU de cada combinación**, generando solo
+los que falten. El emparejamiento va por la columna `llave`
+(`técnica|proveedor|alcance|área_desde|área_hasta|unidad`), y avisa si algún SKU de la
+hoja ya no empata con ninguna tarifa. Los **nombres y descripciones sí se regeneran**:
+salen de las reglas de diseño, no de edición manual.
 
-Van en `sale_line_warn_msg`, que salta al elegir el producto en la línea:
+### El error caro del diseño, y cómo se ataca
 
-| Caso | Cuántos | Qué dice el aviso |
+**11 de los 51 productos se cobran por lote Y por tinta** (serigrafía y tampografía de
+Innovation Line). En esos, la **cantidad de la línea es el número de tintas**, no de
+piezas — porque una línea de venta solo sabe hacer cantidad × precio, y la tarifa es un
+monto fijo por lote multiplicado por cada tinta.
+
+De los dos errores posibles, el peligroso no es el obvio:
+
+| Lo que teclea el vendedor | Resultado en `PERS-SERI-INN-BOLILLAVE-LOTE` (500 pzas, 2 tintas) |
+|---|---|
+| **2** — correcto | $2,422.50 · costo $1,900 · margen $522.50 |
+| **500** — cree que son piezas | $605,625. Absurdo, alguien lo ve antes de enviarlo |
+| **1** — olvidó la segunda tinta | $1,211.25 · **costo $1,900 → pierde $688.75** |
+
+El tercero es el caro: da un número creíble, nadie lo cuestiona, y el hueco aparece
+cuando llega la factura del proveedor. En Aplaudidores, cotizar 2 tintas cuando eran 3
+son **$2,700 de pérdida en una línea**. Nada en el sistema lo detecta.
+
+> **Hueco reconocido**: si la cantidad son tintas, el número de PIEZAS nunca entra al
+> sistema, y la tarifa solo vale hasta 1,000. Hoy nada impide cotizar 3,000 piezas al
+> precio de un lote. Va en el nombre y en la descripción; no hay forma nativa de
+> validarlo sin código.
+
+**Decisión (JC, 2026-08-22): opción B + D.**
+
+| | Qué se hace |
+|---|---|
+| **B — el nombre** | `Serigrafía POR TINTA · … · Innovation Line (lote ≤1,000 pzas)`. Se ve en la línea, en pantalla y en el PDF. **No se puede descartar como un aviso** |
+| **D — `description_sale`** | Baja sola a la línea y al PDF: «Precio por lote de hasta 1,000 piezas y por tinta. Incluye 1 posición de impresión.» En tono comercial: la lee el cliente y de paso le explica el cargo |
+| A — `sale_line_warn_msg` | Se genera igual, como refuerzo interno y en tono directo |
+
+Se evaluaron y descartaron: **unidad de medida «Tinta»** —elegante y bien soportada en
+19.3, pero el grupo *Manage Multiple Units of Measure* está apagado y encenderlo saca la
+columna de unidad en TODAS las líneas de venta, un cambio global para el 20% de los
+casos— y **un producto por número de tintas** (11 → 33), que hace el error imposible pero
+alarga el catálogo. Si con B+D se sigue colando el error, esa es la siguiente parada.
+
+También se descartó **convertirlo a precio por pieza**: $950 entre 100 piezas son $9.50
+c/u y entre 1,000 son $0.95. El precio unitario cambia con cada cantidad y no hay tramos
+que lo expresen sin una regla por cantidad posible.
+
+### Los otros dos casos que el vendedor puede equivocar
+
+| Caso | Cuántos | Cómo se marca |
 |---|---|---|
-| **Lote con escala por tinta** (todos INN) | 11 | «La CANTIDAD de esta línea es el NÚMERO DE TINTAS, no de piezas» |
-| **Lote sin tinta** | 1 | «Precio POR LOTE: pon cantidad 1» |
-| **Cantidad mínima > 1** | 16 | «Mínimo N pzas; por debajo esta tarifa NO aplica» |
+| **Lote sin tinta** | 1 | `POR LOTE` en el nombre + rango de piezas |
+| **Cantidad mínima > 1** | 16 | «Pedido mínimo N piezas» en la descripción + aviso |
 
 El setup de bordado es **condicional**: no se cobra a partir de 201 pzas. Eso no cabe en
 el producto, así que va como condición en la hoja de setups.
@@ -94,7 +140,7 @@ el producto, así que va como condición en la hoja de setups.
 
 ## Lo que sigue (nada de esto está hecho)
 
-- [ ] **JC revisa `mapa_1_productos.csv`** — es el punto de control antes de cargar nada
+- [x] ~~JC revisa `mapa_1_productos.csv`~~ — hecho el 2026-08-22: SKU corregidos y nombres aprobados
 - [ ] Consolidar las dos categorías de servicio duplicadas
 - [ ] Escribir el cargador (idempotente, dry-run, `--apply`, rollback) y correrlo en test
 - [ ] Las 74 reglas + las 3 de delegación, con **smoke test**: cotización desechable que

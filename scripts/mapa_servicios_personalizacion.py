@@ -60,6 +60,10 @@ SALIDA_DEF = REPO / "analysis" / "costos-personalizacion"
 
 # Código corto por proveedor, para el SKU.
 PROV = {"INNOVATIONLINE": "INN", "PROMOOPCION": "PO", "4PROMOTIONAL": "4P"}
+# Cómo se escribe el proveedor DE CARA AL CLIENTE (el partner está en mayúsculas
+# y `.title()` da 'Innovationline'). Nombres según docs/glossary.md.
+PROV_NOMBRE = {"INNOVATIONLINE": "Innovation Line", "PROMOOPCION": "Promo Opción",
+               "4PROMOTIONAL": "4Promotional"}
 # Código corto por técnica (x_code de x_tecnica_personalizacion → 4-6 letras).
 TEC = {
     "serigrafia": "SERI", "tampografia": "TAMPO", "laser": "LASER", "bordado": "BORD",
@@ -108,6 +112,72 @@ def conectar(url: str, db: str, user: str, pwd: str):
         return models.execute_kw(db, uid, pwd, model, method, list(args), kw)
 
     return call
+
+
+def leer_skus_previos(ruta: Path, combos: dict, tecnicas: dict) -> dict[str, str]:
+    """Recupera los SKU de una hoja ya revisada, indexados por `llave`.
+
+    Las hojas nuevas traen la columna `llave` y el emparejamiento es directo.
+    Las viejas no la tenían, así que se reconstruye desde (técnica, proveedor,
+    alcance, área, unidad) — que es única porque el alcance ya distingue los
+    casos ambiguos ('máximo 603' vs 'mayor a 603').
+    """
+    if not ruta.exists():
+        return {}
+    with ruta.open(encoding="utf-8-sig") as fh:
+        filas = list(csv.DictReader(fh))
+    if not filas:
+        return {}
+    if "llave" in filas[0]:
+        return {f["llave"]: f["sku"] for f in filas if f.get("sku")}
+
+    # Reconstrucción para hojas anteriores a la columna `llave`.
+    por_texto = {}
+    for k in combos:
+        tid, pid, alcance, a_de, a_a, unidad = k
+        tec = tecnicas.get(tid, {}).get("x_name", "")
+        prov = combos[k][0]["x_proveedor_id"][1]
+        por_texto[(tec, prov, alcance, str(int(a_a)) if a_a else "", unidad)] = \
+            f"{tid}|{pid}|{alcance}|{a_de:g}|{a_a:g}|{unidad}"
+
+    previos, huerfanos = {}, []
+    for f in filas:
+        clave = (f.get("tecnica", ""), f.get("proveedor", ""), f.get("alcance", ""),
+                 f.get("area_hasta_cm2", ""), f.get("unidad_cobro", ""))
+        llave = por_texto.get(clave)
+        if llave:
+            previos[llave] = f["sku"]
+        else:
+            huerfanos.append(f.get("sku", "?"))
+    if huerfanos:
+        print(f"⚠ {len(huerfanos)} SKU de la hoja anterior no empatan con ninguna "
+              f"tarifa actual (¿cambió la matriz?): {', '.join(huerfanos[:5])}")
+    return previos
+
+
+def descripcion(filas: list[dict], tecnica: str) -> str:
+    """(D) `description_sale`: baja sola a la línea de la cotización y al PDF.
+
+    La ve EL CLIENTE, así que va en tono comercial y sin jerga interna — pero
+    dice lo mismo que el vendedor necesita recordar. El recordatorio crudo
+    ('la cantidad son tintas') vive en el nombre y en el aviso, no aquí.
+    """
+    r = filas[0]
+    p = [f"{tecnica}."]
+    if r["x_unidad_cobro"] == "lote":
+        tope = f"{int(r['x_qty_to']):,}" if r["x_qty_to"] else None
+        if r["x_escala_por_tinta"]:
+            p.append(f"Precio por lote de hasta {tope or 'sin tope'} piezas y por tinta.")
+        else:
+            p.append(f"Precio por lote completo de {int(r['x_qty_from']):,}"
+                     f"–{tope or '∞'} piezas.")
+    minimo = min(int(f["x_qty_from"]) for f in filas)
+    if minimo > 1 and r["x_unidad_cobro"] != "lote":
+        p.append(f"Pedido mínimo {minimo:,} piezas.")
+    if r["x_area_to_cm2"]:
+        p.append(f"Área máxima de impresión: {r['x_area_to_cm2']:.0f} cm².")
+    p.append("Incluye 1 posición de impresión.")
+    return " ".join(p)
 
 
 def aviso(filas: list[dict]) -> str:
@@ -172,6 +242,13 @@ def main() -> int:
     for v in combos.values():
         v.sort(key=lambda r: int(r["x_qty_from"]))
 
+    # Los SKU que JC ya revisó y corrigió a mano MANDAN: se releen de la hoja
+    # anterior y se conservan. Solo se generan los que no existan todavía. Sin
+    # esto, cada corrida pisaría su trabajo.
+    previos = leer_skus_previos(args.salida / "mapa_1_productos.csv", combos, tecnicas)
+    if previos:
+        print(f"Hoja anterior: se conservan {len(previos)} SKU ya revisados")
+
     productos, reglas, setups = [], [], {}
     for k, fs in combos.items():
         tid, pid, alcance, a_de, a_a, unidad = k
@@ -187,19 +264,36 @@ def main() -> int:
         suf = f"{suf}{area}"
         if unidad == "lote":
             suf = f"{suf}-LOTE"
-        sku = f"PERS-{code_t}-{code_p}-{suf}"
+        llave = f"{tid}|{pid}|{alcance}|{a_de:g}|{a_a:g}|{unidad}"
+        sku = previos.get(llave) or f"PERS-{code_t}-{code_p}-{suf}"
 
         primera = fs[0]
         markup = primera["x_markup"] or 1.275
-        nombre = f"{tec.get('x_name','?')} · {alcance or 'General'} · {prov_nom.title()}"
+
+        # (B) El nombre lleva la BASE DEL PRECIO cuando no es por pieza. Es el
+        # único aviso que no se puede descartar: se ve en la línea, en pantalla
+        # y en el PDF que recibe el cliente. Los 11 casos de lote-por-tinta son
+        # el error caro del diseño — cotizar 1 tinta cuando eran 2 es creíble,
+        # silencioso y se come el margen entero.
         if unidad == "lote":
-            nombre += " (por lote)"
+            base = " POR TINTA" if primera["x_escala_por_tinta"] else " POR LOTE"
+        else:
+            base = ""
+        nombre = (f"{tec.get('x_name','?')}{base} · {alcance or 'General'} · "
+                  f"{PROV_NOMBRE.get(prov_nom, prov_nom.title())}")
         if a_a:
             nombre += f" ≤{int(a_a)} cm²"
+        if unidad == "lote":
+            tope = f"≤{int(primera['x_qty_to']):,}" if primera["x_qty_to"] else "sin tope"
+            desde = int(primera["x_qty_from"])
+            rango = f"{desde:,}–{int(primera['x_qty_to']):,}" if desde > 1 and primera["x_qty_to"] else tope
+            nombre += f" (lote {rango} pzas)"
 
         productos.append({
+            "llave": llave,
             "sku": sku,
             "nombre": nombre,
+            "descripcion_venta": descripcion(fs, tec.get("x_name", "")),
             "tecnica": tec.get("x_name", ""),
             "proveedor": prov_nom,
             "alcance": alcance,
