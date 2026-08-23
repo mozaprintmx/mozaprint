@@ -124,6 +124,13 @@ con `# TODO(mozaprint):`; cuestiona requerimientos ambiguos antes de implementar
 - No instalar librerías sin documentar por qué en el commit.
 - No migrar datos sin script de rollback.
 - No cambiar nombres de campos custom existentes (rompe integraciones).
+- **NUNCA renombrar los partners de proveedor** `INNOVATIONLINE`, `PROMOOPCION` ni
+  `4PROMOTIONAL` (ids 82, 11, 15). Esos nombres en mayúsculas son **identificadores
+  técnicos, no etiquetas**: el sync los busca con `name = '<exacto>'` y, si no los
+  encuentra, **crea un duplicado en silencio** — partiendo `product.supplierinfo` entre
+  dos partners y rompiendo `seed_costos.py`, que exige exactamente 1 coincidencia. Ya hay
+  otros partners con nombre parecido (ids 32 y 8) que NO son estos. Si hace falta un
+  nombre presentable para el cliente, va en el texto del producto, no en el partner.
 - No subir credenciales ni datos de clientes al repo.
 
 ## Comandos comunes

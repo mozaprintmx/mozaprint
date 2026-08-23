@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-08-22 · hallazgo (v55) — los nombres de los partners de proveedor son identificadores, no etiquetas
+
+**Tipo**: `hallazgo` + `docs`. Sin cambios en Odoo.
+
+Al escribir los nombres bonitos de proveedor en los productos de personalización
+(«Innovation Line» en vez de «INNOVATIONLINE»), JC preguntó si eso afectaba al sync de
+productos y stock. **No afecta** —el cambio vive solo en el texto del producto propuesto,
+y `PROV_NOMBRE` aparece únicamente en las dos líneas que arman ese texto— pero la
+validación destapó un riesgo que no estaba escrito.
+
+`get_or_create_supplier` del sync hace `search [("name","=",nombre)]` y **si no encuentra,
+`create`**. Es decir: renombrar `INNOVATIONLINE`, `PROMOOPCION` o `4PROMOTIONAL` no da
+error, da un **duplicado silencioso** — el `product.supplierinfo` queda partido entre dos
+partners y `seed_costos.py` revienta porque exige exactamente 1 coincidencia. Con 1,469 /
+2,012 / 2,089 líneas de supplierinfo colgando de cada uno, no es un daño trivial.
+
+Verificado en prod y test: los tres tienen **1 match exacto** (ids 82, 11, 15) y **no
+existe ningún duplicado** con el nombre presentable. Además hay dos partners de nombre
+parecido y mejor pinta —`(InnovationLine) INNOVA PROMOCIONALES SA DE CV` (id 32,
+`supplier_rank=2`) y `(PROMOOPCION) Promocionales de Occidente, S.A. de C.V.` (id 8)— que
+**no** son los que usa el sync.
+
+La regla quedó en `CLAUDE.md` (se carga en cada sesión) y el detalle con la tabla en
+`specs/data-model.md`.
+
+---
+
 ## 2026-08-22 · upgrade (v54) — producción sube a saas~19.3 y se repara /contactanos
 
 **Tipo**: `upgrade` (**PRODUCCIÓN**) + `fix` + `docs`.

@@ -645,7 +645,30 @@ assigned_user_id:
 > (47 INN, 80 PO), 0 errores, idempotencia confirmada en un segundo dry-run.
 > `x_proveedor_id` resuelve por nombre EXACTO de partner (no `ilike` — hay
 > partners de proveedor duplicados en Odoo, ver `docs/changelog.md` v25 y
-> `analysis/costos-personalizacion/costos_seed.md`). 4P pendiente (sin lista
+> `analysis/costos-personalizacion/costos_seed.md`).
+>
+> ⛔ **Los nombres de esos partners son identificadores técnicos. No se renombran.**
+> Verificado 2026-08-22 en prod y test:
+>
+> | Partner | id | Tarifas | `product.supplierinfo` |
+> |---|---|---|---|
+> | `INNOVATIONLINE` | 82 | 47 | 1,469 |
+> | `PROMOOPCION` | 11 | 81 | 2,012 |
+> | `4PROMOTIONAL` | 15 | 0 | 2,089 |
+>
+> El sync (`analysis/supplier-sync/odoo_client.py`, `get_or_create_supplier`) hace
+> `search [("name","=",nombre)]` y **si no encuentra, `create`**. Renombrar el partner no
+> produce un error: produce un **duplicado silencioso**, con el supplierinfo partido entre
+> los dos y `seed_costos.py` fallando porque espera 1 match exacto.
+>
+> Y hay trampa cerca: existen `(InnovationLine) INNOVA PROMOCIONALES SA DE CV` (id 32,
+> `supplier_rank=2`) y `(PROMOOPCION) Promocionales de Occidente, S.A. de C.V.` (id 8)
+> que **no** son los que usa el sync, pese a tener mejor pinta de "proveedor real".
+>
+> Si se necesita un nombre presentable de cara al cliente —«Innovation Line» en vez de
+> «INNOVATIONLINE»— va en el **texto del producto**, nunca en el partner. Así se resolvió
+> en `scripts/mapa_servicios_personalizacion.py` (constante `PROV_NOMBRE`), que solo lo
+> usa para componer el nombre del servicio. 4P pendiente (sin lista
 > documentada, requiere extracción empírica de histórico).
 > Rediseñado tras leer
 > las listas de costos reales de INN (`analysis/costos-personalizacion/COSTOS_INN_20260805.md`,
