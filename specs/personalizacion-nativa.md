@@ -184,11 +184,51 @@ alteró nada contable.
 > igual en producción sin haberla tocado. Son los productos de recompensa que Odoo genera
 > solo para las promociones (`loyalty.program`). No tienen relación.
 
+## Paso 4 — carga de productos (piloto en TEST el 2026-08-22)
+
+`scripts/cargar_servicios_personalizacion.py` — lee la hoja revisada, dry-run por
+defecto, `--filtro` por prefijo de SKU, `--verificar` y `--rollback`.
+
+Se cargó primero **solo láser Innovation Line: 14 productos**, el caso más simple —sin
+tramos, sin lote, sin setup— para validar el mecanismo antes de soltar las 51.
+
+**Qué escribe en cada producto**
+
+| Campo | Valor |
+|---|---|
+| `default_code` / `name` / `description_sale` | de la hoja |
+| `type` | `service` |
+| `list_price` / `standard_price` | precio de venta / costo → Odoo calcula el margen solo |
+| `categ_id` | `Servicios de Personalización` |
+| `sale_ok` / `purchase_ok` / `is_published` | `True` / `False` / `False` |
+| `sale_line_warn_msg` | el aviso interno |
+| `x_es_servicio_personalizacion` / `x_tecnica_servicio_id` | marca y técnica |
+
+**Resultado**: 14 creados, y la segunda corrida reporta «0 crear · 0 actualizar · 14 sin
+cambio» — idempotente. La llave es el `default_code`.
+
+### Smoke test, sobre una cotización desechable
+
+| Prueba | Resultado |
+|---|---|
+| Precio unitario contra la hoja, en 3 productos × 2 cantidades | ✓ los 6 exactos |
+| `description_sale` baja sola a la línea | ✓ |
+| Se encuentran tecleando `laser`, `termo`, `curpiel` o el SKU | ✓ |
+| Categoría, `is_published=False`, costo para margen | ✓ |
+
+La cotización se borró al terminar.
+
+> **Bug corregido de camino**: `consolidar_categorias_servicio.py` buscaba los comodines
+> por `x_es_servicio_personalizacion`, y los 51 tarifados también llevan esa marca — una
+> segunda corrida habría renombrado «Láser · Curpiel · Innovation Line» a «Láser (precio a
+> cotizar)». Ahora filtra por el prefijo de SKU `SERV-`.
+
 ## Lo que sigue
 
 - [x] ~~JC revisa `mapa_1_productos.csv`~~ — hecho el 2026-08-22: SKU corregidos y nombres aprobados
 - [x] ~~Consolidar las dos categorías de servicio duplicadas~~ — hecho en TEST el 2026-08-22
-- [ ] Escribir el cargador (idempotente, dry-run, `--apply`, rollback) y correrlo en test
+- [x] ~~Escribir el cargador y correrlo en test~~ — hecho: piloto de 14 productos de láser INN
+- [ ] Cargar los 37 productos restantes, por técnica
 - [ ] Las 74 reglas + las 3 de delegación, con **smoke test**: cotización desechable que
       compara `price_unit` contra la matriz en varias cantidades
 - [ ] Plantilla de cotización con las secciones «Producto» y «Personalización»

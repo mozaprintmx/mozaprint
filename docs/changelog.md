@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-08-22 · paso 4 (v57) — primeros 14 servicios de personalización cargados en TEST
+
+**Tipo**: `datos` (TEST) + `tooling` + `docs`. Script:
+`scripts/cargar_servicios_personalizacion.py` (dry-run, `--filtro`, `--verificar`,
+`--rollback`).
+
+Piloto deliberadamente acotado: **solo láser Innovation Line, 14 productos**, el caso más
+simple —sin tramos de cantidad, sin lote, sin setup— para validar el mecanismo completo
+antes de soltar los 51. Idempotente por `default_code`: la segunda corrida reporta 14 sin
+cambio.
+
+**Smoke test sobre una cotización desechable, borrada al terminar**: precio unitario
+exacto contra la hoja en 3 productos × 2 cantidades, `description_sale` bajando sola a la
+línea, y los productos apareciendo al teclear «laser», «termo», «curpiel» o el SKU. Todo
+limpio.
+
+**Bug corregido antes de que mordiera**: `consolidar_categorias_servicio.py` buscaba los
+comodines por `x_es_servicio_personalizacion`, marca que los 51 tarifados también llevan.
+Una segunda corrida habría renombrado «Láser · Curpiel · Innovation Line» a «Láser (precio
+a cotizar)», destruyendo el catálogo recién cargado. Ahora filtra por el prefijo de SKU
+`SERV-`, y se verificó que la corrida repetida no toca nada.
+
+---
+
 ## 2026-08-22 · paso 3 (v56) — una sola categoría de servicio y los genéricos como comodín
 
 **Tipo**: `datos` (TEST) + `tooling` + `docs`. Script:

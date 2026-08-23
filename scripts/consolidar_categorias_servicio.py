@@ -71,6 +71,7 @@ BACKUP_DIR = REPO / "backups"
 
 CAT_ORIGEN = "Servicios de personalización"   # la que se elimina (minúscula)
 CAT_DESTINO = "Servicios de Personalización"  # la que sobrevive
+PREFIJO_COMODIN = "SERV-"          # SKU de los 20 servicios genéricos
 SUFIJO_COMODIN = " (precio a cotizar)"
 CTX = {"active_test": False}   # los archivados también cuentan para poder borrar
 
@@ -190,8 +191,12 @@ def main() -> int:
 
     # ---------------------------------------------------------------- 3.4 ---
     print(f"\n[3.4] Marcar los servicios genéricos como comodín")
+    # Se filtra por el prefijo del SKU, NO por `x_es_servicio_personalizacion`:
+    # los 51 productos tarifados también llevan esa marca, y buscarlos por ahí
+    # renombraría «Láser · Curpiel · Innovation Line» a «Láser (precio a
+    # cotizar)» en la segunda corrida. Los comodines son exactamente los SERV-*.
     genericos = call("product.template", "search_read",
-                     [["x_es_servicio_personalizacion", "=", True]],
+                     [["default_code", "=like", f"{PREFIJO_COMODIN}%"]],
                      fields=["name", "default_code", "x_tecnica_servicio_id"], context=CTX)
     n_ren = 0
     for g in sorted(genericos, key=lambda z: z["name"]):
