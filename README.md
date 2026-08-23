@@ -49,6 +49,7 @@ mozaprint-context/
 │   ├── seed_tecnicas.py         ← Carga el seed de técnicas (idempotente)
 │   ├── seed_costos.py          ← Carga costos de personalización (idempotente)
 │   ├── mapa_servicios_personalizacion.py ← Matriz de costos → diseño nativo (solo lectura)
+│   ├── consolidar_categorias_servicio.py ← Une las 2 categorías de servicio duplicadas
 │   ├── derive_tecnicas.py       ← Deriva técnica canónica raw→modelo
 │   ├── colores_engine.py        ← Motor de color compartido (normalize/resolve/familia)
 │   ├── derive_colores.py        ← Deriva swatches html_color del atributo Color

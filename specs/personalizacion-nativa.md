@@ -138,10 +138,56 @@ el producto, así que va como condición en la hoja de setups.
    una** con `base='pricelist'` apuntando a Default sobre la categoría de personalización.
 4. **No se ligan los servicios a los 5,212 productos** vía `optional_product_ids`.
 
-## Lo que sigue (nada de esto está hecho)
+## Paso 3 — categorías consolidadas (hecho en TEST el 2026-08-22)
+
+`scripts/consolidar_categorias_servicio.py` — dry-run por defecto, respaldo y `--rollback`.
+
+**Lo que había no era lo que parecía.** La categoría `[5]` no tenía «2 productos
+sueltos» sino **3 de la era manual, con historial de ventas**:
+
+| Producto | Precio | Uso |
+|---|---|---|
+| `Impresión con Serigrafía` (id 9) | $1.00 | **4 cotizaciones**, $23,760 |
+| `FULL COLOR` (id 4996) | $990 | 1 cotización, $990 |
+| `Impresión Serigrafía 1 tinta` (id 10) | $1,485 | archivado, sin uso |
+
+> **Hallazgo que valida el diseño**: las 4 cotizaciones de `Impresión con Serigrafía`
+> van con **cantidad 2 y precio $2,970**. El producto vale $1.00 —es un cascarón donde el
+> vendedor teclea el precio— y **usan la cantidad para las tintas**. La convención
+> «cantidad = tintas» que introducimos con B+D *ya es su forma de trabajar*.
+
+### Qué se hizo
+
+| Paso | Resultado |
+|---|---|
+| **3.1** Mover los 3 legado a `[435]` | ✓ incluido el archivado — sin uno solo dentro, la categoría no se puede borrar |
+| **3.2** Borrar `[5]` | ✓ **borrada**. `product.category` **no tiene campo `active`**: no se archiva, se borra o se queda |
+| **3.3** Renombrar la superviviente | · sin cambio, `[435]` ya se llamaba `Servicios de Personalización` |
+| **3.4** Marcar los 20 genéricos | ✓ `Servicio de Bordado` ⇒ **`Bordado (precio a cotizar)`** |
+
+`[435]` quedó con **23 productos**: 20 comodines + los 3 legado. El historial de ventas
+sobrevivió intacto ($23,760 y $990 siguen en sus líneas — el precio vive en la línea, no
+en el producto), y ambas categorías tenían las mismas cuentas contables, así que mover no
+alteró nada contable.
+
+### Decisiones tomadas (JC, 2026-08-22)
+
+- **Los 20 genéricos se conservan como comodín**, no se archivan: de las 20 técnicas solo
+  **9** tienen tarifa en la matriz, y 4Promotional no tiene ninguna. Sin comodín, esos
+  casos se quedarían sin producto que usar.
+- **Los 3 legado se archivan al final**, cuando los 51 estén probados y el equipo los use
+  — no ahora.
+- Se descartó ajustar el markup: el 1.1 que apareció en esas cotizaciones **es un caso
+  especial**, no la práctica general. La hoja se queda con 1.275.
+
+> Falsa alarma descartada: hay **96 templates sin categoría** en la base, pero están
+> igual en producción sin haberla tocado. Son los productos de recompensa que Odoo genera
+> solo para las promociones (`loyalty.program`). No tienen relación.
+
+## Lo que sigue
 
 - [x] ~~JC revisa `mapa_1_productos.csv`~~ — hecho el 2026-08-22: SKU corregidos y nombres aprobados
-- [ ] Consolidar las dos categorías de servicio duplicadas
+- [x] ~~Consolidar las dos categorías de servicio duplicadas~~ — hecho en TEST el 2026-08-22
 - [ ] Escribir el cargador (idempotente, dry-run, `--apply`, rollback) y correrlo en test
 - [ ] Las 74 reglas + las 3 de delegación, con **smoke test**: cotización desechable que
       compara `price_unit` contra la matriz en varias cantidades

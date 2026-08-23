@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-08-22 · paso 3 (v56) — una sola categoría de servicio y los genéricos como comodín
+
+**Tipo**: `datos` (TEST) + `tooling` + `docs`. Script:
+`scripts/consolidar_categorias_servicio.py` (dry-run, respaldo, `--rollback`).
+
+Había dos categorías que solo diferían en una mayúscula, y las reglas de delegación entre
+listas de precios se apoyan en la categoría. **La `[5]` no tenía «2 productos sueltos»
+sino 3 de la era manual, con historial**: `Impresión con Serigrafía` (4 cotizaciones,
+$23,760), `FULL COLOR` (1, $990) y uno archivado.
+
+Los 3 se movieron a `[435]`, la `[5]` **se borró** —`product.category` no tiene campo
+`active`, así que no se archiva— y los 20 servicios genéricos pasaron de
+`Servicio de Bordado` a **`Bordado (precio a cotizar)`**. `[435]` queda con 23 productos.
+El historial sobrevivió intacto: el precio vive en la línea, no en el producto, y ambas
+categorías tenían las mismas cuentas contables.
+
+**Los 20 genéricos se conservan a propósito**: de las 20 técnicas solo 9 tienen tarifa, y
+4Promotional no tiene ninguna. Sin comodín, esos casos se quedan sin producto.
+
+**Hallazgo que valida el diseño B+D**: las 4 cotizaciones del producto legado van con
+cantidad 2 y precio $2,970 sobre un producto que vale $1.00 — es decir, **ya cotizan
+usando la cantidad como número de tintas**. La convención que íbamos a introducir ya era
+su forma de trabajar.
+
+Se descartó por indicación de JC el ajuste de markup a 1.1 que apareció en esas líneas: es
+un caso especial, no la práctica. Y se descartó una falsa alarma de 96 templates sin
+categoría — están igual en producción sin tocarla, son los productos de recompensa que
+Odoo genera para las promociones.
+
+**Pendiente en producción**: el mismo script, cuando el diseño esté validado en test.
+
+---
+
 ## 2026-08-22 · hallazgo (v55) — los nombres de los partners de proveedor son identificadores, no etiquetas
 
 **Tipo**: `hallazgo` + `docs`. Sin cambios en Odoo.
