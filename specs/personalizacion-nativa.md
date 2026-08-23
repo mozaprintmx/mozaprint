@@ -204,8 +204,10 @@ tramos, sin lote, sin setup— para validar el mecanismo antes de soltar las 51.
 | `sale_line_warn_msg` | el aviso interno |
 | `x_es_servicio_personalizacion` / `x_tecnica_servicio_id` | marca y técnica |
 
-**Resultado**: 14 creados, y la segunda corrida reporta «0 crear · 0 actualizar · 14 sin
-cambio» — idempotente. La llave es el `default_code`.
+**Resultado**: piloto de 14, y después **los 37 restantes**. Los **51 están cargados en
+TEST**; `--verificar` sale con código 0 y la corrida repetida reporta «51 sin cambio».
+La llave es el `default_code`. La categoría quedó con **73 productos activos**: 51
+tarifados + 20 comodines + 2 legado (el tercero sigue archivado).
 
 ### Smoke test, sobre una cotización desechable
 
@@ -215,8 +217,21 @@ cambio» — idempotente. La llave es el `default_code`.
 | `description_sale` baja sola a la línea | ✓ |
 | Se encuentran tecleando `laser`, `termo`, `curpiel` o el SKU | ✓ |
 | Categoría, `is_published=False`, costo para margen | ✓ |
+| **Lote por tinta** — qty 1/2/3 multiplica bien ($1,211.25 → $3,633.75) | ✓ |
+| **Lote sin tinta** — qty 1 = $1,753.12 | ✓ |
+| **Con cantidad mínima** — qty 10 y 50 | ✓ el precio, ⚠ ver abajo |
+| **Con curva de cantidad** — qty 100 y 600 | ✓ el precio base (los tramos son el paso 5) |
 
-La cotización se borró al terminar.
+Las cotizaciones se borraron al terminar.
+
+> **Dos huecos que el smoke test deja a la vista, y son los esperados:**
+>
+> 1. `PERS-SUBLI-INN-MODELTE146` tiene mínimo 50 pzas, y con qty=10 cobra
+>    10 × $40.80 = $408 tan campante. La tarifa **no aplica** por debajo del mínimo, pero
+>    nada lo impide: solo lo advierten la descripción y el aviso.
+> 2. `PERS-SERI-PO-BOLSATEXTI-H603` con 600 pzas cobra el precio del tramo 100 ($11.96)
+>    en vez del de 600 ($6.08). **Correcto por ahora**: las reglas de tramo son el paso 5,
+>    y hasta que existan todos los productos con curva cotizan de más.
 
 > **Bug corregido de camino**: `consolidar_categorias_servicio.py` buscaba los comodines
 > por `x_es_servicio_personalizacion`, y los 51 tarifados también llevan esa marca — una

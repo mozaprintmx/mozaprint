@@ -4,21 +4,28 @@
 
 ---
 
-## 2026-08-22 · paso 4 (v57) — primeros 14 servicios de personalización cargados en TEST
+## 2026-08-22 · paso 4 (v57) — los 51 servicios de personalización cargados en TEST
 
 **Tipo**: `datos` (TEST) + `tooling` + `docs`. Script:
 `scripts/cargar_servicios_personalizacion.py` (dry-run, `--filtro`, `--verificar`,
 `--rollback`).
 
-Piloto deliberadamente acotado: **solo láser Innovation Line, 14 productos**, el caso más
-simple —sin tramos de cantidad, sin lote, sin setup— para validar el mecanismo completo
-antes de soltar los 51. Idempotente por `default_code`: la segunda corrida reporta 14 sin
-cambio.
+Primero un piloto acotado —**solo láser Innovation Line, 14 productos**, el caso más
+simple: sin tramos, sin lote, sin setup— y con el mecanismo validado, **los 37 restantes**.
+Los 51 están en TEST; `--verificar` sale con código 0 y la corrida repetida reporta 51 sin
+cambio. La categoría queda con 73 productos activos: 51 tarifados + 20 comodines + 2
+legado.
 
-**Smoke test sobre una cotización desechable, borrada al terminar**: precio unitario
-exacto contra la hoja en 3 productos × 2 cantidades, `description_sale` bajando sola a la
-línea, y los productos apareciendo al teclear «laser», «termo», «curpiel» o el SKU. Todo
-limpio.
+**Smoke test sobre cotizaciones desechables, borradas al terminar.** Todos los precios
+base exactos contra la hoja, incluidos los casos difíciles: **lote por tinta** (qty 1/2/3
+multiplica bien, $1,211.25 → $3,633.75), **lote sin tinta**, **cantidad mínima** y
+**productos con curva**. `description_sale` baja sola a la línea y los productos aparecen
+al teclear la técnica, el alcance o el SKU.
+
+**Dos huecos que el smoke test confirma, ambos esperados**: un producto con mínimo de 50
+pzas cobra tan campante con qty=10 (solo lo advierten el nombre y la descripción), y los
+productos con curva cotizan el precio del primer tramo hasta que existan las reglas del
+paso 5 — hoy eso significa cotizar **de más**, no de menos.
 
 **Bug corregido antes de que mordiera**: `consolidar_categorias_servicio.py` buscaba los
 comodines por `x_es_servicio_personalizacion`, marca que los 51 tarifados también llevan.
