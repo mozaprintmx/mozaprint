@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-08-22 · upgrade (v54) — producción sube a saas~19.3 y se repara /contactanos
+
+**Tipo**: `upgrade` (**PRODUCCIÓN**) + `fix` + `docs`.
+
+Odoo subió `mozaprintmx.odoo.com` de `saas~19.2` a `saas~19.3`. El único daño fue el
+previsto y documentado en test cuatro días antes: `/contactanos` —el formulario que
+alimenta el CRM— en 500, con la vista 4122 llamando `_get_visitor_from_request()` sobre
+`website.visitor` cuando 19.3 lo movió a `ir.http`.
+
+Reparado con `scripts/fix_vista_contactanos.py --target prod --apply --si-produccion`. El
+guardarraíl por evidencia dejó pasar correctamente esta vez (la vista genérica de Odoo ya
+había migrado). Verificación: **las 26 rutas del barrido en 200**, el formulario con sus
+campos, PDF cuadrado en los 4 casos, imagen nativa apagada y 0 líneas facturables.
+
+**Tercer upgrade seguido** en que el fallo estaba diagnosticado, con script y respaldo,
+antes de que ocurriera. El día del upgrade fue ejecutar y verificar, no investigar.
+
+Las dos bases quedan parejas en `saas~19.3`; se pierde el aviso anticipado hasta que Odoo
+libere la siguiente y test la tome primero.
+
+---
+
 ## 2026-08-21 · diseño (v53) — arranca el reemplazo nativo de personalización: sondeo + mapa
 
 **Tipo**: `diseño` + `tooling` (TEST, solo lectura) + `docs`.

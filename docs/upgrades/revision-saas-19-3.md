@@ -1,6 +1,6 @@
 # Revisión de saas~19.3 — qué cambia y qué probamos
 
-> **Producción corre `saas~19.2`** (subió el 2026-08-17). **Test corre `saas~19.3`**
+> **Producción corre `saas~19.3`** (subió el 2026-08-22). **Test corre `saas~19.3`**
 > (base `mozaprintmx-test-saas19-0818`, creada el 2026-08-18). Volvemos a tener el
 > margen de aviso anticipado que se había perdido cuando las dos bases quedaron parejas.
 >
@@ -30,7 +30,7 @@ demás pasó limpio.
 
 > ✓ **Resuelto en test el 2026-08-18** con `scripts/fix_vista_contactanos.py`.
 > Detalle completo en la [incidencia](incidencias/2026-08-18-contactanos-500.md).
-> Pendiente aplicarlo en producción **el día del upgrade**.
+> ✓ **Aplicado en producción el 2026-08-22**, el día que Odoo subió la base.
 
 **Severidad: alta.** Es el formulario que alimenta el CRM (Fase 1). El resto del sitio
 —incluidas **las 5,012 fichas de producto**— está perfecto; en 19.3 no se repite el

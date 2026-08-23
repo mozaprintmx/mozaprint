@@ -32,12 +32,12 @@ traducida con el formato viejo, y **tumbó las 5,000+ fichas de producto con un
 
 | Base | Versión | Última auditoría | Resultado |
 |---|---|---|---|
-| Producción `mozaprintmx.odoo.com` | **saas~19.2** | 2026-08-17 | ✓ limpia (tras reparar la ficha de producto; el PDF sobrevivió solo) |
+| Producción `mozaprintmx.odoo.com` | **saas~19.3** | 2026-08-22 | ✓ limpia (tras reparar `/contactanos`; el PDF volvió a sobrevivir solo) |
 | Test `mozaprintmx-test-saas19-0818.odoo.com` | **saas~19.3** | 2026-08-18 | ✓ limpia (tras reparar `/contactanos`) |
 
-**Test vuelve a ir una versión adelante.** La base de test anterior
-(`…-0807`, saas~19.2) caducó y Odoo la eliminó; la nueva se creó el 2026-08-18 como
-copia de producción. Revisión de la versión: [revision-saas-19-3.md](revision-saas-19-3.md).
+**Las dos bases van parejas otra vez** desde el 2026-08-22. Se pierde el aviso
+anticipado hasta que Odoo libere la siguiente versión y test la tome primero.
+Revisión de la versión: [revision-saas-19-3.md](revision-saas-19-3.md).
 
 **Test va una versión adelante de producción.** Eso no es un accidente: es el
 mejor activo que tenemos para estos upgrades. Cada fallo que aparece en test es
@@ -62,7 +62,7 @@ meses de anticipación para resolverlo.
 |---|---|---|---|
 | [2026-08-15](incidencias/2026-08-15-ficha-producto-500.md) | Internal Server Error en **todas** las fichas de producto | saas~19.2 | ✓ **resuelto en test y en producción** — el fix preparado en test se aplicó el día del upgrade (2026-08-17) |
 | [2026-08-16](incidencias/2026-08-16-columna-imagen-cotizacion.md) | Desapareció la columna de **Imagen** del PDF de cotización | saas~19.2 | ✓ **resuelto en test y en producción** — se aplicó antes del upgrade porque arreglaba descuadres ya existentes |
-| [2026-08-18](incidencias/2026-08-18-contactanos-500.md) | Internal Server Error en **/contactanos** (el formulario del CRM) | saas~19.3 | ✓ resuelto en test · ⏳ pendiente aplicar en prod el día del upgrade |
+| [2026-08-18](incidencias/2026-08-18-contactanos-500.md) | Internal Server Error en **/contactanos** (el formulario del CRM) | saas~19.3 | ✓ **resuelto en test y en producción** — aplicado el día del upgrade (2026-08-22) |
 
 > Las tres incidencias son la misma lección con distinta cara: **lo que personalizamos
 > encima de algo que Odoo después reestructura, el upgrade lo pisa** — sea una edición

@@ -9,7 +9,7 @@
 - Pasos uno a uno con validación; no asumir herramientas/versiones; español MX; honestidad sobre trade-offs.
 
 ## Stack
-- Odoo Online **saas~19.2** Custom (db `mozaprintmx`, mozaprintmx.com) — subió el 2026-08-17. Extensión solo vía Studio / Ajustes→Técnico / Automation Rules / Server Actions. JSON-2 API (no XML-RPC) para integraciones nuevas.
+- Odoo Online **saas~19.3** Custom (db `mozaprintmx`, mozaprintmx.com) — subió el 2026-08-22. Extensión solo vía Studio / Ajustes→Técnico / Automation Rules / Server Actions. JSON-2 API (no XML-RPC) para integraciones nuevas.
 - Repo PÚBLICO `github.com/mozaprintmx/mozaprint`, local `D:\MozaPrint\Odoo\Proyectos\mozaprint`. NUNCA credenciales.
 - Sync de proveedores (4P, INN, PO): paquete Python `sync_odoo_paquete_v2`. Producción: `D:\MozaPrint\Odoo\Scripts PY\ProductSync\`. Copia de análisis (editable por Claude Code, gitignored): `analysis\supplier-sync\`. Usa XML-RPC + usuario/contraseña. Python global Python312.
 - Negocio: artículos promocionales personalizados B2B, CDMX. Operador único (Juan Carlos). Volumen bajo (~10-20 conversaciones/semana).
@@ -81,8 +81,8 @@ facturable de la base. Ver `decisions/007-retiro-motor-cotizacion-costo-codigo.m
 - **Fases siguientes**: cerrar 3, luego 4-6 (WhatsApp+n8n, agente), 7+ (SEO, expansión).
 
 ## Upgrades de Odoo (apartado nuevo, 2026-08-15)
-- Producción corre **saas~19.2** (subió el 2026-08-17). Test corre **saas~19.3** en la base `mozaprintmx-test-saas19-0818` (la anterior, `…-0807`, caducó y Odoo la eliminó). Test vuelve a ir una versión adelante. Seguimiento en `docs/upgrades/` (README + checklist + incidencias).
-- **Incidencia 19.3 pendiente de aplicar en PROD**: `/contactanos` se cae con 500 porque `_get_visitor_from_request()` se mudó de `website.visitor` a `ir.http` y nuestra copia por-website (vista 4122) quedó atrás. Reparado en test con `scripts/fix_vista_contactanos.py`; **el fix aborta a propósito si se corre contra 19.2**. Va el día del upgrade.
+- Producción y test corren **las dos saas~19.3** desde el 2026-08-22. Test es la base `mozaprintmx-test-saas19-0818` (la anterior, `…-0807`, caducó y Odoo la eliminó). Test vuelve a ir una versión adelante. Seguimiento en `docs/upgrades/` (README + checklist + incidencias).
+- **Incidencia 19.3 RESUELTA en PROD el 2026-08-22**: `/contactanos` se cae con 500 porque `_get_visitor_from_request()` se mudó de `website.visitor` a `ir.http` y nuestra copia por-website (vista 4122) quedó atrás. Reparado con `scripts/fix_vista_contactanos.py`; **el fix aborta a propósito si la base todavía tiene el método en el modelo viejo**. Tercer upgrade seguido en que el fix preparado en test se aplica el mismo día sin sorpresas.
 - **19.3 trae imagen de producto nativa en el PDF** (`display_product_images_on_so`). **Probada y DESCARTADA el 2026-08-18**: recorta la imagen a cuadrado y la deforma. Nos quedamos con nuestra columna y el interruptor apagado; `deploy_reporte_cotizacion.py --verificar` ahora falla si alguien lo enciende.
 - **Reemplazo nativo de personalización — EN DISEÑO**: sondeo y mapa hechos el 2026-08-21 contra test 19.3. De 126 tarifas activas salen **51 productos de servicio + 74 reglas de lista de precios + 2 setups**. Spec en `specs/personalizacion-nativa.md`, hoja en `analysis/costos-personalizacion/mapa_*.csv`. **Nada cargado en Odoo**; el siguiente paso es que JC revise la hoja. Ojo: hay **dos categorías de servicio duplicadas** (435 y 5) que hay que consolidar antes de cargar.
 - **Contabilidad**: se lleva en Odoo (126 asientos, 21 facturas publicadas) pero **no se timbra nada desde Odoo** (0 CFDI, sin RFC en la compañía) — la presentación ante el SAT ocurre fuera. El asistente de XML de pólizas sobrevivió a 19.3, solo cambió de módulo.
