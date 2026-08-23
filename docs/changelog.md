@@ -4,6 +4,36 @@
 
 ---
 
+## 2026-08-23 · paso 5 (v58) — tramos de cantidad y delegación entre listas, en TEST
+
+**Tipo**: `datos` (TEST) + `tooling` + `docs`. Script:
+`scripts/cargar_reglas_precio_personalizacion.py` (dry-run, `--smoke`, `--rollback`).
+
+**77 reglas: 74 tramos + 3 de delegación.** Es el paso que valida el diseño — sin estas
+reglas, los 18 productos con curva cotizaban el precio del primer tramo a cualquier
+cantidad.
+
+Los tramos son `applied_on='1_product'` + `min_quantity` + `fixed_price` en la lista
+principal; el primer tramo no lleva regla porque vive en el `list_price`. La delegación es
+una regla por lista, `applied_on='2_product_category'` con `base='pricelist'` apuntando a
+Default: sin ella, un cliente de Volant o GMC caería al precio del tramo 1 a cualquier
+cantidad. Y al ser por categoría es más específica que una global, así que de paso protege
+la personalización del descuento global que tiene GMC.
+
+**Smoke test: 92 precios probados, todos correctos.** Cada tramo de cada producto con
+curva, en el escalón exacto y justo por debajo — que es donde se vería un orden de reglas
+mal resuelto. Sale con código 1 si uno solo falla.
+
+**Delegación verificada en las cuatro listas**: Volant y GMC dan exactamente los mismos
+precios que Default, y Dólar convierte (~17.1 MXN/USD). **Control de daño colateral**: los
+precios de imprenta (Volantes $250, Tarjetas $225) siguen idénticos — la regla por
+categoría no los toca.
+
+Queda anotado para decidir: si la personalización no se vende en USD, o se vende a otro
+tipo de cambio, la regla de delegación de Dólar se quita o se ajusta.
+
+---
+
 ## 2026-08-22 · paso 4 (v57) — los 51 servicios de personalización cargados en TEST
 
 **Tipo**: `datos` (TEST) + `tooling` + `docs`. Script:

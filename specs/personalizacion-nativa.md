@@ -238,14 +238,74 @@ Las cotizaciones se borraron al terminar.
 > segunda corrida habría renombrado «Láser · Curpiel · Innovation Line» a «Láser (precio a
 > cotizar)». Ahora filtra por el prefijo de SKU `SERV-`.
 
+## Paso 5 — tramos de cantidad y delegación (hecho en TEST el 2026-08-23)
+
+`scripts/cargar_reglas_precio_personalizacion.py` — dry-run, `--apply`, `--smoke`,
+`--rollback`. **77 reglas: 74 tramos + 3 de delegación.**
+
+### Los tramos
+
+Una regla por escalón, en la lista principal:
+
+```
+applied_on='1_product' · product_tmpl_id=<servicio>
+min_quantity=600 · compute_price='fixed' · fixed_price=6.08
+```
+
+Odoo ordena por `min_quantity` descendente dentro del mismo nivel de especificidad, así
+que a 700 piezas gana la regla de 600. **El primer tramo no lleva regla**: vive en el
+`list_price` del producto.
+
+### La delegación
+
+Sin ella, un cliente con lista Volant o GMC caería al `list_price` —el precio del tramo
+1— y se le cobraría de más a cualquier cantidad, porque los tramos solo existen en la
+principal. Una regla por lista:
+
+```
+applied_on='2_product_category' · categ_id=<Servicios de Personalización>
+compute_price='formula' · base='pricelist' · base_pricelist_id=<Default> · price_discount=0
+```
+
+Al ser por categoría es más específica que una global, así que además **protege la
+personalización de descuentos globales** (GMC tiene uno al 0%).
+
+### Smoke test — 92 precios, todos correctos
+
+Prueba **cada tramo de cada uno de los 18 productos con curva**, en el escalón exacto y
+justo por debajo, que es donde se ve si el orden de las reglas está bien:
+
+```
+PERS-SERI-PO-BOLSATEXTI-H603  ✓199→$11.96 ✓200→$8.78 ✓400→$6.76 ✓600→$6.08
+                              ✓800→$5.41 ✓1,000→$4.73 ✓2,000→$4.05 ✓5,000→$3.38
+                              ✓10,000→$2.70 ✓20,000→$2.44
+```
+
+Sale con **código 1 si un solo precio no cuadra**. La cotización desechable se borra.
+
+### Delegación verificada en las cuatro listas
+
+| Lista | 199 pzas | 600 | 5,000 |
+|---|---|---|---|
+| Default (MXN) | $11.96 | $6.08 | $3.38 |
+| Volant (MXN) | $11.96 | $6.08 | $3.38 |
+| GMC (MXN) | $11.96 | $6.08 | $3.38 |
+| Dólar (USD) | $0.70 | $0.36 | $0.20 |
+
+**Control de daño colateral**: los precios de imprenta (Volantes $250, Tarjetas $225)
+siguen idénticos en Default y en Volant. La regla por categoría no los toca.
+
+> **Para decidir algún día**: la lista Dólar convierte al tipo de cambio de Odoo
+> (~17.1 MXN/USD). Si la personalización no se vende en USD, o se vende a otro tipo de
+> cambio, esa regla de delegación se quita o se ajusta.
+
 ## Lo que sigue
 
 - [x] ~~JC revisa `mapa_1_productos.csv`~~ — hecho el 2026-08-22: SKU corregidos y nombres aprobados
 - [x] ~~Consolidar las dos categorías de servicio duplicadas~~ — hecho en TEST el 2026-08-22
 - [x] ~~Escribir el cargador y correrlo en test~~ — hecho: piloto de 14 productos de láser INN
 - [ ] Cargar los 37 productos restantes, por técnica
-- [ ] Las 74 reglas + las 3 de delegación, con **smoke test**: cotización desechable que
-      compara `price_unit` contra la matriz en varias cantidades
+- [x] ~~Las 74 reglas + las 3 de delegación, con smoke test~~ — hecho: 92 precios correctos
 - [ ] Plantilla de cotización con las secciones «Producto» y «Personalización»
 - [ ] Confirmar a ojo que `sale_line_warn_msg` sigue saltando en 19
 - [ ] Verificador permanente matriz ↔ productos ↔ reglas, al checklist trimestral

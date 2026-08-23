@@ -51,6 +51,7 @@ mozaprint-context/
 │   ├── mapa_servicios_personalizacion.py ← Matriz de costos → diseño nativo (solo lectura)
 │   ├── consolidar_categorias_servicio.py ← Une las 2 categorías de servicio duplicadas
 │   ├── cargar_servicios_personalizacion.py ← Carga los productos de servicio desde la hoja
+│   ├── cargar_reglas_precio_personalizacion.py ← Tramos de cantidad + delegación entre listas
 │   ├── derive_tecnicas.py       ← Deriva técnica canónica raw→modelo
 │   ├── colores_engine.py        ← Motor de color compartido (normalize/resolve/familia)
 │   ├── derive_colores.py        ← Deriva swatches html_color del atributo Color
