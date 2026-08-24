@@ -299,12 +299,40 @@ siguen idénticos en Default y en Volant. La regla por categoría no los toca.
 > (~17.1 MXN/USD). Si la personalización no se vende en USD, o se vende a otro tipo de
 > cambio, esa regla de delegación se quita o se ajusta.
 
+## Cotizaciones de prueba permanentes (TEST)
+
+`scripts/crear_cotizaciones_prueba.py` — idempotente, las borra y recrea. Existen porque
+el smoke test **borra su cotización al terminar**: prueba los precios pero no deja nada
+que abrir. Ambas cuelgan del cliente `ZZ PRUEBA PERSONALIZACIÓN`, para que nunca se
+mezclen con cotizaciones reales.
+
+| Cotización | Para qué |
+|---|---|
+| **S00458** «ZZ PRUEBA TRAMOS» | Una línea por cada uno de los 18 productos con curva, en un escalón intermedio. Para verificar el tramo a ojo |
+| **S00459** «ZZ EJEMPLO COTIZACIÓN» | Cómo se ve una real: secciones «Producto» y «Personalización», un caso POR TINTA y su línea de setup |
+
+⚠️ Solo TEST: el script se niega a correr contra producción.
+
+## Las listas de precios: solo Default está viva
+
+Verificado el 2026-08-23, y corrige la impresión que daba el paso 5:
+
+| Lista | Cotizaciones | Confirmadas | Clientes asignados |
+|---|---|---|---|
+| **Default** | 421 | 61 | **los 147** |
+| Volant | 16 (la última de 2025-09) | 1 | 0 |
+| GMC | **0** | 0 | 0 |
+| Dólar | 1 (una prueba) | 0 | 0 |
+
+Las tres reglas de delegación son correctas y no estorban, pero **protegen un escenario
+que hoy no ocurre**. Si alguna de esas listas se activa algún día, ya está resuelto.
+
 ## Lo que sigue
 
 - [x] ~~JC revisa `mapa_1_productos.csv`~~ — hecho el 2026-08-22: SKU corregidos y nombres aprobados
 - [x] ~~Consolidar las dos categorías de servicio duplicadas~~ — hecho en TEST el 2026-08-22
-- [x] ~~Escribir el cargador y correrlo en test~~ — hecho: piloto de 14 productos de láser INN
-- [ ] Cargar los 37 productos restantes, por técnica
+- [x] ~~Escribir el cargador y correrlo en test~~ — hecho
+- [x] ~~Cargar los 51 productos + los 2 setups~~ — **53 en total**
 - [x] ~~Las 74 reglas + las 3 de delegación, con smoke test~~ — hecho: 92 precios correctos
 - [ ] Plantilla de cotización con las secciones «Producto» y «Personalización»
 - [ ] Confirmar a ojo que `sale_line_warn_msg` sigue saltando en 19

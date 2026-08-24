@@ -63,6 +63,7 @@ if hasattr(sys.stdout, "buffer"):
 REPO = Path(__file__).resolve().parent.parent
 BACKUP_DIR = REPO / "backups"
 HOJA = REPO / "analysis" / "costos-personalizacion" / "mapa_1_productos.csv"
+HOJA_SETUPS = REPO / "analysis" / "costos-personalizacion" / "mapa_3_setups.csv"
 CATEGORIA = "Servicios de Personalización"
 CTX = {"active_test": False}
 
@@ -85,11 +86,36 @@ def uno(res):
 
 
 def leer_hoja(filtro: str | None) -> list[dict]:
+    """Lee las DOS hojas de productos: los tarifados y los de setup.
+
+    El setup es un cargo ÚNICO por orden —la pantalla de serigrafía, el ponchado
+    del bordado— que no se multiplica por la cantidad. Va como producto aparte
+    porque una línea de venta no sabe cobrar un fijo además del por-pieza.
+    """
     if not HOJA.exists():
         raise SystemExit(f"✗ No existe la hoja {HOJA}.\n"
                          f"  Genérala antes con: python scripts/mapa_servicios_personalizacion.py")
     with HOJA.open(encoding="utf-8-sig") as fh:
         filas = list(csv.DictReader(fh))
+
+    if HOJA_SETUPS.exists():
+        with HOJA_SETUPS.open(encoding="utf-8-sig") as fh:
+            for s in csv.DictReader(fh):
+                cond = (s.get("condicion") or "").strip()
+                desc = ("Cargo único de preparación de la orden (pantalla, ponchado, "
+                        "placa). No se multiplica por la cantidad de piezas.")
+                aviso = "Cantidad 1: es un cargo por orden, no por pieza."
+                if cond:
+                    desc += f" {cond}."
+                    aviso += f" {cond}."
+                filas.append({
+                    "sku": s["sku"], "nombre": s["nombre"],
+                    "descripcion_venta": desc, "aviso_en_la_linea": aviso,
+                    "list_price": s["list_price"], "standard_price": s["costo"],
+                    "tecnica": "", "unidad_cobro": "lote", "escala_por_tinta": "",
+                    "qty_minima": "1", "num_tramos": "1",
+                })
+
     if filtro:
         filas = [f for f in filas if f["sku"].startswith(filtro)]
     return filas

@@ -334,7 +334,8 @@ def main() -> int:
                     if gratis else "")
             setups.setdefault(sk, {
                 "sku": sk,
-                "nombre": f"Setup / preparación · {tec.get('x_name','?')} · {prov_nom.title()}",
+                "nombre": f"Setup / preparación · {tec.get('x_name','?')} · "
+                        f"{PROV_NOMBRE.get(prov_nom, prov_nom.title())}",
                 "costo": round(primera["x_costo_setup"], 2),
                 "markup": markup,
                 "list_price": round(primera["x_costo_setup"] * markup, 2),

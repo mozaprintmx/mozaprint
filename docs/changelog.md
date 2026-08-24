@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-08-23 · (v59) — los 2 setups faltaban, y dos cotizaciones de prueba permanentes
+
+**Tipo**: `fix` + `datos` (TEST) + `tooling`.
+
+**Hueco encontrado**: el cargador del paso 4 solo leía `mapa_1_productos.csv`, así que
+**los 2 productos de setup nunca se cargaron** pese a que la spec decía «51 + 2». Salió a
+la luz al armar una cotización de ejemplo con una línea de setup: `product_id` vacío y
+Odoo rechazando la línea. Ahora el cargador lee también `mapa_3_setups.csv` y son **53
+productos**. De paso, los setups llevaban «Innovationline» en el nombre porque el
+generador no les aplicaba `PROV_NOMBRE`; corregido.
+
+**Cotizaciones de prueba permanentes** (`scripts/crear_cotizaciones_prueba.py`, solo TEST,
+idempotente): el smoke test borra su cotización al terminar, así que no dejaba nada que
+mirar. Ahora hay dos, colgando de un cliente dedicado: **S00458** con una línea por cada
+producto con curva —las 18 cuadran contra la matriz— y **S00459** con el aspecto de una
+cotización real, secciones incluidas.
+
+**Corrección de contexto sobre las listas de precios.** El paso 5 hablaba de Volant y GMC
+como si importaran. Verificado: **Default tiene 421 cotizaciones y los 147 clientes**;
+Volant 16 (la última de septiembre 2025) y cero clientes; **GMC cero cotizaciones**; Dólar
+una de prueba. Las 3 reglas de delegación son correctas pero protegen un escenario que hoy
+no ocurre.
+
+---
+
 ## 2026-08-23 · paso 5 (v58) — tramos de cantidad y delegación entre listas, en TEST
 
 **Tipo**: `datos` (TEST) + `tooling` + `docs`. Script:
