@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-08-23 · (v60) — el resaltado ámbar se reserva para lo que cuesta dinero
+
+**Tipo**: `datos` (TEST) + `docs`.
+
+JC notó que las líneas de personalización salen de color ámbar en la cotización. La causa
+está en la vista estándar de Odoo, no en algo nuestro: la regla `decoration-warning` de
+`sale.view_order_form` incluye **`or sale_line_warn_msg`**, y el cargador puso ese campo en
+los 53 productos.
+
+**El hallazgo es bueno**: confirma que el mecanismo de aviso **sigue vivo en Odoo 19** pese
+a que desapareció el selector `sale_line_warn` —cosa que el sondeo del paso 0 dejó
+pendiente de verificar— y que se manifiesta como un **resaltado permanente en la línea**,
+no como un popup que se descarta por reflejo. Para el error caro de «cantidad = tintas»,
+eso es mejor de lo que se había diseñado.
+
+**El problema que destapa es de diseño**: con los 53 productos avisando, todas las líneas
+salían ámbar y el color no distinguía nada. Ahora el aviso —y por tanto el resaltado— se
+reserva a los casos donde **la cantidad no se teclea como en el resto de la cotización**:
+11 de lote por tinta, 1 de lote, 2 setups y 16 con cantidad mínima. **30 de 53.**
+
+Los 23 restantes quedan sin color: 7 solo informaban del área máxima, que ya viaja en el
+nombre y en la descripción, y 16 no tenían nada que advertir. Un área máxima es un dato,
+no un riesgo.
+
+---
+
 ## 2026-08-23 · (v59) — los 2 setups faltaban, y dos cotizaciones de prueba permanentes
 
 **Tipo**: `fix` + `datos` (TEST) + `tooling`.

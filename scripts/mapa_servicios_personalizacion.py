@@ -181,7 +181,18 @@ def descripcion(filas: list[dict], tecnica: str) -> str:
 
 
 def aviso(filas: list[dict]) -> str:
-    """Mensaje de `sale_line_warn_msg`: lo que el vendedor DEBE saber al elegirlo."""
+    """(A) `sale_line_warn_msg`. Vacío = la línea NO se resalta.
+
+    Odoo pinta de ámbar **toda** línea cuyo producto tenga este mensaje — la
+    regla `decoration-warning` de `sale.view_order_form` incluye
+    `or sale_line_warn_msg`. Si los 53 productos lo llevaran, todas las líneas
+    de personalización saldrían ámbar y el resaltado dejaría de significar nada.
+
+    Se reserva para los dos casos en que **la cantidad no se teclea como en el
+    resto de la cotización** y equivocarse cuesta dinero: lote/por tinta y
+    cantidad mínima. El área máxima y el «a 1 tinta y 1 posición» son
+    informativos, no riesgos: viven en la descripción y en el nombre.
+    """
     r = filas[0]
     partes = []
     if r["x_unidad_cobro"] == "lote":
@@ -195,9 +206,6 @@ def aviso(filas: list[dict]) -> str:
     if minimo > 1 and r["x_unidad_cobro"] != "lote":
         partes.append(f"Mínimo {minimo:,} pzas. Por debajo de esa cantidad esta tarifa NO aplica: "
                       "consulta la matriz de costos.")
-    if r["x_area_to_cm2"]:
-        partes.append(f"Área de impresión hasta {r['x_area_to_cm2']:.0f} cm².")
-    partes.append("Precio a 1 tinta y 1 posición salvo que se indique otra cosa.")
     return " ".join(partes)
 
 

@@ -117,6 +117,48 @@ También se descartó **convertirlo a precio por pieza**: $950 entre 100 piezas 
 c/u y entre 1,000 son $0.95. El precio unitario cambia con cada cantidad y no hay tramos
 que lo expresen sin una regla por cantidad posible.
 
+### Dónde vive cada regla, y por qué ahí
+
+Ninguna de estas reglas es código dentro de Odoo — eso es lo que se factura
+([ADR 007](../decisions/007-retiro-motor-cotizacion-costo-codigo.md)). Se reparten así:
+
+| Regla | Dónde se decide | Dónde acaba en Odoo | ¿Cuesta? |
+|---|---|---|---|
+| Qué combinación es un producto | `mapa_servicios_personalizacion.py` | `product.template` | no, es dato |
+| Cómo se llama y qué dice al cliente | función `descripcion()` del mismo script | `name`, `description_sale` | no |
+| Cuándo la línea se resalta | función `aviso()` | `sale_line_warn_msg` | no |
+| Qué precio a qué cantidad | la matriz `x_costo_personalizacion` | `list_price` + `product.pricelist.item` | no |
+| Que el ámbar signifique «ojo» | **Odoo, de fábrica** | `decoration-warning` de `sale.view_order_form` | no |
+
+El único eslabón que no controlamos es el último, y no hace falta: Odoo ya trae
+`or sale_line_warn_msg` en su regla de color.
+
+### El resaltado ámbar: cuándo sí y cuándo no
+
+Odoo pinta de ámbar **toda** línea cuyo producto tenga `sale_line_warn_msg` — la regla
+`decoration-warning` de `sale.view_order_form` incluye `or sale_line_warn_msg`. Se
+descubrió el 2026-08-23 porque JC notó el color en una línea de serigrafía.
+
+> Eso confirma que el mecanismo de aviso **sigue vivo en Odoo 19** pese a que
+> desapareció el selector `sale_line_warn`. Y funciona mejor de lo esperado: un
+> resaltado permanente en la línea, en vez de un popup que se descarta por reflejo.
+
+**Pero si los 53 productos llevan aviso, todas las líneas salen ámbar y el color deja de
+significar nada.** Se reserva para los casos en que **la cantidad no se teclea como en el
+resto de la cotización** y equivocarse cuesta dinero:
+
+| Se resalta | Cuántos | Por qué |
+|---|---|---|
+| Lote **por tinta** | 11 | la cantidad son TINTAS |
+| Lote sin tinta | 1 | la cantidad es 1 |
+| Setups | 2 | la cantidad es 1 |
+| Cantidad mínima | 16 | por debajo, la tarifa no aplica |
+| **Total ámbar** | **30 de 53** | |
+
+Los 23 restantes quedan **sin color**: 7 solo informaban del área máxima —que ya viaja en
+el nombre y en la descripción— y 16 no tenían nada que advertir. Un área máxima es un
+dato, no un riesgo.
+
 ### Los otros dos casos que el vendedor puede equivocar
 
 | Caso | Cuántos | Cómo se marca |
