@@ -450,6 +450,44 @@ Láser           Termos grabado 360°           1    22.00   PERS-LASER-INN-TERM
 
 El auditor sigue reportando **0 líneas facturables** después de crear el campo.
 
+## Paso 8 — el verificador permanente (TEST, 2026-08-24)
+
+`scripts/audit_personalizacion.py`, solo lectura, **sale con código 1 si hay hallazgos**.
+
+Existe porque el diseño tiene una fuente de verdad —la matriz— y dos derivados que se
+cargan con scripts, y **nada obliga a que sigan sincronizados**. Alguien edita un costo,
+nadie recarga, y las cotizaciones salen con el precio viejo sin que nada avise.
+
+**No compara contra la hoja CSV**, a propósito: la hoja es un intermedio que puede estar
+tan desactualizado como los productos. Recalcula todo desde la **matriz viva** y lee el
+SKU de cada tarifa de su propio `x_sku_servicio`. Y reutiliza la función `aviso()` del
+generador, para que el criterio del ámbar no pueda desincronizarse entre carga y
+auditoría.
+
+| # | Revisa |
+|---|---|
+| 1 | cada tarifa activa tiene SKU único y ese producto existe |
+| 2 | `list_price` = costo × markup · `standard_price` = costo |
+| 3 | cada escalón de la matriz tiene su regla, con su precio |
+| 4 | productos `PERS-*` sin tarifa que los respalde |
+| 5 | las demás listas heredan la categoría de la principal |
+| 6 | categoría, tipo servicio, no publicado, no comprable |
+| 7 | el aviso está donde debe y **solo** donde debe |
+
+### Probado rompiendo cosas a propósito
+
+Un verificador que solo sabe decir «bien» no vale nada. Se sabotearon tres cosas en TEST
+y **las tres se detectaron**, con código de salida 1:
+
+| Sabotaje | Lo que reportó |
+|---|---|
+| Cambiar un costo en la matriz | `PERS-LASER-INN-CURPI: precio $7.65 ≠ $12.74 (matriz)` + el costo |
+| Borrar una regla de tramo | `regla FALTA: PERS-TERMO-PO-GEN-H70 min_qty 600 → $8.36` |
+| Publicar un servicio en la tienda | `PERS-VINYL-INN-GEN-H81: PUBLICADO en la tienda` |
+
+Restaurado todo, vuelve a salir limpio. El informe termina imprimiendo la secuencia de
+reparación, para no tener que recordarla.
+
 ## Lo que sigue
 
 - [x] ~~JC revisa `mapa_1_productos.csv`~~ — hecho el 2026-08-22: SKU corregidos y nombres aprobados
@@ -459,7 +497,8 @@ El auditor sigue reportando **0 líneas facturables** después de crear el campo
 - [x] ~~Las 74 reglas + las 3 de delegación, con smoke test~~ — hecho: 92 precios correctos
 - [x] ~~Plantilla de cotización con secciones~~ — hecha en test
 - [x] ~~Confirmar que `sale_line_warn_msg` sigue vivo en 19~~ — sí: pinta la línea de ámbar
-- [ ] Verificador permanente matriz ↔ productos ↔ reglas, al checklist trimestral
+- [x] ~~Verificador permanente matriz ↔ productos ↔ reglas~~ — hecho y probado con sabotajes
+- [ ] Sumarlo al checklist trimestral del README cuando se despliegue en producción
 - [ ] Manual nuevo para el equipo (el anterior se archivó de Knowledge el 2026-08-21)
 
 ### Fase 2, opcional

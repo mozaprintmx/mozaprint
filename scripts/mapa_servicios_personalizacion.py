@@ -52,7 +52,11 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-if hasattr(sys.stdout, "buffer"):
+# La consola de Windows (cp1252) no puede imprimir '→', 'ó', etc. El guardarraíl
+# de codificación es necesario: sin él, importar este módulo desde otro script
+# que ya envolvió stdout crea un segundo envoltorio y cierra el primero
+# («I/O operation on closed file»).
+if hasattr(sys.stdout, "buffer") and (sys.stdout.encoding or "").lower() not in ("utf-8", "utf8"):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 REPO = Path(__file__).resolve().parent.parent

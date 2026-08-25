@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-08-24 · paso 8 (v63) — verificador permanente de personalización
+
+**Tipo**: `tooling` (solo lectura) + `docs`. Script: `scripts/audit_personalizacion.py`.
+
+El diseño tiene una fuente de verdad —la matriz— y dos derivados que se cargan con
+scripts. **Nada obliga a que sigan sincronizados**: alguien edita un costo, nadie recarga,
+y las cotizaciones salen con el precio viejo sin que nada avise. Este comando es lo que
+avisa. Sale con **código 1** ante cualquier hallazgo.
+
+**No compara contra la hoja CSV**, a propósito: la hoja es un intermedio que puede estar
+tan desactualizado como los productos. Recalcula desde la matriz viva, lee el SKU de cada
+tarifa de su propio `x_sku_servicio`, y **reutiliza la función `aviso()` del generador**
+para que el criterio del ámbar no se desincronice entre carga y auditoría.
+
+Revisa siete cosas: cobertura, precio base y costo, tramos, productos huérfanos,
+delegación entre listas, higiene (categoría, tipo, publicado, comprable) y los avisos.
+
+**Probado rompiendo cosas**: se saboteó un costo de la matriz, se borró una regla de tramo
+y se publicó un servicio en la tienda. **Los tres se detectaron**, con el detalle exacto y
+código 1; restaurado todo, vuelve a salir limpio. Un verificador que solo sabe decir
+«bien» no vale nada.
+
+**Bug corregido de camino**: importar `mapa_servicios_personalizacion` desde otro script
+volvía a envolver `sys.stdout` y cerraba el envoltorio anterior
+(«I/O operation on closed file»). El guardarraíl de codificación ahora comprueba si ya
+está en UTF-8 antes de envolver.
+
+---
+
 ## 2026-08-24 · pasos 6 y 7 (v62) — plantilla de cotización y el SKU dentro de la matriz
 
 **Tipo**: `datos` (TEST) + `tooling` + `docs`.
