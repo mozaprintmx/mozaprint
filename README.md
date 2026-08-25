@@ -14,6 +14,7 @@ mozaprint-context/
 │   ├── glossary.md              ← Términos del negocio
 │   ├── roadmap.md               ← Qué está hecho, qué falta
 │   ├── changelog.md             ← Historial de cambios técnicos
+│   ├── manual-admin-precios-personalizacion.md ← Mantener precios sin romper nada
 │   └── upgrades/                ← Actualizaciones de Odoo: checklist e incidencias
 │       ├── README.md            ← Índice, estado por base y los dos comandos
 │       ├── checklist-post-upgrade.md  ← Qué revisar tras cada actualización
@@ -253,6 +254,12 @@ Cada trimestre, revisar:
   ```bash
   python scripts/audit_post_upgrade.py --target prod
   ```
+- ¿La matriz de costos, los productos de personalización y las reglas de precio siguen
+  diciendo lo mismo? (solo lectura):
+  ```bash
+  python scripts/audit_personalizacion.py --target prod
+  ```
+  Cómo repararlo si sale con hallazgos: `docs/manual-admin-precios-personalizacion.md`.
 - ¿El PDF de cotización sigue con su columna de imagen y las columnas cuadradas?
   (solo lectura):
   ```bash
