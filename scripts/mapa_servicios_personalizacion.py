@@ -68,12 +68,25 @@ PROV = {"INNOVATIONLINE": "INN", "PROMOOPCION": "PO", "4PROMOTIONAL": "4P"}
 # y `.title()` da 'Innovationline'). Nombres según docs/glossary.md.
 PROV_NOMBRE = {"INNOVATIONLINE": "Innovation Line", "PROMOOPCION": "Promo Opción",
                "4PROMOTIONAL": "4Promotional"}
-# Código corto por técnica (x_code de x_tecnica_personalizacion → 4-6 letras).
+# Código corto por técnica: `x_code` de `x_tecnica_personalizacion` → 3-6 letras.
+#
+# Están las 20 técnicas, no solo las 9 que hoy tienen tarifa. Sin entrada aquí,
+# el SKU cae al `slug()` del código y salen cosas como `grab_co2` → «GRAB2»,
+# que pierde el «CO» y no se entiende. Se usan los mismos códigos que ya llevan
+# los productos comodín `SERV-*`, para que las dos familias se lean igual.
+#
+# ⚠️ Al dar de alta una técnica NUEVA en `x_tecnica_personalizacion`, agregar
+# aquí su código ANTES de cargarle tarifas.
 TEC = {
+    # con tarifa hoy
     "serigrafia": "SERI", "tampografia": "TAMPO", "laser": "LASER", "bordado": "BORD",
     "sublimacion": "SUBLI", "doming": "DOMING", "imp_digital": "DIGIT", "vinyl": "VINYL",
-    "termograbado": "TERMO", "dtf": "DTF", "dtf_uv": "DTFUV", "uv": "UV",
-    "offset": "OFFSET", "transfer": "TRANS", "grabado_co2": "CO2",
+    "termograbado": "TERMO",
+    # sin tarifa todavía
+    "dtf": "DTF", "dtf_uv": "DTFUV", "imp_uv": "UV", "offset": "OFFSET",
+    "transfer": "TRANS", "grab_co2": "CO2", "grab_espejo": "ESPEJO",
+    "bajo_relieve": "RELIE", "pantografo": "PANTO", "punta_diamante": "DIAMA",
+    "sandblast": "SANDB",
 }
 
 

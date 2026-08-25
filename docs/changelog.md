@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-08-25 · (v64) — manual de administrador de precios y el hueco de los códigos de técnica
+
+**Tipo**: `docs` + `fix`.
+
+**Manual de administrador**: `docs/manual-admin-precios-personalizacion.md`. Para quien
+mantiene los precios, no para quien cotiza. Tres tareas —actualizar un costo, agregar una
+tarifa, dar de alta una técnica nueva— cada una con su verificación y su rollback, más la
+lista de lo que nunca hay que hacer y una chuleta de comandos.
+
+**Permisos verificados** en test y producción. Los tres usuarios internos pueden hacer
+todo. El dato que no era obvio: **«Ventas / Administrador» NO implica «Productos /
+Crear»** —se comprobó recorriendo los grupos heredados—; es un grupo aparte que los tres
+tienen marcado a mano. A cualquier usuario nuevo que mantenga precios hay que marcárselo,
+o los scripts fallarán al crear productos.
+
+**Hueco corregido**: el diccionario `TEC` del generador solo tenía **13 de las 20**
+técnicas. Las 7 faltantes caían al `slug()` del código y producían SKU malos —
+`grab_co2` → **«GRAB2»**, que pierde el «CO». No había mordido porque esas 7 son justo las
+técnicas **sin tarifa**: habría salido a la luz el día que se tabulara una, es decir, en el
+caso de uso «técnica nueva» que JC preguntaba. Se completaron las 20 con los mismos
+códigos que ya llevan los comodines `SERV-*`, y el auditor confirma que nada de lo cargado
+cambió.
+
+---
+
 ## 2026-08-24 · paso 8 (v63) — verificador permanente de personalización
 
 **Tipo**: `tooling` (solo lectura) + `docs`. Script: `scripts/audit_personalizacion.py`.

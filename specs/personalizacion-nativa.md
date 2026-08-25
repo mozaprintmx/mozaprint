@@ -488,6 +488,46 @@ y **las tres se detectaron**, con código de salida 1:
 Restaurado todo, vuelve a salir limpio. El informe termina imprimiendo la secuencia de
 reparación, para no tener que recordarla.
 
+## Permisos (verificado 2026-08-25)
+
+| Lo que se toca | Grupo necesario |
+|---|---|
+| Matriz de costos y técnicas | Ventas / Usuario: todos los documentos |
+| Crear o editar productos `PERS-*` | **Productos / Crear** |
+| Reglas de lista de precios | Ventas / Administrador |
+| Plantilla de cotización | Ventas / Administrador |
+
+Los tres usuarios internos (JC, Karina, Rosy) pueden hacer **todo** lo necesario: los tres
+tienen *Ventas / Administrador* **y** *Productos / Crear*.
+
+> ⚠️ **«Ventas / Administrador» NO implica «Productos / Crear»** — se comprobó recorriendo
+> los grupos heredados. Es un grupo aparte que los tres tienen marcado a mano. A cualquier
+> usuario nuevo que mantenga precios **hay que marcárselo explícitamente**, o los scripts
+> fallarán al crear productos.
+>
+> JC y Karina además tienen **«Permisos de acceso»**, la llave maestra de Odoo. No hace
+> falta para mantener precios.
+
+## Códigos de técnica: las 20, no solo las 9
+
+`TEC` en el generador mapea el `x_code` de cada técnica a su código corto de SKU. **Estaba
+incompleto**: solo 13 de 20, y las 7 faltantes caían al `slug()` del código produciendo
+cosas como `grab_co2` → **«GRAB2»**, que pierde el «CO».
+
+No había mordido porque **esas 7 son justo las técnicas sin tarifa**. Habría salido a la
+luz el día que se tabulara una — es decir, en el caso de uso «técnica nueva». Se
+completaron las 20, usando los mismos códigos que ya llevan los comodines `SERV-*`.
+
+**Al dar de alta una técnica nueva hay que agregarle su línea en `TEC` antes de cargarle
+tarifas.** Queda dicho en el manual de administrador.
+
+## Manual de administrador
+
+[`docs/manual-admin-precios-personalizacion.md`](../docs/manual-admin-precios-personalizacion.md)
+— para quien mantiene los precios, no para quien cotiza. Cubre actualizar un costo,
+agregar una tarifa nueva y dar de alta una técnica, cada uno con su verificación y su
+rollback, más la lista de lo que nunca hay que hacer.
+
 ## Lo que sigue
 
 - [x] ~~JC revisa `mapa_1_productos.csv`~~ — hecho el 2026-08-22: SKU corregidos y nombres aprobados
