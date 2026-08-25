@@ -369,6 +369,47 @@ Verificado el 2026-08-23, y corrige la impresión que daba el paso 5:
 Las tres reglas de delegación son correctas y no estorban, pero **protegen un escenario
 que hoy no ocurre**. Si alguna de esas listas se activa algún día, ya está resuelto.
 
+## El tamaño real de los pedidos, y por qué importa
+
+Medido el 2026-08-24 sobre **874 líneas de producto físico** en cotizaciones reales
+(excluyendo las de prueba). Salió al verificar si el aviso de «cantidad mínima» era ruido
+o señal:
+
+| Piezas por línea | % |
+|---|---|
+| 1 – 24 | **52.9 %** |
+| 25 – 49 | 9.5 % |
+| 50 – 99 | 11.4 % |
+| 100 – 499 | 20.8 % |
+| 500 – 999 | 3.0 % |
+| 1,000+ | 2.2 % |
+
+**Mediana: 20 piezas.** El 74 % de las líneas está por debajo de 100. En las cotizaciones
+**confirmadas** —lo que de verdad se vendió— la mediana baja a **7 piezas** y el 88 % está
+bajo 100.
+
+### Las dos consecuencias
+
+1. **El aviso de mínimo no es ruido, es la advertencia que más veces va a saltar.** Un
+   producto con mínimo de 100 se topará con el caso en ~3 de cada 4 líneas.
+2. **Las tarifas de Promo Opción apenas cubren la operación típica.** Arrancan en 50, 100,
+   500 o 1,000 piezas; el negocio real se mueve entre 7 y 20.
+
+| De los 51 productos | |
+|---|---|
+| Sirven **desde 1 pieza** | 23 — casi todos Innovation Line (láser, vinyl, digital, doming, bordado) |
+| Tienen **mínimo de 50 a 1,000** | 16 — casi todos Promo Opción |
+| Son **por lote** (cubren 1–1,000) | 12 |
+
+Para una cotización típica de 20 piezas, los de Promo Opción **no aplican**. Ahí entran los
+**comodines «(precio a cotizar)»**, y esto confirma que conservarlos fue más importante de
+lo que parecía cuando se decidió.
+
+> **Pendiente de negocio, para JC**: preguntar a Promo Opción si tienen tarifa para
+> pedidos chicos. Si la mediana es 20 piezas y su tabla empieza en 100, o falta una lista
+> de cantidades menores, o buena parte del volumen se está cotizando a mano fuera del
+> sistema. Las dos cosas conviene saberlas.
+
 ## Lo que sigue
 
 - [x] ~~JC revisa `mapa_1_productos.csv`~~ — hecho el 2026-08-22: SKU corregidos y nombres aprobados

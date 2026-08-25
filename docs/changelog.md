@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-08-24 · (v61) — el tamaño real de los pedidos condiciona el diseño
+
+**Tipo**: `análisis` (solo lectura) + `docs`.
+
+JC preguntó si era normal que un producto con mínimo de 100 piezas saliera en ámbar. Al
+verificar si ese aviso era ruido o señal, se midieron **874 líneas de producto físico** en
+cotizaciones reales: **mediana 20 piezas**, el 74 % por debajo de 100. En las cotizaciones
+confirmadas la mediana baja a **7 piezas** y el 88 % está bajo 100.
+
+**Dos consecuencias.** La primera es que el aviso de mínimo no es ruido: es la advertencia
+que más veces va a saltar. La segunda es más de fondo — **las tarifas de Promo Opción
+apenas cubren la operación típica**: arrancan en 50, 100, 500 o 1,000 piezas y el negocio
+real se mueve entre 7 y 20. De los 51 productos, 23 sirven desde 1 pieza (casi todos
+Innovation Line), 16 tienen mínimos altos (casi todos Promo Opción) y 12 son por lote.
+
+Eso confirma que conservar los 20 comodines «(precio a cotizar)» fue más importante de lo
+que parecía al decidirlo: para una cotización típica de 20 piezas, los de Promo Opción no
+aplican.
+
+**Pendiente de negocio**: preguntar a Promo Opción si tienen tarifa para pedidos chicos.
+
+---
+
 ## 2026-08-23 · (v60) — el resaltado ámbar se reserva para lo que cuesta dinero
 
 **Tipo**: `datos` (TEST) + `docs`.
