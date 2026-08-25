@@ -410,6 +410,46 @@ lo que parecía cuando se decidió.
 > de cantidades menores, o buena parte del volumen se está cotizando a mano fuera del
 > sistema. Las dos cosas conviene saberlas.
 
+## Pasos 6 y 7 — plantilla y puente entre pantallas (TEST, 2026-08-24)
+
+### 6 · Plantilla de cotización
+
+`scripts/crear_plantilla_cotizacion.py`. Una `sale.order.template` llamada
+**«Cotización con personalización»**, con vigencia de 15 días y dos secciones vacías:
+**Producto** y **Personalización**. No lleva productos —cambian en cada venta—, solo el
+esqueleto que el motor retirado armaba por código.
+
+> **Cómo se aplica realmente**: elegir la plantilla **no vuelca las secciones con un
+> `write`**; el volcado vive en un onchange que dispara el cliente web. Por RPC se puede
+> comprobar *cuántas* líneas propone, no *cuáles* — los comandos llegan con los valores
+> vacíos porque el cliente los resuelve aparte. Por eso `--probar` contrasta el contenido
+> contra la plantilla, que es su fuente, y el número contra el onchange.
+>
+> ⚠️ Al investigarlo se llamó `action_confirm` por descarte sobre una cotización de
+> prueba y quedó confirmada, ya sin poder borrarse. Se limpió cancelándola. **No probar
+> métodos privados a tientas sobre registros reales.**
+
+### 7 · El SKU en la matriz
+
+`scripts/enlazar_matriz_servicios.py`, re-ejecutable. Cierra el hueco entre las dos
+pantallas: el vendedor consultaba la tarifa en **Ventas → Configuración → Costos de
+personalización** y luego tenía que adivinar cuál de los 53 productos le tocaba.
+
+| | |
+|---|---|
+| Campo | `x_sku_servicio`, **char** — `compute` y `related` vacíos: es un dato, **no se factura** |
+| Dónde se ve | columna nueva en la lista de la matriz, junto a «Alcance» |
+| Cómo se llena | desde la columna `llave` de `mapa_1_productos.csv` |
+| Cobertura | **126 de 126** tarifas activas, 0 huérfanas |
+
+```
+Técnica         Alcance                   desde    costo   SKU del servicio
+Láser           Termos 6x8 cm                 1     8.00   PERS-LASER-INN-TERMO68
+Láser           Termos grabado 360°           1    22.00   PERS-LASER-INN-TERMOGRAB360
+```
+
+El auditor sigue reportando **0 líneas facturables** después de crear el campo.
+
 ## Lo que sigue
 
 - [x] ~~JC revisa `mapa_1_productos.csv`~~ — hecho el 2026-08-22: SKU corregidos y nombres aprobados
@@ -417,8 +457,8 @@ lo que parecía cuando se decidió.
 - [x] ~~Escribir el cargador y correrlo en test~~ — hecho
 - [x] ~~Cargar los 51 productos + los 2 setups~~ — **53 en total**
 - [x] ~~Las 74 reglas + las 3 de delegación, con smoke test~~ — hecho: 92 precios correctos
-- [ ] Plantilla de cotización con las secciones «Producto» y «Personalización»
-- [ ] Confirmar a ojo que `sale_line_warn_msg` sigue saltando en 19
+- [x] ~~Plantilla de cotización con secciones~~ — hecha en test
+- [x] ~~Confirmar que `sale_line_warn_msg` sigue vivo en 19~~ — sí: pinta la línea de ámbar
 - [ ] Verificador permanente matriz ↔ productos ↔ reglas, al checklist trimestral
 - [ ] Manual nuevo para el equipo (el anterior se archivó de Knowledge el 2026-08-21)
 

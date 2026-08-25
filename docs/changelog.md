@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-08-24 · pasos 6 y 7 (v62) — plantilla de cotización y el SKU dentro de la matriz
+
+**Tipo**: `datos` (TEST) + `tooling` + `docs`.
+
+**Paso 6** — `scripts/crear_plantilla_cotizacion.py`: una `sale.order.template` con las
+secciones **Producto** y **Personalización** y vigencia de 15 días. Es lo que el motor
+retirado armaba por código, ahora como dato.
+
+Detalle que costó entender: **elegir la plantilla no vuelca las secciones con un `write`**
+— el volcado vive en un onchange que dispara el cliente web. Y por RPC ese onchange
+devuelve los comandos con los valores **vacíos**, porque el cliente resuelve el contenido
+aparte. Así que `--probar` verifica el contenido contra la plantilla y el número contra el
+onchange. Investigándolo se llamó `action_confirm` por descarte sobre una cotización de
+prueba, que quedó confirmada y sin poder borrarse; se limpió cancelándola.
+
+**Paso 7** — `scripts/enlazar_matriz_servicios.py`, re-ejecutable: crea el campo
+`x_sku_servicio` (**char**, sin `compute` ni `related` → **no se factura**), lo agrega como
+columna en la lista de la matriz junto a «Alcance», y lo llena desde la columna `llave` de
+la hoja. **126 de 126 tarifas activas enlazadas, 0 huérfanas.** El auditor sigue en 0
+líneas facturables tras crear el campo.
+
+Cierra el hueco entre las dos pantallas: quien consulta una tarifa ahora ve ahí mismo el
+código que hay que teclear en la cotización.
+
+---
+
 ## 2026-08-24 · (v61) — el tamaño real de los pedidos condiciona el diseño
 
 **Tipo**: `análisis` (solo lectura) + `docs`.
