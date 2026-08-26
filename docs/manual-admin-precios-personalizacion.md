@@ -5,6 +5,11 @@
 > todavía no existe.
 >
 > Diseño completo en [`specs/personalizacion-nativa.md`](../specs/personalizacion-nativa.md).
+>
+> 📗 **Publicado en Odoo** → Información → *Manual de administrador — Precios de
+> personalización* (artículo **74**, interno, no visible desde el sitio web).
+> **Este archivo es la fuente**; si se edita, hay que volver a subirlo con
+> `scripts/publicar_manual_knowledge.py`.
 
 ---
 
@@ -49,22 +54,18 @@ Verificado el 2026-08-25 en test y producción.
 | Reglas de lista de precios | **Ventas / Administrador** |
 | Plantilla de cotización | **Ventas / Administrador** |
 
-**Los tres usuarios actuales pueden hacer todo lo de esta guía:**
+**Los tres usuarios internos actuales tienen los cuatro permisos**, así que cualquiera
+puede hacer todo lo de esta guía. El detalle de quién tiene qué vive en
+[`docs/usuarios-odoo.md`](usuarios-odoo.md), no aquí.
 
-| Usuario | Ventas | Productos / Crear | Permisos de acceso |
-|---|---|---|---|
-| Juan Carlos Asomoza | Administrador | ✓ | ✓ (llave maestra) |
-| Karina Asomoza | Administrador | ✓ | ✓ (llave maestra) |
-| Rosy Ponce | Administrador | ✓ | — |
-
-> ⚠️ **«Ventas / Administrador» NO incluye «Productos / Crear»** por herencia — es un
-> grupo aparte que los tres tienen puesto a mano. Si algún día das de alta a alguien más
-> para mantener precios, **hay que marcárselo explícitamente** o los scripts fallarán al
-> crear productos.
+> ⚠️ **«Ventas / Administrador» NO incluye «Productos / Crear»** por herencia — se
+> comprobó recorriendo los grupos heredados. Es un grupo aparte, marcado a mano en cada
+> usuario. Si das de alta a alguien más para mantener precios, **hay que marcárselo
+> explícitamente** o los scripts fallarán al crear productos.
 >
-> ⚠️ **«Permisos de acceso»** es la llave maestra de Odoo: quien la tiene puede cambiar
-> los permisos de cualquiera. Solo JC y Karina la tienen. No hace falta para nada de este
-> manual.
+> ⚠️ Para nada de este manual hace falta el permiso **«Permisos de acceso»**, que es la
+> llave maestra de Odoo. Si alguien lo necesita para mantener precios, algo está mal
+> configurado.
 
 Los scripts se conectan con las credenciales de `analysis/supplier-sync/.env`, que hoy son
 las de JC. Nunca se suben al repo.

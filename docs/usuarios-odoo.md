@@ -22,6 +22,15 @@
 
 ## Permisos de Rosy Ponce (rosy_ponce@mozaprintmx.com)
 
+> ⚠️ **DISCREPANCIA DETECTADA el 2026-08-25.** Lo de abajo dice que Ventas bajó de
+> *Administrador* a *Usuario*, pero Odoo responde hoy que Rosy tiene **Sales /
+> Administrator** en producción y en test. O el ajuste se revirtió, o este documento
+> quedó obsoleto. **No se tocó nada**: hay que decidir cuál de los dos es el estado
+> correcto y alinear el que sobre.
+>
+> Comprobado también: los tres usuarios internos tienen **Productos / Crear**, y JC y
+> Karina además **Permisos de acceso** (la llave maestra de Odoo).
+
 Antes de esta configuración tenía permisos casi-admin. Se redujeron al mínimo necesario para las integraciones de la API.
 
 | Módulo / Permiso | Antes | Después | Razón |

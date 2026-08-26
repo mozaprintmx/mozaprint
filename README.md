@@ -57,6 +57,7 @@ mozaprint-context/
 │   ├── crear_plantilla_cotizacion.py ← Plantilla con secciones Producto/Personalización
 │   ├── enlazar_matriz_servicios.py ← Pone el SKU del servicio en cada tarifa de la matriz
 │   ├── audit_personalizacion.py ← Matriz ↔ productos ↔ reglas siguen sincronizados
+│   ├── publicar_manual_knowledge.py ← Sube un manual del repo a Información de Odoo
 │   ├── derive_tecnicas.py       ← Deriva técnica canónica raw→modelo
 │   ├── colores_engine.py        ← Motor de color compartido (normalize/resolve/familia)
 │   ├── derive_colores.py        ← Deriva swatches html_color del atributo Color

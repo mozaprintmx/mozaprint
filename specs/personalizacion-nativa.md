@@ -528,6 +528,25 @@ tarifas.** Queda dicho en el manual de administrador.
 agregar una tarifa nueva y dar de alta una técnica, cada uno con su verificación y su
 rollback, más la lista de lo que nunca hay que hacer.
 
+**Publicado en Odoo** el 2026-08-25 (Información → artículo **74**, interno,
+`is_published=False`, no visible desde el sitio web) con
+`scripts/publicar_manual_knowledge.py`. El archivo del repo es la fuente; el artículo es
+una copia que hay que volver a subir cuando cambie — es justo lo que se descuidó con el
+manual anterior, que quedó describiendo un botón inexistente y acabó archivado.
+
+### Revisión de contenido sensible, antes de publicar
+
+| Revisado | Resultado |
+|---|---|
+| Credenciales, tokens, API keys | ✓ ninguno |
+| Correos electrónicos | ✓ ninguno |
+| Costos de proveedor concretos | ✓ ninguno — solo el factor de markup |
+| Nombres de personas | **se quitaron**: la tabla de quién-tiene-qué se cambió por un puntero a `docs/usuarios-odoo.md` |
+
+El markup **1.275** sí aparece, pero es una exposición ya conocida y aceptada del repo
+público (anotada desde antes en `docs/checklist-deploy-produccion.md`). Si algún día se
+quiere ocultar, va a `ir.config_parameter`.
+
 ## Lo que sigue
 
 - [x] ~~JC revisa `mapa_1_productos.csv`~~ — hecho el 2026-08-22: SKU corregidos y nombres aprobados

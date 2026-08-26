@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-08-25 · (v65) — el manual de administrador, publicado en Información
+
+**Tipo**: `docs` + `tooling` + **producción** (solo un artículo de Knowledge).
+
+**Revisión de contenido sensible antes de publicar**, a petición de JC. Sin credenciales,
+sin correos, sin costos de proveedor concretos. **Se quitaron los nombres de personas**: la
+tabla de quién-tiene-qué permiso se cambió por un puntero a `docs/usuarios-odoo.md`, que ya
+existe para eso — el manual no necesita decir quién tiene la llave maestra. El markup
+**1.275** sí aparece, pero es una exposición ya conocida y aceptada del repo público.
+
+**Publicado** como artículo **74** de Información, **interno** (`is_published=False`, no
+visible desde el sitio web). El anterior (id 73) sigue archivado.
+
+**`scripts/publicar_manual_knowledge.py`**, nuevo: convierte el Markdown a HTML
+—encabezados, tablas, bloques de código, citas y listas—, **avisa si detecta credenciales,
+correos o nombres de personas**, y es idempotente: busca por título y actualiza si el
+artículo ya existe. Existe precisamente porque el manual anterior se publicó a mano una
+vez y nadie lo volvió a tocar: acabó describiendo un botón inexistente. Una copia que no se
+puede regenerar con un comando se queda atrás.
+
+**Discrepancia detectada, sin tocar nada**: `docs/usuarios-odoo.md` dice que en 2026-05-31
+se bajó a Rosy de *Ventas / Administrador* a *Usuario*, pero Odoo responde hoy que tiene
+**Sales / Administrator** en producción y en test. O el ajuste se revirtió, o el documento
+quedó obsoleto. Queda marcado en el archivo para que se decida cuál es el estado correcto.
+
+---
+
 ## 2026-08-25 · (v64) — manual de administrador de precios y el hueco de los códigos de técnica
 
 **Tipo**: `docs` + `fix`.
