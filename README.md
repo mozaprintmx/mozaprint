@@ -15,6 +15,7 @@ mozaprint-context/
 │   ├── roadmap.md               ← Qué está hecho, qué falta
 │   ├── changelog.md             ← Historial de cambios técnicos
 │   ├── manual-admin-precios-personalizacion.md ← Mantener precios sin romper nada
+│   ├── manual-vendedor-personalizacion.md ← Cotizar personalización (vendedores)
 │   └── upgrades/                ← Actualizaciones de Odoo: checklist e incidencias
 │       ├── README.md            ← Índice, estado por base y los dos comandos
 │       ├── checklist-post-upgrade.md  ← Qué revisar tras cada actualización

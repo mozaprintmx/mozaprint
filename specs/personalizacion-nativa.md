@@ -497,8 +497,9 @@ reparación, para no tener que recordarla.
 | Reglas de lista de precios | Ventas / Administrador |
 | Plantilla de cotización | Ventas / Administrador |
 
-Los tres usuarios internos (JC, Karina, Rosy) pueden hacer **todo** lo necesario: los tres
-tienen *Ventas / Administrador* **y** *Productos / Crear*.
+Los tres usuarios internos pueden hacer **todo** lo necesario: los tres tienen
+*Ventas / Administrador* **y** *Productos / Crear* (confirmado por JC el 2026-08-25; los
+permisos de Rosy habían cambiado respecto a lo que decía `docs/usuarios-odoo.md`).
 
 > ⚠️ **«Ventas / Administrador» NO implica «Productos / Crear»** — se comprobó recorriendo
 > los grupos heredados. Es un grupo aparte que los tres tienen marcado a mano. A cualquier
@@ -521,16 +522,26 @@ completaron las 20, usando los mismos códigos que ya llevan los comodines `SERV
 **Al dar de alta una técnica nueva hay que agregarle su línea en `TEC` antes de cargarle
 tarifas.** Queda dicho en el manual de administrador.
 
-## Manual de administrador
+## Manuales
 
 [`docs/manual-admin-precios-personalizacion.md`](../docs/manual-admin-precios-personalizacion.md)
 — para quien mantiene los precios, no para quien cotiza. Cubre actualizar un costo,
 agregar una tarifa nueva y dar de alta una técnica, cada uno con su verificación y su
 rollback, más la lista de lo que nunca hay que hacer.
 
-**Publicado en Odoo** el 2026-08-25 (Información → artículo **74**, interno,
-`is_published=False`, no visible desde el sitio web) con
-`scripts/publicar_manual_knowledge.py`. El archivo del repo es la fuente; el artículo es
+[`docs/manual-vendedor-personalizacion.md`](../docs/manual-vendedor-personalizacion.md)
+— para quien **cotiza**, pensado para vendedores nuevos. Las tres reglas de cantidad, cómo
+encontrar el servicio, cómo leer un código, la línea de setup, qué hacer cuando no hay
+tarifa, por qué algunas líneas salen en ámbar, y un catálogo de referencia por técnica.
+
+> **Sin tablas de precios, a propósito.** Los precios cambian cuando el proveedor los sube,
+> y una tabla impresa se queda vieja sin avisar — además el repo es público. El manual
+> enseña **dónde** se consulta el precio bueno (Odoo lo calcula al poner la cantidad) y
+> qué existe, que es lo estable.
+
+**Publicados en Odoo** el 2026-08-25 con `scripts/publicar_manual_knowledge.py`, ambos
+internos (`is_published=False`, no visibles desde el sitio web): artículo **74** el de
+administrador y **75** el de vendedor. El archivo del repo es la fuente; el artículo es
 una copia que hay que volver a subir cuando cambie — es justo lo que se descuidó con el
 manual anterior, que quedó describiendo un botón inexistente y acabó archivado.
 

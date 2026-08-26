@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-08-25 · (v66) — manual del vendedor, publicado
+
+**Tipo**: `docs` + **producción** (un artículo de Knowledge).
+
+`docs/manual-vendedor-personalizacion.md`, para vendedores nuevos que van a cotizar
+personalización. Publicado como artículo **75** de Información, interno. El de
+administrador es el 74; el viejo (73) sigue archivado.
+
+Lo organiza alrededor de **las tres reglas que no son mecánicas**: la cantidad casi siempre
+son piezas pero en 11 productos son **tintas** y en 3 es **1**; hay tarifas con **cantidad
+mínima** —el caso más frecuente, porque la mediana de pedido está por debajo de casi todos
+los mínimos—; y el precio baja solo al subir la cantidad, sin buscar tablas. Todo lo demás
+del manual es mecánico.
+
+Incluye además cómo leer un código `PERS-*`, la línea de setup, qué hacer cuando no hay
+tarifa (los comodines «(precio a cotizar)», con la advertencia de **no inventar precios**),
+por qué algunas líneas salen en ámbar, un catálogo de referencia por técnica y los errores
+comunes.
+
+**Sin tablas de precios, a propósito**: cambian cuando el proveedor los sube y una tabla
+impresa se queda vieja sin avisar — y el repo es público. El manual enseña dónde se
+consulta el precio bueno y qué existe, que es lo estable.
+
+**Corregido**: `docs/usuarios-odoo.md` decía que a Rosy se le habían reducido los permisos
+de Ventas en mayo. JC confirmó que **cambiaron después**; el documento ahora encabeza con
+el estado real verificado y conserva el registro histórico por el criterio que explica.
+
+---
+
 ## 2026-08-25 · (v65) — el manual de administrador, publicado en Información
 
 **Tipo**: `docs` + `tooling` + **producción** (solo un artículo de Knowledge).
