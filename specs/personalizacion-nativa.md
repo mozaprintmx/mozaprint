@@ -7,8 +7,9 @@
 > precios). La inteligencia —calcular markup, cargar, actualizar, verificar— vive en
 > **scripts del repo**, que corren fuera de Odoo y no se facturan.
 >
-> **Estado**: paso 0 (sondeo) y paso 1 (hoja de mapeo) hechos el 2026-08-21 contra
-> test `saas~19.3`. **Nada cargado en Odoo todavía.**
+> **Estado**: ✅ **EN PRODUCCIÓN desde el 2026-08-25.** Los pasos 0 a 9 están hechos y
+> verificados en las dos bases. Lo único abierto es la prueba manual de JC armando una
+> cotización real, y el pendiente de negocio con Promo Opción.
 
 ## Paso 0 — sondeo de capacidades (hecho, solo lectura)
 
@@ -557,6 +558,44 @@ manual anterior, que quedó describiendo un botón inexistente y acabó archivad
 El markup **1.275** sí aparece, pero es una exposición ya conocida y aceptada del repo
 público (anotada desde antes en `docs/checklist-deploy-produccion.md`). Si algún día se
 quiere ocultar, va a `ir.config_parameter`.
+
+## Paso 9 — despliegue en producción (2026-08-25)
+
+Antes de escribir nada se comprobó que **la matriz de producción fuera idéntica a la de
+test**, porque la hoja de mapeo se generó desde test: 128 tarifas, cero diferencias. Si
+hubieran divergido, la hoja habría estado desactualizada y los precios habrían salido mal.
+
+Los cinco scripts, en orden, cada uno con su simulacro previo:
+
+| # | Script | Resultado en PROD |
+|---|---|---|
+| 1 | `consolidar_categorias_servicio.py` | 3 movidos · 20 renombrados · categoría 5 **borrada** |
+| 2 | `cargar_servicios_personalizacion.py` | **53 productos** creados |
+| 3 | `cargar_reglas_precio_personalizacion.py` | **77 reglas** (74 tramos + 3 de delegación) |
+| 4 | `enlazar_matriz_servicios.py` | campo `x_sku_servicio` + columna + **126 de 126** enlazadas |
+| 5 | `crear_plantilla_cotizacion.py` | plantilla con las 2 secciones |
+
+### Verificación
+
+| Comprobación | Resultado |
+|---|---|
+| `audit_personalizacion.py --target prod` | ✓ las 7 revisiones limpias |
+| Smoke test de tramos | ✓ **92 precios** correctos |
+| `audit_lineas_facturables.py` | ✓ **0 líneas / 0 bloques** |
+| `deploy_reporte_cotizacion.py --verificar` | ✓ el PDF sigue cuadrado |
+| `audit_post_upgrade.py` | ✓ sin hallazgos bloqueantes |
+
+**Nada de lo que ya existía se tocó**: 447 cotizaciones, 379 borradores y 64 confirmadas
+siguen igual, y el historial de los 3 productos legado sobrevivió al cambio de categoría
+($23,760 y $990 intactos).
+
+Cotización de prueba real, creada y borrada:
+
+```
+PERS-SERI-PO-BOLSATEXTI-H603   qty 600   $6.08     → $3,648.00   ← tramo correcto
+PERS-SERI-INN-TEXTIHIELE-LOTE  qty 2     $3,442.50 → $6,885.00   ← 2 tintas
+PERS-SETUP-TAMPO-INN           qty 1     $280.50   → $280.50
+```
 
 ## Lo que sigue
 

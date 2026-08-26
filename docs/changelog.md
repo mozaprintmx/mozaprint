@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-08-25 · paso 9 (v67) — el reemplazo nativo de personalización, EN PRODUCCIÓN
+
+**Tipo**: `datos` (**PRODUCCIÓN**) + `docs`. Cierra el trabajo abierto por el
+[ADR 007](../decisions/007-retiro-motor-cotizacion-costo-codigo.md) el 2026-08-17.
+
+**Comprobación previa que valía por todas**: la hoja de mapeo se generó desde test, así
+que antes de escribir se verificó que **la matriz de producción fuera idéntica** — 128
+tarifas, cero diferencias. Si alguien hubiera editado un costo en prod desde el 18 de
+agosto, la hoja habría estado vieja y los precios habrían salido mal sin avisar.
+
+Los cinco scripts en orden, cada uno con simulacro previo: **3 productos movidos y 20
+renombrados** con la categoría duplicada borrada, **53 productos** de servicio, **77
+reglas** de precio, **126 de 126** tarifas enlazadas con su SKU, y la plantilla de
+cotización con sus dos secciones.
+
+**Verificación**: el auditor de personalización limpio en sus 7 revisiones, **92 precios**
+correctos en el smoke test de tramos, **0 líneas facturables**, el PDF de cotización
+cuadrado y el auditor post-upgrade sin hallazgos.
+
+**Nada de lo existente se tocó**: 447 cotizaciones, 379 borradores y 64 confirmadas
+intactas, y el historial de los 3 productos legado sobrevivió al cambio de categoría
+($23,760 y $990).
+
+El motor retirado hacía esto con 289 líneas de código que costaban 3 cargos mensuales.
+Ahora son productos y reglas —datos— y la inteligencia vive en scripts del repo que corren
+fuera de Odoo.
+
+**Queda abierto**: la prueba manual de JC armando una cotización real, y preguntar a Promo
+Opción si tienen tarifa para pedidos chicos (sus mínimos arrancan en 50–1,000 piezas y la
+mediana de pedido está en 20).
+
+---
+
 ## 2026-08-25 · (v66) — manual del vendedor, publicado
 
 **Tipo**: `docs` + **producción** (un artículo de Knowledge).
