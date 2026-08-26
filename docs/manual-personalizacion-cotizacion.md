@@ -3,27 +3,21 @@
 > Para el equipo de ventas. Explica cómo agregar el costo de personalización
 > (serigrafía, bordado, láser, etc.) a una cotización, paso a paso.
 >
-> ## ⚠️ OBSOLETO desde el 2026-08-17 — el botón ya no existe
+> ## ⚠️ HISTÓRICO — este manual ya no aplica
 >
-> El motor de cotización se retiró de producción (ver
-> `decisions/007-retiro-motor-cotizacion-costo-codigo.md`). **El botón «Agregar
-> personalización» ya no aparece en la cotización**, y tampoco existen el wizard ni
-> las solicitudes de aprobación.
+> Describe el **motor de cotización**, retirado el 2026-08-17
+> ([ADR 007](../decisions/007-retiro-motor-cotizacion-costo-codigo.md)). El botón «Agregar
+> personalización», el wizard y las solicitudes de aprobación **ya no existen**.
 >
-> **Procedimiento vigente, mientras se construye el reemplazo nativo**:
-> 1. Consultar el costo en **Ventas → Configuración → Costos de personalización**,
->    filtrando por técnica, proveedor y alcance, y respetando el rango de cantidad.
-> 2. Agregar a mano una línea de servicio en la cotización con ese costo × markup
->    (el markup está en el campo `x_markup` de la tarifa).
-> 3. Si la técnica se cobra **por lote** (pantallas de serigrafía), agregar una
->    segunda línea con cantidad 1.
-> 4. Si no hay tarifa para el caso, pedir el costo al proveedor y anotarlo después
->    en la matriz.
+> **Los manuales vigentes son otros**, y están publicados en Información de Odoo:
 >
-> ⚠️ **La copia publicada en Información (Knowledge) de Odoo también debe
-> actualizarse o retirarse** — ese paso está pendiente y hay que hacerlo a mano.
+> | Para | Archivo | Artículo |
+> |---|---|---|
+> | Cotizar | [`manual-vendedor-personalizacion.md`](manual-vendedor-personalizacion.md) | 75 |
+> | Mantener precios | [`manual-admin-precios-personalizacion.md`](manual-admin-precios-personalizacion.md) | 74 |
 >
-> Lo de abajo se conserva como referencia histórica del flujo que existía.
+> Se conserva este archivo porque documenta cómo funcionaba el motor, que es útil si
+> alguna vez se revisa esa decisión. Lo de abajo describe un sistema que ya no existe.
 
 > **Estado histórico**: activo en producción del 2026-08-14 al 2026-08-17.
 

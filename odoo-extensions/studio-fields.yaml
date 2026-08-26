@@ -781,6 +781,16 @@ new_models:
     # Permisos: grupo "Ventas/Usuario: todos los documentos" replicado desde
     # x_tecnica_personalizacion, confirmado 2026-08-05.
     fields:
+      - field_name: x_sku_servicio
+        field_type: char
+        string: 'SKU del servicio'
+        status: created
+        created_date: 2026-08-25
+        # Puente entre la matriz y el catálogo: el código del producto de
+        # servicio que corresponde a esta tarifa, para que quien consulta un
+        # costo vea ahí mismo qué teclear en la cotización. Campo SIMPLE (sin
+        # compute ni related) → Odoo NO lo factura. Lo llena
+        # scripts/enlazar_matriz_servicios.py; no se edita a mano.
       - field_name: x_name
         field_type: char
         required: true

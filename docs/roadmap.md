@@ -52,8 +52,19 @@
 - [ ] Configurar optional/accessory products por categoría
 - [ ] ~~Generar descripciones de producto con AI Fields (masivo)~~ → **DESCARTADO de Fase 2** (no bloquea el cierre). Reencuadrado como iniciativa SEO **dirigida** de Fase 9, condicionada a diagnóstico GSC. Ver Fase 9 y `decisions/006-descripciones-ia-seo-dirigido.md`
 
-### FASE 3: Motor de cotización
-**Estado**: 🟡 En progreso (semana 7-8) — **motor EN PRODUCCIÓN** (2026-08-14); costos INN+PO cargados, falta 4P
+### FASE 3: Precios de personalización en la cotización
+**Estado**: ✅ **COMPLETA — reemplazo nativo en producción (2026-08-25)**
+
+> **El motor de cotización se retiró el 2026-08-17** por el cargo de Odoo por línea de
+> código ([ADR 007](../decisions/007-retiro-motor-cotizacion-costo-codigo.md)) y se
+> reconstruyó con mecanismos **nativos**: 53 productos de servicio + 77 reglas de lista de
+> precios. **0 líneas facturables.** Diseño en
+> [`specs/personalizacion-nativa.md`](../specs/personalizacion-nativa.md).
+>
+> Pendiente de negocio, no técnico: **4Promotional sigue sin tarifas**, y las de Promo
+> Opción arrancan en 50–1,000 piezas cuando la mediana de pedido es de 20 — hay que
+> preguntarles si tienen lista para pedidos chicos. Mientras, esos casos van por los
+> productos comodín «(precio a cotizar)».
 **Notas**:
 - INN: manual de costos por PDF (`MANUAL-SI-OK.pdf`, no el flippingbook — el visor JS del link
   público no se pudo leer, se usó el PDF exportado). Ver `analysis/costos-personalizacion/COSTOS_INN_20260805.md`.

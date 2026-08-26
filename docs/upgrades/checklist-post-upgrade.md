@@ -10,7 +10,7 @@ la imprime en el encabezado (`Odoo saas~19.2`).
 
 ---
 
-## 1. Automático — los dos comandos
+## 1. Automático — los cuatro comandos
 
 ```bash
 # a) Salud general: vistas, sitio web, censo de objetos custom
@@ -21,14 +21,20 @@ python scripts/deploy_reporte_cotizacion.py --target test --verificar
 
 # c) Que no se haya colado código que Odoo factura
 python scripts/audit_lineas_facturables.py --target test
+
+# d) Que matriz, productos y reglas de personalización sigan diciendo lo mismo
+python scripts/audit_personalizacion.py --target test
 ```
 
-Los tres son **solo lectura** y salen con código 1 si hay hallazgos.
+Los cuatro son **solo lectura** y salen con código 1 si hay hallazgos.
 
 - [ ] **(a) sale limpio** — `✓ Sin hallazgos bloqueantes.`
 - [ ] **(b) sale limpio** — `✓ El reporte está completo y cuadrado.` Incluye la revisión
       **[4]**: que la imagen nativa de 19.3 siga apagada, para que no duplique la nuestra
 - [ ] **(c) sale limpio** — `✓ Dentro del máximo tolerado.` (0 bloques)
+- [ ] **(d) sale limpio** — `✓ Matriz, productos y reglas dicen lo mismo.` Si no, la
+      secuencia de reparación la imprime el propio comando; el detalle está en
+      [manual-admin-precios-personalizacion.md](../manual-admin-precios-personalizacion.md)
 
 > El motor de cotización se **retiró de producción el 2026-08-17** por el cargo de
 > Odoo por línea de código ([ADR 007](../../decisions/007-retiro-motor-cotizacion-costo-codigo.md)).
@@ -111,10 +117,12 @@ garantiza que se vea bien** — esto se revisa con los ojos.
 `--verificar` valida la **estructura** (que las vistas propias existan y que las
 columnas cuadren); esto valida cómo se **ve**.
 
-> La prueba funcional del motor de cotización (casos A/B/C, aprobación, línea de
-> setup) ya no aplica: el motor se retiró de producción el 2026-08-17
-> ([ADR 007](../../decisions/007-retiro-motor-cotizacion-costo-codigo.md)). Hoy las
-> personalizaciones se cotizan a mano desde la matriz.
+> La prueba funcional del motor de cotización (casos A/B/C, aprobación, línea de setup)
+> ya no aplica: el motor se retiró el 2026-08-17
+> ([ADR 007](../../decisions/007-retiro-motor-cotizacion-costo-codigo.md)). Desde el
+> 2026-08-25 la personalización se cotiza con **productos de servicio y reglas de lista de
+> precios**, y su prueba funcional es el comando **(d)** del apartado 1, más el smoke test
+> `cargar_reglas_precio_personalizacion.py --target <base> --smoke`.
 
 ### El PDF, a ojo
 

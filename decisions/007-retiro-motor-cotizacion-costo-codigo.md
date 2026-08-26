@@ -85,15 +85,24 @@ el «aprendizaje» de tarifas nuevas.
 **Se gana**: 3 cargos mensuales menos, y una superficie de mantenimiento mucho menor
 ante upgrades de Odoo.
 
-**Queda pendiente** el diseño nativo de reemplazo (ver la sección siguiente). Hasta
-que se construya, **las personalizaciones se cotizan a mano** consultando la matriz
-en Ventas → Configuración → Costos de personalización.
+**Quedó pendiente** el diseño nativo de reemplazo (ver la sección siguiente), y durante
+esos ocho días las personalizaciones se cotizaron a mano desde la matriz. **Se construyó y
+entró en producción el 2026-08-25.**
 
 **Reversible**: `scripts/deploy_motor_cotizacion.py` reconstruye los 76 objetos desde
 el repo con un comando. El manifiesto quirúrgico quedó en
 `backups/manifiesto_motor_prod_QUIRURGICO.json`.
 
-## El diseño de reemplazo (evaluado, no construido)
+## El diseño de reemplazo
+
+> ✅ **CONSTRUIDO Y EN PRODUCCIÓN desde el 2026-08-25.** Lo que sigue era la evaluación
+> original; se llevó a cabo casi tal cual. El detalle de lo construido, con todo lo que se
+> aprendió por el camino, está en
+> [`specs/personalizacion-nativa.md`](../specs/personalizacion-nativa.md).
+>
+> Resultado: **53 productos de servicio + 77 reglas de lista de precios**, con la matriz
+> como única fuente de verdad. **0 líneas facturables** — el auditor lo confirma en cada
+> corrida.
 
 La matriz de 128 tarifas se descompone en **52 combinaciones** de
 (técnica × proveedor × alcance × área): 33 con precio plano y **19 con tramos de

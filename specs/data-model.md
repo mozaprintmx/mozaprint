@@ -690,7 +690,23 @@ assigned_user_id:
 
 Matriz de costos de personalización por proveedor / técnica / alcance / cantidad / área.
 
+> **✓ 2026-08-25 — es la fuente de verdad del diseño nativo.** De esta matriz salen, por
+> traducción de `scripts/mapa_servicios_personalizacion.py`, los **53 productos de
+> servicio** y las **77 reglas de lista de precios** que cotizan la personalización
+> (ver `specs/personalizacion-nativa.md`). Los productos y las reglas son **derivados**:
+> se sobrescriben en cada carga. **El precio se edita aquí, nunca en el producto.**
+>
+> Campo agregado ese día: `x_sku_servicio` (char) — el código del producto que corresponde
+> a cada tarifa, para que quien consulta un costo vea qué teclear en la cotización. Es un
+> campo **simple**, sin `compute` ni `related`: Odoo **no lo factura**.
+
 ```yaml
+x_sku_servicio:
+  type: char
+  string: "SKU del servicio"
+  # Lo llena scripts/enlazar_matriz_servicios.py desde la hoja de mapeo.
+  # No se edita a mano. Visible como columna en la lista de la matriz.
+
 x_name:
   type: char
   string: "Descripción"

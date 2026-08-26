@@ -142,6 +142,9 @@ python3 scripts/dns_audit.py --output reports/dns_$(date +%Y%m%d).json
 # Backup catálogo antes de sync masivo
 python3 scripts/backup_catalog.py --output backups/$(date +%Y%m%d).json
 
+# Precios de personalización: matriz ↔ productos ↔ reglas (solo lectura)
+python3 scripts/audit_personalizacion.py --target prod
+
 # Auditar catálogo / atributos de /shop (solo lectura, JSON-2)
 python3 scripts/audit_catalog.py
 python3 scripts/audit_atributos.py
@@ -173,11 +176,15 @@ python3 scripts/rollback_category_images.py --from backups/category_images_AAAAM
 - Estado por fases: `docs/roadmap.md` y `docs/punto-de-control.md`
 - APIs externas y proveedores: `specs/integrations.md`
 - Agente "Moza" (identidad, prompts, tools): `specs/ai-agent-spec.md`
-- Motor de cotización: **RETIRADO de producción el 2026-08-17** por el cargo por línea
-  de código. Decisión y diseño de reemplazo nativo en
-  `decisions/007-retiro-motor-cotizacion-costo-codigo.md`. La spec histórica
-  (`specs/motor-cotizacion.md`) solo aplica si se reconstruye. Hoy las
-  personalizaciones se cotizan **a mano** consultando la matriz `x_costo_personalizacion`.
+- Personalización en cotizaciones: **reemplazo NATIVO en producción desde 2026-08-25**
+  (`specs/personalizacion-nativa.md`). 53 productos de servicio + 77 reglas de lista de
+  precios, con `x_costo_personalizacion` como única fuente de verdad y los scripts del
+  repo traduciendo. **Los precios NO se editan en el producto**: se editan en la matriz y
+  se recargan. Manuales: `docs/manual-vendedor-personalizacion.md` y
+  `docs/manual-admin-precios-personalizacion.md` (publicados en Información de Odoo).
+  Verificación: `python scripts/audit_personalizacion.py --target prod`.
+- El motor de cotización anterior se **RETIRÓ el 2026-08-17** por el cargo por línea de
+  código (`decisions/007-...`). Su spec (`specs/motor-cotizacion.md`) es histórica.
 - Actualizaciones de Odoo (checklist, incidencias, reparaciones): `docs/upgrades/README.md`.
   Las dos bases corren **saas~19.3** desde 2026-08-22. Cuando vuelvan a divergir, lo
   que falla en test es aviso anticipado de producción — no lo repares antes de
