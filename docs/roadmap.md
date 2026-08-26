@@ -224,6 +224,7 @@
 - **Modelo de técnica de personalización** (`x_tecnica_personalizacion`, 20 técnicas) con la técnica canónica **derivada** en cada producto (`x_tecnica_default_id` + `x_tecnicas_compatibles_ids`, ~5,203 templates) desde el campo raw `x_tecnica_impresion`
 - **/shop depurado**: filtros laterales reducidos a Color, Talla y Precio (atributos basura ocultos)
 - **Scripts de catálogo** (solo lectura / migración): `audit_catalog.py`, `audit_atributos.py`, `dump_tecnica_values.py`, `seed_tecnicas.py`, `derive_tecnicas.py` (todos sobre JSON-2 vía `odoo_client.py`)
+- **Precios de personalización en la cotización** (2026-08-25): 53 productos de servicio + 77 reglas de lista de precios derivados de la matriz `x_costo_personalizacion`. El vendedor elige el servicio, teclea la cantidad y **Odoo pone el precio**; 0 líneas facturables. Ver `specs/personalizacion-nativa.md` y los manuales de vendedor y administrador
 - Integración con 3 proveedores vía script (XML-RPC actual)
 - Descuentos por monto visibles en ficha (manual)
 - Los tres formularios web conectados al CRM: /contactanos, /shop y ficha de producto (crean Lead con campos custom; origen diferenciado por x_studio_origen_form)
@@ -237,10 +238,10 @@
 - `x_studio_origen_url` sin captura automática aún
 - Descuentos no se aplican automáticamente en cotización
 - Odoo no detecta actividad si el vendedor actúa desde Gmail (depende de mover tarjetas manualmente — ver `docs/proceso-equipo-crm.md`)
-- Cotizaciones se arman 100% manualmente
+- La cotización se arma a mano línea por línea — el **precio** de personalización ya lo pone Odoo, lo que no existe es el auto-populado de las líneas
 - Sin trazabilidad de WhatsApp en Odoo
 - Sin agente IA
-- Sin matriz de costos de personalización formal
+- **4Promotional sin tarifas de personalización**, y las de Promo Opción arrancan por encima de la mediana de pedido → esos casos van por comodín «(precio a cotizar)», con el precio tecleado a mano
 - Sin webhooks Odoo → externo
 - Correo desde @mozaprintmx.com no configurado en Odoo (sale desde dominio Odoo)
 

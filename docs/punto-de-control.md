@@ -1,6 +1,6 @@
 # Punto de control — Mozaprint MX
 
-Última actualización: 2026-08-15. Pegar/leer al iniciar un chat nuevo para retomar con contexto mínimo.
+Última actualización: 2026-08-25. Pegar/leer al iniciar un chat nuevo para retomar con contexto mínimo.
 
 ## Cómo trabajar (para ahorrar tokens)
 - Un chat nuevo por pieza de trabajo; cortar al cerrar cada pieza, no a media tarea.
@@ -40,36 +40,47 @@ Horarios reales (Task Scheduler, no en código): stock_sync INN 09:15/13:15/17:1
 - **Filtro de técnica DESCARTADO/baja prioridad**: por experiencia del operador, el cliente busca producto y luego pregunta por personalización; no navega por técnica. (Odoo no tiene reporte de términos de búsqueda para confirmarlo con datos.)
 - Si se hiciera técnica-como-filtro algún día: requiere modelarla como product.attribute con create_variant="no_variant" (no se puede filtrar /shop por campo custom en Online sin tocar el controlador).
 
-## Fase 3 — Motor de cotización — RETIRADO DE PRODUCCIÓN (2026-08-17)
+## Fase 3 — Personalización en la cotización — ✅ EN PRODUCCIÓN (2026-08-25)
 
-⚠️ **El motor ya no existe en producción.** Odoo cobra «Mantenimiento de código
-personalizado» **cada 100 líneas** de código de Studio (acciones automatizadas y campos
-calculados). El motor sumaba **289 líneas = 3 cargos**, y era el **100%** del código
-facturable de la base. Ver `decisions/007-retiro-motor-cotizacion-costo-codigo.md`.
+Los precios de personalización se cotizan con mecanismos **nativos**: productos de
+servicio + reglas de lista de precios. **0 líneas facturables.** Diseño completo en
+`specs/personalizacion-nativa.md`.
 
-- **Estado hoy**: producción en **0 líneas facturables**. Se borraron 64 objetos
-  (5 Server Actions, 7 campos calculados, los modelos `x_approval_request` y
-  `x_wizard_personalizacion` con sus 47 campos, 5 vistas, 1 menú, 1 acción, 2 ACLs).
-- **Se conservó**: las **128 tarifas** de `x_costo_personalizacion` con `x_markup`, sus
-  vistas y menú, las **20 técnicas** con sus vistas, y los 5,212 productos con técnica.
-  La matriz sigue consultable en Ventas → Configuración → Costos de personalización.
-- **Mientras tanto, las personalizaciones se cotizan A MANO** consultando esa matriz.
-- **Reversible**: `scripts/deploy_motor_cotizacion.py` reconstruye los 76 objetos desde
-  el repo con un comando. Manifiesto quirúrgico en
-  `backups/manifiesto_motor_prod_QUIRURGICO.json`.
-- **Guarda permanente**: `scripts/audit_lineas_facturables.py` mide el código
-  facturable y falla si supera `--max-bloques` (default 0). Está en el checklist
-  post-upgrade.
-- **Próximo diseño (evaluado, NO construido)**: 52 productos de servicio + ~76 reglas
-  de `product.pricelist.item` con `min_quantity` — nativo, son datos, no se factura.
-  Las 128 tarifas se descomponen en 52 combinaciones (técnica × proveedor × alcance ×
-  área): 33 con precio plano y 19 con tramos. Descartadas las variantes con atributos:
-  `price_extra` es **aditivo** y la matriz no lo es. Hallazgo: las 4 listas de precios
-  existentes tienen **0 reglas `min_quantity`** — el mecanismo está sin estrenar.
-- **Docs históricos**: diseño `specs/motor-cotizacion.md` · despliegue
-  `docs/checklist-deploy-produccion.md` · manual del equipo
-  `docs/manual-personalizacion-cotizacion.md` (⚠️ desactualizado: describe un botón que
-  ya no existe).
+- **Cómo funciona**: la matriz `x_costo_personalizacion` (Ventas → Configuración →
+  Costos de personalización, **128 tarifas**) es la **única fuente de verdad**. Los
+  scripts del repo la traducen a **53 productos de servicio** (`PERS-*` tarifados,
+  `SERV-*` comodín) y **77 reglas de `product.pricelist.item`** con tramos de
+  `min_quantity`. El vendedor elige el servicio y teclea la cantidad; **Odoo pone el
+  precio**.
+- **Regla de oro**: los precios **NO se editan en la ficha del producto** — se editan en
+  la matriz y se recargan. Lo que se escriba en el producto lo pisa la siguiente carga.
+- **Ojo con la cantidad**: 11 servicios se cobran **POR TINTA** y 3 van siempre en 1
+  (lote o setup). Odoo pinta esas líneas de ámbar como aviso. Teclear piezas donde van
+  tintas es el error caro del diseño.
+- **Manuales**: vendedor `docs/manual-vendedor-personalizacion.md` (Información, art. 75)
+  y administrador `docs/manual-admin-precios-personalizacion.md` (art. 74).
+- **Verificación**: `python scripts/audit_personalizacion.py --target prod` — sale con
+  código 1 si matriz, productos y reglas dejan de decir lo mismo.
+- **Pendientes de NEGOCIO, no técnicos**: 4Promotional sigue sin tarifas, y las de Promo
+  Opción arrancan en 50–1,000 piezas cuando la mediana de pedido es de **20** — hay que
+  preguntarles si tienen lista para pedidos chicos. Mientras, esos casos van por los
+  comodines «(precio a cotizar)» con el precio tecleado a mano tras pedírselo al
+  proveedor.
+
+### Por qué NO es un Server Action (lección permanente)
+
+El **motor de cotización anterior se retiró el 2026-08-17**: Odoo cobra «Mantenimiento de
+código personalizado» **cada 100 líneas** de código de Studio (acciones automatizadas y
+campos calculados). El motor sumaba **289 líneas = 3 cargos** y era el **100%** del código
+facturable de la base. Ver `decisions/007-retiro-motor-cotizacion-costo-codigo.md`. Los
+precios ahora son **datos** —productos y reglas, que no se cobran— y la inteligencia vive
+en scripts del repo, que corren desde la computadora del operador.
+
+- **Guarda permanente**: `scripts/audit_lineas_facturables.py` mide el código facturable y
+  falla si supera `--max-bloques` (default 0). Está en el checklist post-upgrade.
+- **Docs históricos** (describen el motor retirado; se conservan por si algún día se
+  revisa la decisión): `specs/motor-cotizacion.md`,
+  `docs/checklist-deploy-produccion.md` y `docs/manual-personalizacion-cotizacion.md`.
 
 ## PENDIENTES / próximas piezas (cada una = chat nuevo)
 - **Vigilar** primeras corridas: desactivación de sobrantes (riesgo API inestable bajo umbral 10%); que imágenes AVIF se conviertan/salten; que la derivación se dispare sola post-sync; que el backup productos_INN_*.json se genere. Revisar logs en ProductSync\logs\.
@@ -77,8 +88,8 @@ facturable de la base. Ver `decisions/007-retiro-motor-cotizacion-costo-codigo.m
 - **Piezas de Fase 2 sin tocar**: swatches de color, optional/accessory products. **Descripciones con IA DESCARTADAS del cierre de Fase 2** (2026-07-06) — reencuadradas como iniciativa SEO DIRIGIDA de Fase 9, condicionada a diagnóstico GSC. Señal: clientes que buscan productos agotados en otros revendedores caen aquí, pero compartimos la descripción duplicada del proveedor → Google deprioritiza. Palanca real = title/H1 únicos, no el body. Ver `decisions/006` y roadmap Fase 9.
 - **15 kits multicomponente**: refinamiento manual de default (cosmético).
 - **Backlog del sync** (Fase 8 / mini-proyectos): XML-RPC→JSON-2; precio en pricelist en vez de ×1.5 en código; supplierinfo completo (product_code/min_qty para matriz de costos Fase 3); Materiales[] en PO/4P; tags de material palabra-completa vs primera palabra; "esperar 2-3 corridas antes de desactivar sobrantes".
-- **Cerrar Fase 3**: faltan los **costos de 4P** (único proveedor sin lista tabulada — mientras tanto sus cotizaciones caen al flujo de aprobación, que ya funciona) y las **tarifas de personalización externa** (mecanismo listo y probado, faltan los datos). Opcional: botón **por línea** vía Studio (el Server Action ya está escrito y probado, sin desplegar). Higiene: partners de proveedor duplicados (INN 82/32, PO 11/8).
-- **Fases siguientes**: cerrar 3, luego 4-6 (WhatsApp+n8n, agente), 7+ (SEO, expansión).
+- **Fase 3 CERRADA** (2026-08-25). Lo que queda no es código: **costos de 4P** (único proveedor sin lista tabulada) y preguntarle a **Promo Opción** si tiene tarifa para pedidos por debajo de sus mínimos. Falta también la **prueba manual de JC**: armar una cotización completa en producción con el manual del vendedor delante — es lo único que puede decir si el flujo funciona para quien lo usa a diario. Higiene: partners de proveedor duplicados (INN 82/32, PO 11/8).
+- **Fases siguientes**: el cuello de botella es el **VPS de n8n** (~€5/mes, Fase 0) — bloquea enteras las fases 4-7 (WhatsApp + agente), que son el corazón del proyecto. La WABA de Meta ya está aprobada; solo falta una URL pública. La **Fase 9 (SEO)** no depende de nada y se puede avanzar en paralelo.
 
 ## Upgrades de Odoo (apartado nuevo, 2026-08-15)
 - Producción y test corren **las dos saas~19.3** desde el 2026-08-22. Test es la base `mozaprintmx-test-saas19-0818` (la anterior, `…-0807`, caducó y Odoo la eliminó). Test vuelve a ir una versión adelante. Seguimiento en `docs/upgrades/` (README + checklist + incidencias).
