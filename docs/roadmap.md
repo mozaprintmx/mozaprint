@@ -5,7 +5,7 @@
 ## Fases
 
 ### FASE 0: Higiene de fundamentos
-**Estado**: 🟡 Casi completa · 4/9 tareas — pendientes: VPS n8n, cuentas Anthropic/OpenAI, subdominio n8n, rotar API key del sync, whitelist Googlebot
+**Estado**: 🟡 Casi completa · 4/9 — pendientes: cuentas Anthropic/OpenAI, rotar API key del sync, whitelist Googlebot. **El VPS y el subdominio dejaron de ser bloqueantes** el 2026-08-31 (ADR 008): Odoo Online es URL pública y toma el webhook. Quedan como opcionales de la Fase 6.
 **Decisiones tomadas**: Camino A WhatsApp · DNS Cloudflare confirmado · Roles asignados
 **Tareas**:
 - [x] Auditar DNS con `scripts/dns_audit.py` (Cloudflare + Hostinger) — 2026-05-28
@@ -13,10 +13,10 @@
 - [x] Usuario técnico API Odoo — 2026-05-31 (ver `docs/usuarios-odoo.md`; se reutilizó Rosy Ponce con permisos reducidos en lugar de crear `integration@`)
 - [ ] Rotar API key del script de proveedores
 - [ ] Whitelist Googlebot en WAF si aplica
-- [x] Iniciar trámite Meta Business Manager — 2026-06-01 (WABA aprobada, base lista; conexión Cloud API pendiente VPS — ver `docs/meta-whatsapp-status.md`)
+- [x] Iniciar trámite Meta Business Manager — 2026-06-01 (WABA aprobada, base lista; la conexión Cloud API ya NO depende del VPS: el webhook apunta a Odoo — ver `docs/meta-whatsapp-status.md`)
 - [ ] Crear cuentas Anthropic + OpenAI (para evaluación)
-- [ ] Aprovisionar VPS Hetzner CX22 (~€5/mes)
-- [ ] Crear subdominio n8n.mozaprintmx.com en Cloudflare
+- [ ] (opcional, Fase 6) Aprovisionar VPS Hetzner CX22 (~€5/mes) — solo si el experimento B falla
+- [ ] (opcional, Fase 6) Crear subdominio n8n.mozaprintmx.com en Cloudflare
 
 ### FASE 1: Captura estructurada de leads
 **Estado**: ✅ Completada (semana 3)
@@ -106,54 +106,72 @@
       botón de fila solo por API; el Server Action ya está escrito y probado).
 - [ ] Crear AI Cotizador asistente para vendedor
 
-### FASE 4: Setup técnico WhatsApp + n8n
-**Estado**: 🔴 No iniciada (semana 9)
-**Bloquea hasta**: VPS n8n desplegado con URL pública (verificación Meta NO requerida — ver `docs/meta-whatsapp-status.md`)
+### FASE 4: WhatsApp nativo en Odoo (con personas)
+**Estado**: 🟡 Diseñada, no iniciada — ver `decisions/008-whatsapp-nativo-odoo.md`
+**Cambio de rumbo (2026-08-31)**: se revirtió la ADR 005. **Odoo es el dueño del
+webhook**, no n8n. Odoo Online ya es URL pública, así que **el VPS deja de ser
+prerrequisito** de esta fase y de las siguientes.
+**Bloquea hasta**: los dos experimentos de la ADR 008, en la base de test
 **Tareas**:
-- [ ] Aprovisionar VPS para n8n (Hetzner CX22 o equivalente)
-- [ ] Instalar n8n + Docker + Caddy
-- [ ] Configurar dominio n8n.mozaprintmx.com con SSL
-- [ ] Crear credentials en n8n: Odoo, Anthropic, Meta WA
-- [ ] Configurar webhooks salientes en Odoo
-- [ ] Activar Coexistence con número actual de Mozaprint
-- [ ] Probar envío/recepción manual desde n8n
+- [ ] **Experimento A**: ¿el módulo nativo acepta el número en Coexistence? Los 4
+      puntos en orden; el riesgo real es que los mensajes enviados desde la app del
+      celular (*message echoes*) no lleguen a Odoo y el historial quede partido
+- [ ] **Experimento B**: ¿un agente de IA nativo puede contestar en un canal de
+      WhatsApp? Si sí, la Fase 6 se cae entera
+- [ ] Instalar `whatsapp`, `whatsapp_crm`, `whatsapp_sale`, `marketing_automation_whatsapp`
+- [ ] Plantillas de **utilidad** a aprobación de Meta (24-72 h): cotización lista,
+      anticipo recibido, pedido en producción, arte requerido
+- [ ] Enviar cotizaciones y links desde `sale.order`
+- [ ] Actualizar `docs/meta-whatsapp-status.md`: el webhook apunta a Odoo
 
-### FASE 5: Agente WhatsApp (preparación)
-**Estado**: 🔴 No iniciada (semana 10-11)
+### FASE 5: Campañas y seguimiento
+**Estado**: 🟡 **No está en cero — está detenida.** Diagnóstico medido en
+`docs/marketing-diagnostico.md`
+**Contexto**: hay 6 listas con ~850 contactos, 5 envíos (marzo-abril 2026, máximo 12
+destinatarios) con ~30% de apertura y **0 clics**, y una campaña de nurturing en
+estado `stopped` desde el 2026-04-12. Herramientas ya instaladas: `marketing_automation`,
+`mass_mailing`, `sms`.
 **Tareas**:
-- [ ] Extraer y anonimizar conversaciones WA históricas
-- [ ] Categorizar y analizar patrones
-- [ ] Documentar top 15 FAQs
-- [ ] Cargar knowledge base en Odoo Knowledge
-- [ ] Implementar tools 1-6 en n8n (sin agente activo aún)
-- [ ] Test individual de cada tool
-- [ ] Enviar plantillas Meta a aprobación
-- [ ] Crear campo `x_studio_no_agente` en res.partner (Studio) y marcar contactos a excluir (empleados, números internos)
-- [ ] Verificar que todos los proveedores activos estén en Odoo con número de WhatsApp en campo teléfono/móvil (requerido para el filtro de exclusión)
+- [ ] **Preguntar a Karina por qué se detuvo la campaña de abril** — antes de rediseñar
+      nada. La hipótesis es entregabilidad (SPF `-all` estricto + dominio pendiente),
+      pero es hipótesis, no hallazgo
+- [ ] Secuencia sobre las **379 cotizaciones en borrador que nunca cerraron**:
+      recordatorio a 3 días, seguimiento a 10, reactivación a 30. Es la audiencia de
+      mayor intención del negocio y nadie la trabaja
+- [ ] Reactivar el nurturing de leads, ahora con paso de WhatsApp
+- [ ] Atribución con `utm.campaign` hasta la cotización
+- [ ] Resolver el dominio de correo si se confirma la hipótesis de entregabilidad
 
-### FASE 6: Bridge custom Odoo↔AI↔WA (V1)
-**Estado**: 🔴 No iniciada (semana 12-13)
-**Bloquea hasta**: Fase 5 completa + plantillas Meta aprobadas
+### FASE 6: La IA que contesta
+**Estado**: 🔴 No iniciada — **depende del experimento B de la Fase 4**
+**Restricción dura**: Odoo Online no admite módulos de terceros, así que los chatbots
+de IA sobre WhatsApp del Apps Store **no son opción** (ver `decisions/009`). El WhatsApp
+nativo de Odoo no trae IA: enruta a Discuss y ahí contesta una persona.
 **Tareas**:
-- [ ] Implementar workflow ai-agent-respond en n8n
-- [ ] Implementar pre-flight filter en n8n: excluir proveedores (`supplier_rank > 0`), contactos con `x_studio_no_agente = True` y números internos — antes de llamar al agente (ver `specs/ai-agent-spec.md`)
-- [ ] Implementar auto-identificación de contacto desde WA `profile.name` al recibir primer mensaje: find-or-create en Odoo antes de llamar a Claude (ver `specs/ai-agent-spec.md`)
-- [ ] Implementar tools 7-12 en n8n
-- [ ] Crear modelo x_approval_request en Odoo
-- [ ] Implementar Server Action ai_handle_whatsapp_message
-- [ ] Configurar campos x_ai_mode en discuss.channel
-- [ ] Tests end-to-end de 10 escenarios
-- [ ] Pulir prompts según resultados
+- [ ] Si el experimento B sale bien → configurar el agente nativo en los canales de
+      WhatsApp y cerrar la fase
+- [ ] Si no → servicio externo mínimo: regla de automatización → acción de servidor
+      `webhook` (declarativa, 0 líneas facturables) → Claude → respuesta escrita de
+      vuelta por la API de Odoo
+- [ ] **Humano en medio al principio**: la IA redacta, el vendedor aprueba y envía
+- [ ] Soltar por tipo de mensaje, solo cuando cada uno demuestre que acierta
 
-### FASE 7: Piloto controlado
-**Estado**: 🔴 No iniciada (semana 14-15)
+### FASE 7: El cotizador automático
+**Estado**: 🔴 No iniciada
+**Por qué ahora es viable**: la Fase 3 dejó a **Odoo calculando el precio**. La IA no
+calcula nada — solo elige producto, cantidad y servicio de personalización. Eso
+satisface por construcción la regla «Precios SIEMPRE de Odoo».
+**Dimensión del problema**: ~36 cotizaciones/mes, 14% de conversión, y solo 9 de 71
+leads traen datos del formulario → **el disparador es el vendedor**, que pega lo que
+pidió el cliente venga del canal que venga. Alimentarlo solo del formulario cubriría 4
+de las 36.
 **Tareas**:
-- [ ] Activar AI solo en horario off-hours
-- [ ] Monitoreo diario de conversaciones
-- [ ] Loop de feedback semanal
-- [ ] Iteración de prompts según hallazgos
-- [ ] Documentar issues encontrados
-
+- [ ] `scripts/cotizador_ia.py` — dry-run por defecto, como todos
+- [ ] Prompt derivado de `docs/manual-vendedor-personalizacion.md`: POR TINTA (11
+      servicios), mínimos de Promo Opción, comodines «(precio a cotizar)»
+- [ ] **Nunca inventar precio**: sin tarifa → comodín + marca de revisión humana
+- [ ] Validar contra una muestra de las **447 cotizaciones ya hechas a mano**, midiendo
+      aciertos en producto, servicio y cantidad
 ### FASE 8: Madurar integración con proveedores
 **Estado**: 🔴 No iniciada (semana 16+)
 **Tareas**:
@@ -208,14 +226,16 @@
 
 ## Hitos críticos
 
-| Hito | Semana | Bloquea |
-|---|---|---|
-| Verificación Meta Business completa | 3 | Setup WA Cloud API (fase 4) |
-| Aprobación primera plantilla WA | 4 | Mensajes salientes con templates |
-| Aprobación todas las plantillas core | 8 | Piloto del agente (fase 7) |
-| 50+ FAQs documentadas | 11 | Agente útil en producción |
-| Primer test end-to-end exitoso | 13 | Piloto controlado |
-| 3 semanas piloto sin incidente grave | 15 | Expansión del agente |
+> Reescritos el 2026-08-31. Los anteriores colgaban del VPS y de un agente
+> conversacional que ya no es el primer paso.
+
+| Hito | Bloquea |
+|---|---|
+| **Experimento A**: Odoo acepta el número en Coexistence | Todo lo de WhatsApp (Fase 4) |
+| **Experimento B**: agente nativo contesta en canal de WhatsApp | Decide si la Fase 6 necesita infraestructura externa |
+| Aprobación de las plantillas de utilidad | Enviar cotizaciones y avisos por WhatsApp |
+| Respuesta de Karina sobre la campaña detenida | Rediseñar campañas (Fase 5) |
+| Cotizador con acierto medido contra las 447 | Soltarlo sin revisión humana (Fase 7) |
 
 ## Estado actual de capacidades
 
@@ -240,10 +260,12 @@
 - Odoo no detecta actividad si el vendedor actúa desde Gmail (depende de mover tarjetas manualmente — ver `docs/proceso-equipo-crm.md`)
 - La cotización se arma a mano línea por línea — el **precio** de personalización ya lo pone Odoo, lo que no existe es el auto-populado de las líneas
 - Sin trazabilidad de WhatsApp en Odoo
-- Sin agente IA
+- **Agente IA a medias**: hay 6 agentes activos (incluido «ChatBot MozaPrint») pero con **0 fuentes cargadas** — sabe usar skills, no sabe del negocio. El livechat del sitio sigue con el nombre por defecto y sin publicar. Ver `docs/marketing-diagnostico.md`
 - **4Promotional sin tarifas de personalización**, y las de Promo Opción arrancan por encima de la mediana de pedido → esos casos van por comodín «(precio a cotizar)», con el precio tecleado a mano
 - Sin webhooks Odoo → externo
-- Correo desde @mozaprintmx.com no configurado en Odoo (sale desde dominio Odoo)
+- Correo desde @mozaprintmx.com no configurado en Odoo (sale desde dominio Odoo) — **sospechoso de haber detenido las campañas de marketing**, ver `docs/marketing-diagnostico.md`
+- **Campañas de marketing detenidas** desde abril de 2026, con ~850 contactos ya segmentados sin trabajar
+- **379 cotizaciones en borrador** sin ninguna secuencia de seguimiento
 
 ## Notas para Claude Code
 

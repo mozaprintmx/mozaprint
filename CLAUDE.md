@@ -24,9 +24,12 @@ Karina Asomoza (Marketing) será dueña del knowledge base del agente "Moza".
 
 ## Lo que NO debes asumir
 
-- **No hay acceso a `addons/`**: es Odoo Online, no se instalan módulos custom.
+- **No hay acceso a `addons/`**: es Odoo Online, no se instalan módulos custom
+  **ni del Apps Store**. «Third-party applications can NOT be installed on Online
+  (SaaS) databases» — solo módulos oficiales de Odoo (el plan Custom los trae
+  todos). Antes de proponer un módulo del marketplace, descártalo: no es opción.
   Extensión SOLO vía Studio (campos `x_studio_`), Automation Rules, Server
-  Actions (sandbox Python limitado) y AI Fields.
+  Actions (sandbox Python limitado) y AI Fields. Ver `decisions/009`.
 - **El sandbox Python de Odoo Online no permite imports arbitrarios**: solo
   whitelist (`datetime`, `json`, `re`, `math`, `time`, `dateutil`, etc.). Si la
   lógica requiere librerías externas o HTTP saliente → va a **n8n**, no a Server
@@ -161,39 +164,36 @@ python3 scripts/test_server_action.py --action ai_handle_whatsapp_message \
 # Anonimizar conversaciones WhatsApp para análisis
 python3 scripts/anonymize_whatsapp.py "exports/*.txt" --output-dir anonymized/
 
-# Imágenes de categorías del eCommerce (dry-run por defecto; --apply escribe).
-# El filmstrip de /shop las incrusta como base64 en el HTML y Odoo NO redimensiona
-# image_128 al escribir por API → el peso de la página es el de image_1920.
+# Imágenes de categorías del eCommerce (dry-run; --apply escribe). El filmstrip de
+# /shop las incrusta en base64 y Odoo NO redimensiona image_128 por API → pesa image_1920.
 python3 scripts/optimize_category_images.py --apply
 python3 scripts/rollback_category_images.py --from backups/category_images_AAAAMMDD --apply
 ```
 
 ## Dónde está el resto del contexto
 
-- Decisiones del equipo (horarios, anticipo, pago, técnicas prioritarias):
-  `decisions/004-decisiones-equipo-v1.md`
+- Decisiones del equipo (horarios, anticipo, pago): `decisions/004-decisiones-equipo-v1.md`
 - Términos del negocio: `docs/glossary.md`
 - Estado por fases: `docs/roadmap.md` y `docs/punto-de-control.md`
 - APIs externas y proveedores: `specs/integrations.md`
 - Agente "Moza" (identidad, prompts, tools): `specs/ai-agent-spec.md`
 - Personalización en cotizaciones: **reemplazo NATIVO en producción desde 2026-08-25**
   (`specs/personalizacion-nativa.md`). 53 productos de servicio + 77 reglas de lista de
-  precios, con `x_costo_personalizacion` como única fuente de verdad y los scripts del
-  repo traduciendo. **Los precios NO se editan en el producto**: se editan en la matriz y
-  se recargan. Manuales: `docs/manual-vendedor-personalizacion.md` y
-  `docs/manual-admin-precios-personalizacion.md` (publicados en Información de Odoo).
-  Verificación: `python scripts/audit_personalizacion.py --target prod`.
-- El motor de cotización anterior se **RETIRÓ el 2026-08-17** por el cargo por línea de
-  código (`decisions/007-...`). Su spec (`specs/motor-cotizacion.md`) es histórica.
-- Actualizaciones de Odoo (checklist, incidencias, reparaciones): `docs/upgrades/README.md`.
-  Las dos bases corren **saas~19.3** desde 2026-08-22. Cuando vuelvan a divergir, lo
-  que falla en test es aviso anticipado de producción — no lo repares antes de
-  tiempo, salvo que el arreglo también sea válido en la versión vieja.
+  precios, con `x_costo_personalizacion` como única fuente de verdad. **Los precios NO se
+  editan en el producto**: se editan en la matriz y se recargan. Manuales:
+  `docs/manual-vendedor-personalizacion.md` y `docs/manual-admin-precios-personalizacion.md`.
+  Verificación: `python scripts/audit_personalizacion.py --target prod`. El motor anterior
+  se retiró el 2026-08-17 por el cargo por línea de código (`decisions/007`);
+  `specs/motor-cotizacion.md` es histórica.
+- WhatsApp/IA/Marketing: **Odoo será dueño del webhook** (`decisions/008`, propuesta,
+  pendiente de 2 experimentos). Estado real de Marketing: `docs/marketing-diagnostico.md`.
+- Actualizaciones de Odoo: `docs/upgrades/README.md`. Las dos bases corren **saas~19.3**
+  desde 2026-08-22. Cuando diverjan, lo que falla en test es aviso anticipado de
+  producción — no lo repares antes de tiempo, salvo que el arreglo valga en ambas.
 - **`arch_db` y demás campos traducidos**: al escribirlos por API, itera los idiomas
-  (`en_US` primero, luego los activos). Escribir solo el de la sesión deja el sitio
-  roto para el visitante con el backend viéndose bien. Ya mordió a dos scripts.
+  (`en_US` primero, luego los activos). Escribir solo el de la sesión deja el sitio roto
+  para el visitante con el backend viéndose bien. Ya mordió a dos scripts.
 
-<!-- Único import always-on. glossary.md ayuda a la adherencia de terminología
-     en toda sesión. Si crece mucho (>~150 líneas), conviértelo también en
-     referencia por ruta y elimina este import. -->
+<!-- Único import always-on: glossary.md fija la terminología en toda sesión.
+     Si pasa de ~150 líneas, vuélvelo referencia por ruta y quita este import. -->
 @docs/glossary.md

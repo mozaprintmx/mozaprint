@@ -1,8 +1,22 @@
 # ADR 005: n8n como router único de WhatsApp + camino de inbox escalable en Odoo
 
 **Fecha**: 2026-06-02
-**Estado**: Aceptado
+**Estado**: ⚠️ **REEMPLAZADA el 2026-08-31** por
+[`008-whatsapp-nativo-odoo.md`](008-whatsapp-nativo-odoo.md)
 **Decisores**: Equipo Mozaprint
+
+> **Por qué se revirtió.** Esta ADR trata «el webhook» como una sola cosa, y no lo
+> es: el **entrante** admite un solo receptor por número, pero el **saliente** lo
+> puede hacer cualquier sistema en paralelo. Sobre esa confusión se prohibió el
+> módulo nativo de WhatsApp de Odoo — y con él las campañas de marketing, el
+> seguimiento en el CRM y el envío de cotizaciones desde Odoo, que es justo lo que
+> el negocio pidió después. Además, Odoo Online ya es URL pública, así que el VPS
+> nunca fue necesario para el módulo nativo.
+>
+> **Lo que sigue vigente de este documento**: el análisis de un webhook por número
+> (cierto para un mismo número), el plan de crecimiento del inbox por etapas y las
+> razones de costo frente a un BSP. Meta hoy permite además **override de webhook
+> por número y por WABA**, así que un segundo número puede ir a otro destino.
 
 ## Contexto
 

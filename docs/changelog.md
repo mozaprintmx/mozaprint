@@ -4,6 +4,64 @@
 
 ---
 
+## 2026-08-31 · replanteo (v68) — WhatsApp nativo entra; Odoo pasa a ser dueño del webhook
+
+**Tipo**: `docs` + `decisiones`. Nada tocado en producción; todo es diseño y hallazgos
+medidos con consultas de solo lectura.
+
+**Por qué**: el negocio pidió el módulo **WhatsApp nativo de Odoo** para tener campañas,
+seguimiento pegado al CRM y envío de cotizaciones y links desde Odoo. Eso choca de frente
+con la [ADR 005](../decisions/005-n8n-router-unico-inbox-escalable.md), que había puesto a
+n8n como dueño único del webhook y prohibido el módulo nativo.
+
+**El error de la ADR 005**: trataba «el webhook» como una sola cosa. El **entrante** admite
+un solo receptor por número; el **saliente** lo puede hacer cualquier sistema en paralelo.
+Sobre esa confusión se descartó todo el beneficio nativo. Además, Odoo Online ya es URL
+pública HTTPS: **el VPS nunca fue necesario** para el módulo nativo, y llevaba cuatro fases
+bloqueadas por nada.
+
+**Hallazgos que cambian el diagnóstico** (medidos en producción el 2026-08-26):
+
+- **Marketing no está en cero, está detenido**: 6 listas con ~850 contactos, 5 envíos entre
+  marzo y abril (máximo 12 destinatarios) con ~30% de apertura y **0 clics**, y una campaña
+  de nurturing en `stopped` desde el 12 de abril. La hipótesis es entregabilidad —SPF `-all`
+  estricto y dominio pendiente— pero **es hipótesis**: hay que preguntar antes de rediseñar.
+- **Ya existe un chatbot de IA y está vacío**: 6 agentes activos, incluido «ChatBot
+  MozaPrint», con skills nativas que crean leads y consultan productos, y **0 fuentes**
+  cargadas frente a 73 artículos de Información. `ai.agent.source` acepta `article_id`, así
+  que se pueden cargar por API sin código.
+- **379 cotizaciones en borrador** que nunca cerraron (14% de conversión sobre 447). Es la
+  audiencia de mayor intención del negocio y no tiene ningún seguimiento.
+- **~36 cotizaciones/mes** pero solo **9 de 71 leads** traen datos del formulario → un
+  cotizador alimentado por el formulario cubriría 4 de 36. El disparador tiene que ser el
+  vendedor.
+
+**Restricción que se documentó y faltaba** ([ADR 009](../decisions/009-modulos-terceros-odoo-online.md)):
+Odoo Online **no admite módulos de terceros**, así que las decenas de «AI WhatsApp Chatbot
+for Odoo» del Apps Store no son opción. Y el WhatsApp nativo **no trae IA**: enruta a
+Discuss y ahí contesta una persona. Se añadió el aviso a `CLAUDE.md` para no volver a
+evaluar módulos del marketplace.
+
+**Matiz sobre el cargo por líneas de código**: un empleado de Odoo afirma en el foro oficial
+que el *opt-out* es posible si implementas tú y no hubo Success Pack — Mozaprint calificaría.
+Un Account Manager lo contradijo en el mismo hilo, así que queda **por confirmar**. No
+reabre la ADR 007: el diseño nativo de la Fase 3 gana por robustez, no por precio.
+
+**Decisión** ([ADR 008](../decisions/008-whatsapp-nativo-odoo.md), estado *Propuesto*):
+Odoo dueño del webhook; WhatsApp funciona desde el día 1 **con personas**; la IA entra
+después como capa, vía acción de servidor `webhook` (declarativa, 0 líneas facturables)
+hacia Claude. Condicionada a dos experimentos en test: (A) si el módulo acepta el número en
+**Coexistence** —con el riesgo de que los *message echoes* del celular no lleguen y el
+historial quede partido— y (B) si un agente nativo puede contestar en un canal de WhatsApp,
+lo que eliminaría la pieza externa.
+
+**Archivos**: nuevos `decisions/008-whatsapp-nativo-odoo.md`,
+`decisions/009-modulos-terceros-odoo-online.md`, `docs/marketing-diagnostico.md`.
+Actualizados `decisions/005` (marcada REEMPLAZADA), `CLAUDE.md` y `docs/roadmap.md`
+(fases 4-7 reescritas, Fase 0 sin el VPS como bloqueante, hitos críticos rehechos).
+
+---
+
 ## 2026-08-25 · paso 9 (v67) — el reemplazo nativo de personalización, EN PRODUCCIÓN
 
 **Tipo**: `datos` (**PRODUCCIÓN**) + `docs`. Cierra el trabajo abierto por el
