@@ -1,7 +1,9 @@
 # ADR 008: WhatsApp nativo de Odoo, con Odoo como dueño del webhook
 
 **Fecha**: 2026-08-31
-**Estado**: Propuesto — condicionado a los experimentos A y B (ver «Criterios de aceptación»)
+**Estado**: Propuesto — condicionado a los experimentos A' y B (ver «Criterios de aceptación»).
+El experimento A original (Coexistence) se resolvió el 2026-09-01: **descartado**, se va
+con un **número nuevo dedicado**.
 **Decisores**: Juan Carlos Asomoza
 **Reemplaza a**: `005-n8n-router-unico-inbox-escalable.md`
 
@@ -81,23 +83,43 @@ no cambia la arquitectura: si nunca se enciende, no se pierde nada de lo demás.
 
 Esta ADR **no pasa a Aceptado** hasta que ambos se resuelvan.
 
-### Experimento A · ¿Odoo acepta el número en Coexistence?
+### ~~Experimento A~~ · RESUELTO el 2026-09-01: Coexistence queda descartado
 
-Es el único que puede tumbar la decisión. La documentación de Odoo dice que el
-módulo *"is only compatible with WhatsApp Business Platform Accounts"* y que las
-cuentas de **WhatsApp Business App no son compatibles** — pero un número en
-Coexistence sí queda registrado en la Business Platform. Nadie lo documenta.
+**No hace falta probarlo: Meta no nos lo permite.** El alta de un número que viene
+de la WhatsApp Business App se hace por **Embedded Signup**, y su documentación es
+explícita:
 
-1. Que el módulo acepte las credenciales del número en Coexistence.
-2. Que **entre** un mensaje del cliente a Discuss.
-3. Que **salga** un mensaje desde Odoo y llegue al celular.
-4. ⚠️ **Riesgo principal**: que un mensaje enviado **desde la app del celular**
-   aparezca en Odoo. Meta lo manda como *message echo* y el módulo nativo
-   probablemente lo ignora → **el historial quedaría partido**.
+> *"You must already be a Solution Partner or Tech Provider."*
 
-**Si el punto 4 falla**, las salidas son: migrar el número del todo a Cloud API
-(el equipo pierde la app móvil, contra lo decidido en ADR 003), vivir con el
-historial partido, o dedicar un segundo número a Odoo.
+Ese flujo existe para que un proveedor dé de alta a **sus clientes**, no para que
+un negocio conecte su propio número. Registrarse como Tech Provider y pasar App
+Review es desproporcionado para una operación de tres personas.
+
+**Y aunque lo hubiéramos conseguido, no habría servido.** En coexistence los
+mensajes que el equipo manda desde el celular llegan como **`smb_message_echoes`**,
+un campo de webhook **distinto** de `messages`. Odoo se suscribe a `messages`,
+`message_status` y `message_template_status_update`. El historial habría quedado
+partido igual — la sospecha original era correcta, por una razón más profunda.
+
+**Decisión tomada: número nuevo y dedicado.** El número actual no se toca y sigue
+en la app del celular; el equipo no cambia su día a día. Es la única salida
+**reversible al 100%** y con riesgo cero para la operación. Las otras dos eran
+migrar el número actual del todo (perdiendo la app, contra la ADR 003) o contratar
+un BSP con coexistence, que se quedaría con el webhook y rompería este diseño.
+
+Pasos en [`docs/whatsapp-implementacion.md`](../docs/whatsapp-implementacion.md).
+
+### Experimento A' · Que el módulo funcione, con el número de prueba de Meta
+
+Sustituye al anterior. Se valida en una base de **test** con el **número de prueba
+gratuito de Meta** (5 destinatarios verificados, sin verificación de negocio), así
+que no toca nada real. Las 7 pruebas están en la guía de implementación; la
+séptima es la que no se puede saltar:
+
+> `python scripts/audit_lineas_facturables.py --target test --max-bloques 0`
+>
+> Si el módulo generara código de Studio, reabriría el problema de la ADR 007 y
+> habría que detenerse.
 
 ### Experimento B · ¿El agente nativo contesta en un canal de WhatsApp?
 
@@ -132,7 +154,9 @@ Odoo**, que contradice de frente el objetivo declarado. Y cobran por agente/mes.
 
 ### Negativas / trade-offs
 - **Se pierde el control fino del agente** que daba n8n como dueño del flujo.
-- El riesgo de los *message echoes* puede partir el historial (experimento A).
+- **Dos números en paralelo**: el nuevo en Odoo y el actual en la app del celular.
+  El historial queda repartido por número — es el precio de no tocar la operación, y
+  se resuelve el día que se decida migrar el principal.
 - Odoo no trae IA sobre WhatsApp: hay que ponerla, y eso reintroduce una pieza
   externa salvo que el experimento B salga bien.
 - Depender del módulo nativo nos ata a su ritmo de cambios en cada upgrade.
@@ -151,10 +175,14 @@ hay que dosificar.
 
 ## Tareas derivadas
 
-- [ ] Experimento A en la base de test (los 4 puntos, en orden)
-- [ ] Experimento B en la base de test
-- [ ] Decidir la salida si el punto A.4 falla — requiere decisión del negocio
-- [ ] Instalar los 4 módulos en producción
-- [ ] Plantillas de utilidad a aprobación de Meta (24-72 h)
+- [x] ~~Experimento A (Coexistence)~~ — **resuelto el 2026-09-01**: Meta no lo
+      permite a un negocio final. Se decidió **número nuevo dedicado**
+- [ ] Recuperar o regenerar la base de test (la 0818 responde `/_odoo/upgrade/`)
+- [ ] **Experimento A'**: las 7 pruebas del módulo en test con el número de prueba
+      de Meta — ver `docs/whatsapp-implementacion.md`
+- [ ] **Experimento B**: ¿un agente nativo contesta en un canal de WhatsApp?
+      Se corre en la misma base de test, después de A'
+- [ ] Conseguir y verificar el número nuevo (no debe estar registrado en WhatsApp)
+- [ ] Instalar los módulos en producción y repuntar el webhook
+- [ ] Plantillas de **utilidad** a aprobación de Meta (24-72 h)
 - [ ] Actualizar `docs/meta-whatsapp-status.md`: el webhook apunta a Odoo, no a n8n
-- [ ] Reabrir ADR 003 con el resultado del experimento A

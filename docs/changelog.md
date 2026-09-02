@@ -4,6 +4,51 @@
 
 ---
 
+## 2026-09-01 · plan de ejecución (v69) — Coexistence descartado; se va con número nuevo
+
+**Tipo**: `docs` + `decisiones`. Producción sin tocar.
+
+**Hallazgo que cierra una vía**: Coexistence **no está disponible para un negocio
+final**. El alta de un número que viene de la WhatsApp Business App se hace por
+*Embedded Signup*, y la documentación de Meta es explícita: *"You must already be a
+Solution Partner or Tech Provider"*. Ese flujo existe para que un proveedor dé de
+alta a sus clientes. Registrarse como Tech Provider y pasar App Review es
+desproporcionado para una operación de tres personas.
+
+**Y aunque se hubiera conseguido, no habría servido.** En coexistence los mensajes
+enviados desde el celular llegan como **`smb_message_echoes`**, un campo de webhook
+**distinto** de `messages`. Odoo se suscribe a `messages`, `message_status` y
+`message_template_status_update`. El historial habría quedado partido igual. La
+sospecha del experimento A era correcta, por una razón más profunda de la esperada.
+
+**Decisión: número NUEVO y dedicado.** El número actual `+52 1 56 3277 6277` no se
+toca y sigue en la app del celular — el equipo no cambia su día a día. Es la única
+salida reversible al 100% y con riesgo cero para la operación. Se descartaron
+migrar el número actual (perdiendo la app) y contratar un BSP con coexistence (que
+se quedaría con el webhook).
+
+**Cómo se valida**: el módulo en una base de **test** con el **número de prueba
+gratuito de Meta** (5 destinatarios verificados, sin verificación de negocio); el
+número real solo se conecta en producción. La base `…-0818` responde con redirect a
+`/_odoo/upgrade/`, así que hay que recuperarla o regenerarla antes de empezar.
+
+**Alcance de esta etapa**: que el equipo trabaje WhatsApp desde Odoo **como
+personas** — conversaciones en Discuss, historial en el chatter, cotizaciones y
+links desde `sale.order`. Sin IA y **sin livechat**, descartado explícitamente.
+
+**Nuevo**: `docs/whatsapp-implementacion.md` — guía paso a paso con los valores
+exactos de Meta, las 7 pruebas de validación (la séptima es
+`audit_lineas_facturables`, para detectar si el módulo generara código facturable),
+la regla de la ventana de 24 h y la tabla de riesgos.
+
+**Actualizados**: `decisions/008` (experimento A resuelto y sustituido por A'),
+`decisions/003` (marcada **INVIABLE**, no por decisión propia sino por restricción
+de Meta), `docs/meta-whatsapp-status.md` (los pendientes ya no dependen de n8n; el
+requisito de abrir la app cada 14 días queda anulado) y `docs/roadmap.md` (Fase 4 e
+hitos críticos).
+
+---
+
 ## 2026-08-31 · replanteo (v68) — WhatsApp nativo entra; Odoo pasa a ser dueño del webhook
 
 **Tipo**: `docs` + `decisiones`. Nada tocado en producción; todo es diseño y hallazgos

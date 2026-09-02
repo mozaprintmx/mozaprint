@@ -1,7 +1,10 @@
 # Estado Meta Business / WhatsApp — Mozaprint
 
 > Estado de la configuración de Meta y WhatsApp Cloud API para el proyecto.
-> Última actualización: 2026-06-01
+> Última actualización: **2026-09-01** — cambió el diseño: el webhook apunta a
+> **Odoo**, no a n8n, y se usará un **número nuevo dedicado**. Ver
+> [ADR 008](../decisions/008-whatsapp-nativo-odoo.md) y
+> [guía de implementación](whatsapp-implementacion.md).
 > Para el análisis técnico de Coexistence Mode ver `decisions/003-coexistence-whatsapp.md`
 
 ---
@@ -34,27 +37,38 @@ El número está activo en la **WhatsApp Business App** del celular del negocio.
 
 ---
 
-## Pendientes — requieren n8n desplegado
+## Pendientes — YA NO dependen de n8n
 
-Estos pasos se completan de corrido una vez que el VPS de n8n esté levantado y `n8n.mozaprintmx.com` tenga URL pública:
+> **Cambio del 2026-09-01**: Odoo Online es URL pública, así que el webhook apunta
+> a Odoo y **el VPS dejó de ser prerrequisito**. Pasos detallados en
+> [`whatsapp-implementacion.md`](whatsapp-implementacion.md).
 
-1. **Crear App en Meta for Developers** — obtener App ID y App Secret
-2. **Crear System User** — token permanente para la integración (no usar token personal)
-3. **Activar Coexistence** — conectar el número a Cloud API manteniendo la app móvil activa
-4. **Configurar webhook** — URL apuntando al endpoint de n8n, verify token custom
-5. **Crear y enviar plantillas a aprobación de Meta**:
-   - `lead_received`
+1. **Crear App en Meta for Developers** — tipo *Business*, portfolio `mozaprint_mx`
+2. **Crear System User** — token permanente con `whatsapp_business_messaging` y
+   `whatsapp_business_management`. A Bitwarden, nunca al repo
+3. **Conseguir y verificar el número nuevo** — no debe estar registrado en WhatsApp
+4. **Configurar webhook apuntando a la Callback URL de Odoo**, suscrito a
+   `messages`, `message_status` y `message_template_status_update`
+5. **Crear y enviar plantillas a aprobación de Meta** (24-72 h por plantilla).
+   Empezar por las de **utilidad** ($0.0080 USD vs $0.0436 de marketing):
    - `cotizacion_lista`
-   - `quote_followup_24h`
-   - `orden_confirmada`
+   - `anticipo_recibido`
+   - `pedido_en_produccion`
    - `arte_requerido`
-   - Tiempo estimado de aprobación por plantilla: 24-72h
 
 ---
 
-## Limitaciones conocidas de Coexistence
+## ⚠️ Coexistence — DESCARTADO el 2026-09-01
 
-Documentadas aquí como referencia rápida. Ver análisis completo en `decisions/003-coexistence-whatsapp.md`.
+**Meta no lo ofrece a un negocio final.** El alta de un número que viene de la
+WhatsApp Business App se hace por *Embedded Signup*, que exige ser **Solution
+Partner o Tech Provider**. Ver `decisions/003` (cerrada) y `decisions/008`.
+
+**En su lugar**: número nuevo dedicado para Odoo. El número actual
+`+52 1 56 3277 6277` **no se toca** y sigue en la app del celular.
+
+La tabla de abajo se conserva solo como referencia de qué se pierde al migrar un
+número a Cloud API, por si algún día se decide migrar el principal.
 
 | Funcionalidad | Estado en Coexistence |
 |---|---|
@@ -65,7 +79,9 @@ Documentadas aquí como referencia rápida. Ver análisis completo en `decisions
 | Editar / Revocar mensajes | ✗ No disponible en mensajes 1:1 vía API |
 | View-once / Mensajes que desaparecen | ✗ No disponible |
 
-**Requisito operativo crítico**: alguien del equipo debe abrir la WA Business App **al menos una vez cada 14 días**. Si no se abre, la conexión Coexistence expira y hay que reconectar. Responsable: Juan Carlos Asomoza (WhatsApp Admin).
+~~**Requisito operativo crítico**: abrir la WA Business App cada 14 días.~~ **Ya no
+aplica**: sin Coexistence no hay conexión que expire. El número actual sigue siendo
+una cuenta normal de WhatsApp Business App.
 
 ---
 
@@ -73,9 +89,12 @@ Documentadas aquí como referencia rápida. Ver análisis completo en `decisions
 
 La base de Meta está lista (WABA aprobada, número registrado, accesos configurados). Los pasos restantes dependen de tener un endpoint público para el webhook.
 
-**Decisión**: pausar la configuración de WhatsApp aquí y priorizar el despliegue del VPS de n8n (Fase 4). Una vez que `n8n.mozaprintmx.com` esté operativo, se completa toda la conexión de WhatsApp de corrido en una sola sesión.
+~~**Decisión**: pausar y priorizar el VPS de n8n.~~ **Revertida el 2026-09-01.**
 
-Esto elimina el riesgo de configurar webhooks hacia una URL temporal o local.
+**Decisión vigente**: el webhook apunta a **Odoo**, que ya tiene URL pública, así
+que no hay que esperar a ningún VPS. El orden es: validar el módulo en una base de
+test con el número de prueba de Meta → conseguir el número nuevo → conectar en
+producción. La IA viene después y no cambia esta arquitectura.
 
 ---
 

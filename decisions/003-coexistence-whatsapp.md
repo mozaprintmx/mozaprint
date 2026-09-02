@@ -1,8 +1,28 @@
 # ADR 003: WhatsApp Coexistence Mode
 
 **Fecha**: 2026-05-23
-**Estado**: Propuesto (pendiente aprobación equipo)
+**Estado**: ⚠️ **INVIABLE — cerrado el 2026-09-01.** No por decisión propia: Meta
+no ofrece Coexistence a un negocio final.
 **Decisores**: Equipo Mozaprint
+
+> **Qué pasó.** Coexistence existe y funciona (Meta lo liberó en mayo de 2025),
+> pero el alta de un número que viene de la WhatsApp Business App se hace por
+> **Embedded Signup**, y ese flujo exige ser **Solution Partner o Tech Provider**:
+> está pensado para que un proveedor dé de alta a sus clientes, no para conectar
+> el número propio.
+>
+> **Y aunque se hubiera conseguido, no habría servido**: los mensajes enviados
+> desde el celular llegan como `smb_message_echoes`, un campo de webhook distinto
+> de `messages`, que es al que se suscribe Odoo. El historial habría quedado
+> partido de todos modos.
+>
+> **En su lugar** ([ADR 008](008-whatsapp-nativo-odoo.md)): un **número nuevo
+> dedicado** para Odoo. El número actual sigue intacto en la app del celular, así
+> que lo que este documento buscaba proteger —que el equipo no cambie su día a
+> día— **se conserva**, por otro camino.
+>
+> Sigue vigente de aquí: el análisis de qué se pierde al migrar un número a Cloud
+> API, por si algún día se decide migrar el principal.
 
 ## Contexto
 
@@ -118,15 +138,19 @@ Frecuencia: semanal (recordatorio en calendario)
 
 ## Tareas derivadas
 
-- [ ] Decisión final del equipo (pendiente reunión)
-- [ ] Designar "WhatsApp Admin" responsable
-- [ ] Designar persona que abre la app cada 14 días
-- [ ] Iniciar trámite Meta Business Manager
-- [ ] Esperar verificación (1-3 semanas)
-- [ ] Activar Coexistence
-- [ ] Diseñar y enviar plantillas a aprobación
-- [ ] Setup webhook endpoint en n8n
-- [ ] Test manual de envío/recepción antes del piloto del agente
+> ⛔ **Todas canceladas el 2026-09-01.** Coexistence es inviable para un negocio
+> final. Las tareas vigentes están en
+> [`docs/whatsapp-implementacion.md`](../docs/whatsapp-implementacion.md).
+
+- [x] ~~Decisión final del equipo~~ → se decidió **número nuevo dedicado** (ADR 008)
+- [ ] ~~Designar "WhatsApp Admin" responsable~~ → sigue vigente, pero para el número nuevo
+- [x] ~~Designar persona que abre la app cada 14 días~~ → sin Coexistence no aplica
+- [x] Iniciar trámite Meta Business Manager — hecho, WABA aprobada 2026-06-01
+- [x] ~~Esperar verificación (1-3 semanas)~~ → no es necesaria para este caso de uso
+- [x] ~~Activar Coexistence~~ → **imposible**: Meta exige Solution Partner / Tech Provider
+- [ ] ~~Diseñar y enviar plantillas~~ → se conserva, ver guía de implementación
+- [x] ~~Setup webhook endpoint en n8n~~ → el webhook apunta a **Odoo** (ADR 008)
+- [ ] ~~Test manual antes del piloto del agente~~ → reemplazado por las 7 pruebas en test
 
 ## Plan de migración futura (opcional)
 

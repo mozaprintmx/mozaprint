@@ -111,18 +111,25 @@
 **Cambio de rumbo (2026-08-31)**: se revirtió la ADR 005. **Odoo es el dueño del
 webhook**, no n8n. Odoo Online ya es URL pública, así que **el VPS deja de ser
 prerrequisito** de esta fase y de las siguientes.
-**Bloquea hasta**: los dos experimentos de la ADR 008, en la base de test
+**Decisión del 2026-09-01**: **número NUEVO y dedicado**. Coexistence quedó
+descartado — Meta exige ser Solution Partner o Tech Provider para dar de alta un
+número que viene de la WhatsApp Business App. El número actual **no se toca** y el
+equipo conserva la app del celular. Pasos: `docs/whatsapp-implementacion.md`.
+**Bloquea hasta**: las 7 pruebas del módulo en una base de test
 **Tareas**:
-- [ ] **Experimento A**: ¿el módulo nativo acepta el número en Coexistence? Los 4
-      puntos en orden; el riesgo real es que los mensajes enviados desde la app del
-      celular (*message echoes*) no lleguen a Odoo y el historial quede partido
+- [x] ~~Experimento A (Coexistence)~~ — descartado, Meta no lo permite (2026-09-01)
+- [ ] Recuperar o regenerar la base de test (la 0818 responde `/_odoo/upgrade/`)
+- [ ] **Experimento A'**: las 7 pruebas del módulo en test, con el **número de
+      prueba gratuito de Meta** (5 destinatarios, sin verificación de negocio).
+      La séptima es innegociable: `audit_lineas_facturables --target test`
 - [ ] **Experimento B**: ¿un agente de IA nativo puede contestar en un canal de
       WhatsApp? Si sí, la Fase 6 se cae entera
-- [ ] Instalar `whatsapp`, `whatsapp_crm`, `whatsapp_sale`, `marketing_automation_whatsapp`
+- [ ] Conseguir y verificar el número nuevo (no debe estar registrado en WhatsApp)
+- [ ] Instalar `whatsapp`, `whatsapp_crm`, `whatsapp_sale` en producción
 - [ ] Plantillas de **utilidad** a aprobación de Meta (24-72 h): cotización lista,
       anticipo recibido, pedido en producción, arte requerido
 - [ ] Enviar cotizaciones y links desde `sale.order`
-- [ ] Actualizar `docs/meta-whatsapp-status.md`: el webhook apunta a Odoo
+- [x] Actualizar `docs/meta-whatsapp-status.md`: el webhook apunta a Odoo — 2026-09-01
 
 ### FASE 5: Campañas y seguimiento
 **Estado**: 🟡 **No está en cero — está detenida.** Diagnóstico medido en
@@ -231,7 +238,9 @@ de las 36.
 
 | Hito | Bloquea |
 |---|---|
-| **Experimento A**: Odoo acepta el número en Coexistence | Todo lo de WhatsApp (Fase 4) |
+| Base de test operativa (la 0818 está en upgrade) | Todo lo de WhatsApp (Fase 4) |
+| **Experimento A'**: las 7 pruebas del módulo en test | Instalar en producción |
+| Número nuevo conseguido y verificado en Meta | Conectar producción |
 | **Experimento B**: agente nativo contesta en canal de WhatsApp | Decide si la Fase 6 necesita infraestructura externa |
 | Aprobación de las plantillas de utilidad | Enviar cotizaciones y avisos por WhatsApp |
 | Respuesta de Karina sobre la campaña detenida | Rediseñar campañas (Fase 5) |
