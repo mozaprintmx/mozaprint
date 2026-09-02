@@ -145,6 +145,49 @@ upgrade de código ajeno — justo lo que más dolor ha causado. Ver ADR 009.
 Lo más rápido a una IA contestando, pero **las conversaciones viven fuera de
 Odoo**, que contradice de frente el objetivo declarado. Y cobran por agente/mes.
 
+### Meta Business Agent — evaluado el 2026-09-02
+
+La IA propia de Meta, lanzada globalmente el 2026-06-03. Son **dos productos con
+un solo nombre**, y la diferencia decide todo:
+
+| | Self-serve | Platform |
+|---|---|---|
+| Dónde corre | **Solo WhatsApp Business App** | **Cloud API** |
+| Disponibilidad | Global desde jun-2026 | **Invite-only**, lista de espera |
+| Precio | Ver nota abajo | «In development» |
+
+> *"Self-serve tier only works on the WhatsApp Business app, not the WhatsApp
+> Business API"* — descrito por la fuente como **la limitación más importante**.
+
+**Conclusión: el gratuito NO sirve para este diseño.** Nuestro número dedicado vive
+en Cloud API, y ahí el self-serve no existe. No es una preferencia: es
+incompatibilidad.
+
+**Pero hay un encaje inesperado.** Este diseño deja a propósito el **número actual
+en la app del celular** — que es justo donde el self-serve SÍ funciona. Se podría
+encender ahí, sin integración y casi sin costo, como respondedor fuera de horario
+en el número que concentra el volumen.
+
+⚠️ **El precio a pagar es el que este proyecto lleva meses evitando**: esas
+conversaciones **nunca llegan a Odoo**. Sin inbox de equipo, sin CRM, sin campañas.
+Fragmenta el historial. Sirve como parche táctico, **no** como respuesta
+estratégica, y conviene decidirlo a sabiendas.
+
+**La versión Platform sí corre sobre Cloud API** y algún día podría sustituir la
+capa de IA externa de esta ADR. Dos razones para no planear sobre ella todavía:
+es invite-only con precio sin publicar, y **nadie documenta si convive con un
+webhook que apunta a Odoo** o si intercepta los mensajes antes. Esa pregunta sin
+responder es la que decide si alguna vez nos sirve. Vale la pena entrar a la lista
+de espera; no vale la pena esperarla.
+
+> **Sobre el precio, con honestidad**: las fuentes se contradicen. Varias reportan
+> que el 2026-08-01 arrancó el cobro por tokens a **$2 USD por millón** (~4-5
+> centavos de dólar por conversación, empaquetando IA y entrega del mensaje); otras
+> siguen describiendo el self-serve como gratuito. **Hay que verificarlo en la
+> cuenta propia.** A ~40-80 conversaciones/mes son ~$2-4 USD/mes en cualquiera de
+> los dos casos, así que el costo no es lo que decide — lo que decide es dónde vive
+> la conversación.
+
 ## Consecuencias
 
 ### Positivas
