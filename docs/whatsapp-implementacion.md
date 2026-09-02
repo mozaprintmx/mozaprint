@@ -45,13 +45,14 @@ negocio y permite mandar a **5 destinatarios verificados**. Riesgo: cero.
 
 ### 1.1 · Preparar la base de test
 
-La base `mozaprintmx-test-saas19-0818` responde con redirect a `/_odoo/upgrade/`,
-así que no sirve por API.
+✅ **Lista desde el 2026-09-01**: `https://mozaprintmx-watest.odoo.com/`
+(db `mozaprintmx-watest`, **saas~19.3+e**, copia de producción con 5,454 productos
+y 468 cotizaciones). `ODOO_TEST_URL` ya apunta ahí.
 
-- [ ] Entrar a odoo.com y revisar el estado de esa base
-- [ ] Si caducó, **generar una nueva** desde producción
-- [ ] Actualizar `ODOO_TEST_URL` en `analysis/supplier-sync/.env`
-- [ ] Confirmar acceso: `python scripts/audit_post_upgrade.py --target test`
+Los cuatro módulos están **disponibles y sin instalar**: `whatsapp`,
+`whatsapp_crm`, `whatsapp_sale`, `marketing_automation_whatsapp`.
+
+> La base anterior (`…-0818`) quedó en estado `/_odoo/upgrade/` y se abandonó.
 
 ### 1.2 · Crear la app en Meta
 
@@ -129,17 +130,60 @@ Estas son la puerta de decisión. **Ninguna requiere el número real.**
 
 Se hace en paralelo a la fase 1, porque los tiempos de Meta no dependen de nosotros.
 
-- [ ] Conseguir un número que **NO esté registrado en WhatsApp** (ni personal, ni
-      Business App). Si lo estuvo, hay que borrar esa cuenta primero y esperar.
-- [ ] Que pueda **recibir SMS o llamada** para el código de verificación.
-- [ ] Decidir el **nombre visible** del remitente: es lo que ve el cliente. Debe
-      cumplir las reglas de Meta y es engorroso cambiarlo después.
-- [ ] Agregarlo en Meta → WhatsApp → **API Setup** → *Add phone number* y verificar.
-- [ ] Anotar su **Phone Number ID** (es distinto al del número de prueba).
+### Lo primero: Meta NO vende números
 
-> **Decisión de negocio pendiente**: si este número va a aparecer en el sitio, en
-> las cotizaciones o en la firma de correo. Se puede posponer: arranca siendo
-> interno, para avisos y cotizaciones a clientes que ya nos escribieron.
+El número de prueba que da Meta es **solo para desarrollo** — no se puede usar en
+producción y solo alcanza a 5 destinatarios verificados. **El número de producción
+lo consigues tú**, por fuera, y luego lo das de alta en Meta.
+
+### Los tres requisitos, y son los tres
+
+| Requisito | Por qué muerde |
+|---|---|
+| **Que NO esté registrado en WhatsApp** | Ni personal ni Business App. Si lo estuvo, hay que **borrar esa cuenta** desde la app (Ajustes → Cuenta → Eliminar) y esperar. No basta con desinstalar |
+| **Que reciba SMS o llamada** | Meta manda un PIN de 6 dígitos. Los móviles reciben SMS; los fijos y 800 se verifican **por llamada de voz** |
+| **Que sea del negocio y se quede** | Una vez verificado, ese número es la identidad de Mozaprint en WhatsApp. Cambiarlo después es engorroso |
+
+> ⚠️ **Ese número queda inutilizable para la app de WhatsApp.** Pasa a ser
+> exclusivo de Cloud API. **No uses un celular personal ni el de nadie del equipo.**
+
+### Qué tipo de número sirve
+
+Cloud API es **más permisivo que la app gratuita**: acepta móvil, fijo, 800 y
+también **virtuales/VoIP**, siempre que el proveedor deje recibir SMS o llamada.
+(La WhatsApp Business App gratuita, en cambio, rechaza los VoIP — por eso hay
+tanta información contradictoria en internet: casi toda habla de la app, no de la
+API.)
+
+| Opción | Costo | Veredicto |
+|---|---|---|
+| **SIM prepago mexicana** (Telcel, AT&T, Movistar) | ~$50-200 MXN + recargas | ✅ **Recomendada.** Lo más barato y lo que menos falla. Lada 55 = identidad local, que en B2B mexicano importa |
+| **Fijo de la oficina** | $0 si ya existe y está libre | ✅ Buena si hay uno sin usar. Se verifica por llamada y refuerza la identidad de empresa |
+| **Virtual / VoIP** (Twilio, Telnyx…) | Mensualidad en USD | ⚠️ Funciona con Cloud API, pero **agrega un punto de falla**: hay proveedores que bloquean el SMS de verificación de WhatsApp. Solo si ya usas uno y sabes que deja recibir |
+| Número de prueba de Meta | $0 | ❌ Solo desarrollo. No sirve en producción |
+
+**Recomendación**: SIM prepago de Telcel con lada **55**. Es lo más simple, cuesta
+casi nada y no dependes de la política de un tercero.
+
+> 🔁 **Mantén la SIM activa.** Para la operación diaria el número vive en Meta y no
+> necesitas el chip encendido, pero si dejas morir la línea la operadora **recicla
+> el número** y se lo asigna a alguien más. Ponle recarga con calendario.
+
+### Pasos
+
+- [ ] Conseguir el número (SIM nueva, sin registrar en WhatsApp)
+- [ ] Verificar que recibe SMS antes de tocar nada en Meta
+- [ ] Decidir el **nombre visible** del remitente — es lo que ve el cliente en el
+      chat. Debe cumplir las reglas de nombre comercial de Meta y **cambiarlo
+      después es un trámite**. Sugerido: `Mozaprint`
+- [ ] Meta → WhatsApp → **API Setup** → *Add phone number*
+- [ ] Recibir el PIN de 6 dígitos y verificar
+- [ ] Anotar su **Phone Number ID** (distinto al del número de prueba) → Bitwarden
+
+> **Decisión de negocio pendiente**: si este número aparece en el sitio, en las
+> cotizaciones o en la firma de correo. Se puede posponer — arranca siendo interno,
+> para avisos y cotizaciones a clientes que ya nos escribieron, y se publica cuando
+> el equipo lo tenga dominado.
 
 ---
 
