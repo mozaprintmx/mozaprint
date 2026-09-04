@@ -4,6 +4,49 @@
 
 ---
 
+## 2026-09-04 · escenario aprobado (v70) — número nuevo a prueba, con fecha límite
+
+**Tipo**: `docs`. Producción sin tocar.
+
+**Escenario aprobado**: número nuevo → Odoo → probar con clientes reales 6 semanas
+→ decidir si se **intercambia** por el actual, ya con la herramienta probada. El
+`5632776277` no se toca mientras tanto.
+
+**Hallazgo con fecha, y es lo más urgente del plan**: desde el **1 de octubre de
+2026** Meta cobra los *service messages* —las respuestas dentro de la ventana de
+24 h, gratis desde noviembre de 2024—. **Sin método de pago registrado al 30 de
+septiembre, Meta bloquea los mensajes salientes.** Por eso el método de pago pasó a
+ser el paso **A2**, no el último. A 40-80 conversaciones/mes el costo es de $2-3
+USD, así que lo que muerde no es el precio: es el bloqueo.
+
+**Confirmado que NO bloquea**: la verificación de negocio. Sin verificar son 250
+destinatarios únicos por 24 h, muy por encima del volumen real.
+
+**Decisiones de esta sesión**:
+- **Tráfico de prueba por un solo canal**: se mapeó el sitio y hay enlaces al
+  número actual en **8 vistas**. Se cambia solo la **5029**
+  (`website_sale.products_oe_structure_products_header_shop`, el header de
+  `/shop`): es donde alguien mira productos y pregunta precio, está aislada, y
+  revertirla es un cambio. Inicio, header global, servicios y las tres landings se
+  quedan en el número actual.
+- **Nombre visible `Mozaprint MX`** — coincide con marca, dominio y portfolio.
+- **Criterios de la decisión final**, fijados ANTES de la prueba para que no
+  termine en corazonada: (a) poder contestar desde el celular con la app de Odoo y
+  (b) que ahorre tiempo al cotizar.
+
+**Aviso técnico que ya mordió dos veces**: la vista 5029 usa `arch_db`, campo
+**traducido**. El cambio va con script (`scripts/cambiar_whatsapp_shop.py`,
+dry-run y `--rollback`) iterando idiomas, **no a mano en el editor web**.
+
+**Actualizados**: `docs/whatsapp-implementacion.md` (reescrita con los bloques
+A-F, la fecha límite, el mapa de las 8 vistas y los límites de archivos: 100 MB
+documentos, 5 MB imágenes), `docs/roadmap.md` (Fase 4 e hitos críticos) y
+`docs/meta-whatsapp-status.md` (número nuevo, WABA, método de pago; y la
+aclaración de que pasar un número a Cloud API **no apaga la SIM** — se pierden las
+llamadas de WhatsApp, no la línea).
+
+---
+
 ## 2026-09-01 · plan de ejecución (v69) — Coexistence descartado; se va con número nuevo
 
 **Tipo**: `docs` + `decisiones`. Producción sin tocar.

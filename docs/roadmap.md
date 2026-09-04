@@ -115,21 +115,32 @@ prerrequisito** de esta fase y de las siguientes.
 descartado — Meta exige ser Solution Partner o Tech Provider para dar de alta un
 número que viene de la WhatsApp Business App. El número actual **no se toca** y el
 equipo conserva la app del celular. Pasos: `docs/whatsapp-implementacion.md`.
-**Bloquea hasta**: las 7 pruebas del módulo en una base de test
-**Tareas**:
+**Escenario aprobado el 2026-09-04**: número nuevo → Odoo → probar con clientes
+reales 6 semanas → decidir si se **intercambia** por el actual. Nombre visible
+`Mozaprint MX`. Tráfico de prueba por **un solo canal**: el header de `/shop`.
+**⚠️ Fecha límite 30-sep**: sin método de pago en Meta, desde el **1 de octubre**
+se bloquean los mensajes salientes (Meta empieza a cobrar los *service messages*).
+**Bloquea hasta**: las 7 pruebas del módulo en test
+**Tareas** — detalle en `docs/whatsapp-implementacion.md`:
 - [x] ~~Experimento A (Coexistence)~~ — descartado, Meta no lo permite (2026-09-01)
-- [ ] Recuperar o regenerar la base de test (la 0818 responde `/_odoo/upgrade/`)
-- [ ] **Experimento A'**: las 7 pruebas del módulo en test, con el **número de
-      prueba gratuito de Meta** (5 destinatarios, sin verificación de negocio).
-      La séptima es innegociable: `audit_lineas_facturables --target test`
-- [ ] **Experimento B**: ¿un agente de IA nativo puede contestar en un canal de
-      WhatsApp? Si sí, la Fase 6 se cae entera
-- [ ] Conseguir y verificar el número nuevo (no debe estar registrado en WhatsApp)
-- [ ] Instalar `whatsapp`, `whatsapp_crm`, `whatsapp_sale` en producción
-- [ ] Plantillas de **utilidad** a aprobación de Meta (24-72 h): cotización lista,
-      anticipo recibido, pedido en producción, arte requerido
-- [ ] Enviar cotizaciones y links desde `sale.order`
-- [x] Actualizar `docs/meta-whatsapp-status.md`: el webhook apunta a Odoo — 2026-09-01
+- [x] Base de test operativa: `mozaprintmx-watest` — 2026-09-01
+- [x] Conseguir el número nuevo — 2026-09-04
+- [ ] **A1** App en Meta + WABA existente «Moza Print»
+- [ ] **A2** ⚠️ **Método de pago antes del 30-sep** — va primero, no al final
+- [ ] **A3** System User + token permanente (`whatsapp_business_messaging`,
+      `whatsapp_business_management`) → Bitwarden
+- [ ] **A4** Alta y verificación del número, nombre visible `Mozaprint MX`
+- [ ] **B** Las 7 pruebas en test con el número de prueba de Meta. La 6ª
+      (contestar desde la app móvil) es criterio de la decisión final; la 7ª
+      (`audit_lineas_facturables --target test`) es innegociable
+- [ ] **D** Plantillas de utilidad a aprobación (en paralelo a B)
+- [ ] **C** Instalar en producción y repuntar el webhook al número nuevo
+- [ ] **E** `scripts/cambiar_whatsapp_shop.py` — cambiar la vista 5029 iterando
+      idiomas (`arch_db` es campo traducido)
+- [ ] **F** 6 semanas de prueba, revisión a las 3, y decisión del número definitivo
+- [ ] **Experimento B** (IA): ¿un agente nativo contesta en un canal de WhatsApp?
+      Si sí, la Fase 6 se cae entera. Va después de que C funcione
+- [x] Actualizar `docs/meta-whatsapp-status.md` — 2026-09-01
 
 ### FASE 5: Campañas y seguimiento
 **Estado**: 🟡 **No está en cero — está detenida.** Diagnóstico medido en
@@ -238,9 +249,11 @@ de las 36.
 
 | Hito | Bloquea |
 |---|---|
-| Base de test operativa (la 0818 está en upgrade) | Todo lo de WhatsApp (Fase 4) |
-| **Experimento A'**: las 7 pruebas del módulo en test | Instalar en producción |
-| Número nuevo conseguido y verificado en Meta | Conectar producción |
+| ⚠️ **Método de pago en Meta antes del 30-sep** | Poder contestar desde el 1 de octubre |
+| **Las 7 pruebas del módulo en test** | Instalar en producción |
+| Nombre visible `Mozaprint MX` aprobado por Meta | Dar de alta el número |
+| Plantillas de utilidad aprobadas | Reabrir conversaciones frías |
+| 6 semanas de prueba con clientes reales | Decidir el número definitivo |
 | **Experimento B**: agente nativo contesta en canal de WhatsApp | Decide si la Fase 6 necesita infraestructura externa |
 | Aprobación de las plantillas de utilidad | Enviar cotizaciones y avisos por WhatsApp |
 | Respuesta de Karina sobre la campaña detenida | Rediseñar campañas (Fase 5) |

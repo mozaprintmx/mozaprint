@@ -37,6 +37,42 @@ El número está activo en la **WhatsApp Business App** del celular del negocio.
 
 ---
 
+## Número nuevo para Odoo (decidido 2026-09-04)
+
+| Campo | Valor |
+|---|---|
+| Uso | **Cloud API → Odoo**. Clientes, cotizaciones, seguimiento |
+| Nombre visible | **`Mozaprint MX`** (lo revisa Meta; cambiarlo después es trámite) |
+| WABA | La existente, **Moza Print** (`358071354051207`) |
+| Número | Conseguido el 2026-09-04. **El número y sus IDs viven en Bitwarden**, no aquí |
+| Estado | Pendiente de alta y verificación en Meta |
+
+El número actual **`+52 1 56 3277 6277` NO se toca**: sigue en la WhatsApp Business
+App, con sus llamadas, grupos y archivos pesados. Tras 6 semanas de prueba se
+decide si se **intercambia** (ver bloque F de la guía de implementación).
+
+> **Pasar un número a Cloud API no apaga la SIM.** Sigue recibiendo llamadas y SMS
+> normales. Lo que se apaga es la **app de WhatsApp** en ese número: se pierden
+> llamadas de WhatsApp y grupos, no la línea telefónica.
+
+---
+
+## ⚠️ Método de pago — antes del 30 de septiembre de 2026
+
+Desde el **1 de octubre** Meta cobra los *service messages* (las respuestas dentro
+de la ventana de 24 h, gratis hasta ahora). **Sin tarjeta registrada al 30 de
+septiembre, Meta bloquea los mensajes salientes**: la cuenta recibe, pero no
+puedes contestar.
+
+- Tarjeta Visa/Mastercard/Amex que **permita cargos internacionales**
+- Business Settings → WhatsApp Accounts → «Moza Print» → *Payment settings*
+- Costo a nuestro volumen: ~$0.0080 USD por respuesta → **$2-3 USD/mes**
+
+**Verificación de negocio: NO hace falta.** Sin verificar son 250 destinatarios
+únicos por 24 h; el volumen real es de 40-80 conversaciones al mes.
+
+---
+
 ## Pendientes — YA NO dependen de n8n
 
 > **Cambio del 2026-09-01**: Odoo Online es URL pública, así que el webhook apunta

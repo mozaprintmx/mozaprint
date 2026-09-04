@@ -1,227 +1,249 @@
 # WhatsApp nativo en Odoo — guía de implementación
 
 > Plan de ejecución de la [ADR 008](../decisions/008-whatsapp-nativo-odoo.md).
-> Objetivo de esta primera etapa: **que el equipo trabaje WhatsApp desde Odoo como
-> personas**. La IA es una capa posterior y no cambia nada de lo que sigue.
->
-> Decisiones tomadas el 2026-09-01:
-> - **Número nuevo y dedicado.** El número actual (`+52 1 56 3277 6277`) **NO se
->   toca**: sigue en la WhatsApp Business App y el equipo no cambia su día a día.
-> - **El módulo se valida en una base de test**; el número real solo se conecta
->   cuando toque producción.
+> Objetivo: **que el equipo trabaje WhatsApp desde Odoo como personas**. La IA es
+> una capa posterior y no cambia nada de lo que sigue.
 
----
+## El escenario, decidido el 2026-09-04
 
-## Por qué un número nuevo y no el de siempre
+1. **Número nuevo**, ya conseguido.
+2. Se instala el módulo **WhatsApp** en Odoo.
+3. El número nuevo se integra y **se prueba con clientes reales** unas semanas.
+4. Al final se decide el definitivo: quedarse con el nuevo, o **intercambiar** y
+   pasar el actual (`5632776277`) a Odoo, ya con la herramienta probada.
 
-Se investigó a fondo y **Coexistence no está a nuestro alcance**. Documentación de
-Meta sobre el alta de números que vienen de la WhatsApp Business App:
+| Decisión | Valor |
+|---|---|
+| Tráfico durante la prueba | **Un solo canal**: el header de `/shop` |
+| Nombre visible del remitente | **`Mozaprint MX`** |
+| Criterios de decisión final | (a) contestar desde el celular · (b) ahorrar tiempo al cotizar |
+
+### Por qué un número nuevo y no el de siempre
+
+**Coexistence no está a nuestro alcance.** El alta de un número que viene de la
+WhatsApp Business App se hace por *Embedded Signup*, y Meta es explícita:
 
 > *"You must already be a Solution Partner or Tech Provider."*
 
-Ese flujo (**Embedded Signup**) está pensado para que un proveedor dé de alta a sus
-clientes, no para que un negocio conecte su propio número. Registrarse como Tech
-Provider y pasar App Review es un proyecto entero, desproporcionado aquí.
-
-Las tres salidas eran: migrar el número actual del todo a Cloud API (el equipo
-pierde la app del celular), contratar un BSP con coexistence (que se quedaría con
-el webhook, rompiendo el diseño), o **un número nuevo dedicado**. Se eligió la
-tercera: es la única **reversible al 100%** y con **riesgo cero** para la operación
-diaria.
-
-> **Nota técnica que confirma el diagnóstico**: en coexistence, los mensajes que el
-> equipo manda desde el celular llegan como **`smb_message_echoes`**, un campo de
-> webhook **distinto** de `messages`. Odoo se suscribe a `messages`,
-> `message_status` y `message_template_status_update` — no a ése. Aunque
-> hubiéramos conseguido coexistence, **Odoo no habría visto lo que se contesta
-> desde el teléfono**.
+Y aunque se hubiera conseguido, no habría servido: los mensajes enviados desde el
+celular llegan como **`smb_message_echoes`**, un campo de webhook **distinto** de
+`messages`, que es al que se suscribe Odoo. El historial habría quedado partido
+igual.
 
 ---
 
-## Fase 1 · Validar el módulo en test (sin tocar nada real)
+## ⚠️ Fecha límite: 30 de septiembre de 2026
 
-Se usa el **número de prueba gratuito de Meta**, que no requiere verificación de
-negocio y permite mandar a **5 destinatarios verificados**. Riesgo: cero.
+**Desde el 1 de octubre Meta cobra los *service messages*** — las respuestas
+normales dentro de la ventana de 24 h, gratis hasta hoy.
 
-### 1.1 · Preparar la base de test
+> *"Effective October 1, 2026, Meta will charge for service messages, which have
+> not been charged since November 2024."*
 
-✅ **Lista desde el 2026-09-01**: `https://mozaprintmx-watest.odoo.com/`
-(db `mozaprintmx-watest`, **saas~19.3+e**, copia de producción con 5,454 productos
-y 468 cotizaciones). `ODOO_TEST_URL` ya apunta ahí.
+**Sin método de pago registrado al 30 de septiembre, Meta bloquea los mensajes
+salientes**: la cuenta sigue recibiendo, pero no puedes contestar.
 
-Los cuatro módulos están **disponibles y sin instalar**: `whatsapp`,
-`whatsapp_crm`, `whatsapp_sale`, `marketing_automation_whatsapp`.
+Por eso **el método de pago es el paso A2, no el último**.
 
-> La base anterior (`…-0818`) quedó en estado `/_odoo/upgrade/` y se abandonó.
+| | |
+|---|---|
+| Costo por respuesta | ~**$0.0080 USD** |
+| A 40-80 conversaciones/mes | **$2-3 USD/mes** — no es factor de decisión |
+| Verificación de negocio | **NO hace falta**: sin verificar son 250 destinatarios únicos/24 h |
 
-### 1.2 · Crear la app en Meta
+---
 
-- [ ] Ir a [Meta for Developers](https://developers.facebook.com) → **My Apps** →
-      **Create App**
-- [ ] Nombre: `Odoo` · Tipo: **Business** · Portfolio: `mozaprint_mx`
+## Bloque A · Meta
+
+### A1 · App y WABA
+
+- [ ] [Meta for Developers](https://developers.facebook.com) → **My Apps** →
+      *Create App*. Nombre `Odoo`, tipo **Business**, portfolio `mozaprint_mx`
       (Business ID `100794159106337`)
-- [ ] En el panel, sección **WhatsApp** → **Set up**
-- [ ] Seleccionar la WABA existente: **Moza Print** (`358071354051207`)
+- [ ] Panel → **WhatsApp** → *Set up*
+- [ ] **Usar la WABA existente** «Moza Print» (`358071354051207`), no crear otra:
+      conserva la identidad de negocio y facilita el intercambio de números del
+      paso 4. Una WABA admite varios números
+- [ ] Anotar **App ID** y **App Secret** (Settings → Basic) → **Bitwarden**
 
-> Meta entrega aquí un **número de prueba** con su Phone Number ID. Ese es el que
-> se usa en toda la fase 1.
+### A2 · Método de pago ← primero, no al final
 
-### 1.3 · Generar el token permanente
+- [ ] Business Settings → **WhatsApp Accounts** → «Moza Print» → *Payment settings*
+- [ ] Tarjeta Visa/Mastercard/Amex que **permita cargos internacionales**
+- [ ] Confirmar que quedó activa **antes del 30 de septiembre**
 
-⚠️ **No usar el token temporal** que Meta muestra por defecto: caduca en 24 h.
+### A3 · Token permanente
+
+⚠️ El token que Meta muestra por defecto **caduca en 24 h**. No sirve.
 
 - [ ] Business Settings → **System Users** → crear uno
 - [ ] Asignarle la app y la WABA con permiso de administración
-- [ ] Generar token con **exactamente** estos permisos:
-      - `whatsapp_business_messaging`
-      - `whatsapp_business_management`
-- [ ] **Guardar el token en Bitwarden.** Nunca en el repo, nunca en un commit.
+- [ ] Generar token con **exactamente**: `whatsapp_business_messaging` y
+      `whatsapp_business_management`
+- [ ] → **Bitwarden**. Nunca en el repo, nunca en un commit
 
-### 1.4 · Anotar los cinco valores
+### A4 · Alta del número nuevo
 
-| Valor | Dónde se obtiene |
-|---|---|
-| **App ID** | Panel de la app |
-| **App Secret** | Panel de la app → Settings → Basic |
-| **Account ID** (WABA ID) | WhatsApp → API Setup |
-| **Phone Number ID** | WhatsApp → API Setup (el del número de prueba) |
-| **Token permanente** | El del System User (1.3) |
+- [ ] Confirmar que **no está registrado en WhatsApp** (ni personal ni Business
+      App). Si lo estuvo: **borrar la cuenta** desde la app — desinstalar no basta
+- [ ] WhatsApp → **API Setup** → *Add phone number*
+- [ ] **Nombre visible: `Mozaprint MX`** — lo revisa Meta y cambiarlo después es
+      trámite. Si lo rechaza, reintentar con `Mozaprint`
+- [ ] Verificar con el PIN de 6 dígitos (SMS o llamada)
+- [ ] Anotar su **Phone Number ID** → Bitwarden
+- [ ] Completar el perfil: descripción, categoría, logo, sitio web
 
-Todo a **Bitwarden**.
+> 🔁 **Mantén la línea activa.** Para operar, el número vive en Meta y no necesitas
+> el chip encendido; pero si dejas morir la línea, la operadora **recicla el
+> número**. Ponle recargas en calendario.
 
-### 1.5 · Instalar y configurar el módulo en test
+---
 
-- [ ] Instalar **`whatsapp`** (Aplicaciones → buscar «WhatsApp»)
-- [ ] Instalar `whatsapp_crm` y `whatsapp_sale`
-- [ ] WhatsApp → Configuración → **Cuentas de WhatsApp Business** → nueva
-- [ ] Capturar los cinco valores de 1.4
-- [ ] Inventar un **Webhook Verify Token** propio (cadena aleatoria) y guardarlo
-- [ ] Copiar de Odoo la **Callback URL** (aparece bajo «Recibiendo mensajes»)
+## Bloque B · Validar el módulo en test
 
-### 1.6 · Cerrar el circuito del webhook en Meta
+Base lista: `https://mozaprintmx-watest.odoo.com/` (db `mozaprintmx-watest`,
+**saas~19.3+e**, copia de producción). `ODOO_TEST_URL` ya apunta ahí.
 
-- [ ] Meta → WhatsApp → **Configuration** → Webhooks → Edit
-- [ ] Pegar la **Callback URL** de Odoo y el **Verify Token**
-- [ ] Suscribirse a los tres campos:
+Se usa el **número de prueba gratuito de Meta** — 5 destinatarios verificados, sin
+tocar el número real. Riesgo: cero.
+
+- [ ] Instalar `whatsapp`, `whatsapp_crm`, `whatsapp_sale`
+- [ ] WhatsApp → Configuración → **Cuentas de WhatsApp Business** → nueva, con los
+      valores de A1/A3 y el **Phone Number ID del número de prueba**
+- [ ] Inventar un **Webhook Verify Token** propio y guardarlo
+- [ ] Copiar la **Callback URL** que genera Odoo (bajo «Recibiendo mensajes»)
+- [ ] Meta → WhatsApp → *Configuration* → Webhooks: pegar URL y token, y suscribir
       `messages` · `message_status` · `message_template_status_update`
-- [ ] Meta → **Send and receive messages** → agregar hasta 5 números de prueba
-      (el celular de JC entre ellos) y confirmar el código
+- [ ] Meta → *Send and receive messages* → agregar tu celular como destinatario
 
-### 1.7 · Las pruebas que de verdad importan
-
-Estas son la puerta de decisión. **Ninguna requiere el número real.**
+### Las 7 pruebas
 
 | # | Prueba | Qué demuestra |
 |---|---|---|
-| 1 | Mandar un mensaje **desde Odoo** al celular de prueba | El saliente funciona |
-| 2 | Contestar **desde el celular** y verlo llegar a Discuss | El webhook entra |
-| 3 | Que la conversación quede ligada a un **contacto** de Odoo | La integración con CRM sirve |
-| 4 | Enviar una **cotización con su PDF** desde `sale.order` | El caso de uso central |
-| 5 | Abrir la conversación desde el **chatter** del cliente | El seguimiento en contexto |
-| 6 | Crear una plantilla en Odoo y **mandarla a aprobación** | El circuito de plantillas cierra |
-| 7 | `python scripts/audit_lineas_facturables.py --target test --max-bloques 0` | El módulo **no** genera código facturable |
+| 1 | Mensaje **desde Odoo** al celular | Saliente |
+| 2 | Responder **desde el celular** y verlo en Discuss | Entrante |
+| 3 | La conversación queda ligada a un **contacto** | Integración CRM |
+| 4 | Enviar **cotización con PDF** desde `sale.order` | Caso de uso central |
+| 5 | Abrirla desde el **chatter** del cliente | Seguimiento en contexto |
+| 6 | ⭐ **Contestar desde la app móvil de Odoo** | Criterio (a) de la decisión final |
+| 7 | `audit_lineas_facturables.py --target test --max-bloques 0` | El módulo no genera código facturable |
 
-> Si la prueba 7 falla, **detenerse**: algo del módulo está creando código de
-> Studio y eso reabre el problema de la ADR 007.
-
----
-
-## Fase 2 · Conseguir el número nuevo
-
-Se hace en paralelo a la fase 1, porque los tiempos de Meta no dependen de nosotros.
-
-### Lo primero: Meta NO vende números
-
-El número de prueba que da Meta es **solo para desarrollo** — no se puede usar en
-producción y solo alcanza a 5 destinatarios verificados. **El número de producción
-lo consigues tú**, por fuera, y luego lo das de alta en Meta.
-
-### Los tres requisitos, y son los tres
-
-| Requisito | Por qué muerde |
-|---|---|
-| **Que NO esté registrado en WhatsApp** | Ni personal ni Business App. Si lo estuvo, hay que **borrar esa cuenta** desde la app (Ajustes → Cuenta → Eliminar) y esperar. No basta con desinstalar |
-| **Que reciba SMS o llamada** | Meta manda un PIN de 6 dígitos. Los móviles reciben SMS; los fijos y 800 se verifican **por llamada de voz** |
-| **Que sea del negocio y se quede** | Una vez verificado, ese número es la identidad de Mozaprint en WhatsApp. Cambiarlo después es engorroso |
-
-> ⚠️ **Ese número queda inutilizable para la app de WhatsApp.** Pasa a ser
-> exclusivo de Cloud API. **No uses un celular personal ni el de nadie del equipo.**
-
-### Qué tipo de número sirve
-
-Cloud API es **más permisivo que la app gratuita**: acepta móvil, fijo, 800 y
-también **virtuales/VoIP**, siempre que el proveedor deje recibir SMS o llamada.
-(La WhatsApp Business App gratuita, en cambio, rechaza los VoIP — por eso hay
-tanta información contradictoria en internet: casi toda habla de la app, no de la
-API.)
-
-| Opción | Costo | Veredicto |
-|---|---|---|
-| **SIM prepago mexicana** (Telcel, AT&T, Movistar) | ~$50-200 MXN + recargas | ✅ **Recomendada.** Lo más barato y lo que menos falla. Lada 55 = identidad local, que en B2B mexicano importa |
-| **Fijo de la oficina** | $0 si ya existe y está libre | ✅ Buena si hay uno sin usar. Se verifica por llamada y refuerza la identidad de empresa |
-| **Virtual / VoIP** (Twilio, Telnyx…) | Mensualidad en USD | ⚠️ Funciona con Cloud API, pero **agrega un punto de falla**: hay proveedores que bloquean el SMS de verificación de WhatsApp. Solo si ya usas uno y sabes que deja recibir |
-| Número de prueba de Meta | $0 | ❌ Solo desarrollo. No sirve en producción |
-
-**Recomendación**: SIM prepago de Telcel con lada **55**. Es lo más simple, cuesta
-casi nada y no dependes de la política de un tercero.
-
-> 🔁 **Mantén la SIM activa.** Para la operación diaria el número vive en Meta y no
-> necesitas el chip encendido, pero si dejas morir la línea la operadora **recicla
-> el número** y se lo asigna a alguien más. Ponle recarga con calendario.
-
-### Pasos
-
-- [ ] Conseguir el número (SIM nueva, sin registrar en WhatsApp)
-- [ ] Verificar que recibe SMS antes de tocar nada en Meta
-- [ ] Decidir el **nombre visible** del remitente — es lo que ve el cliente en el
-      chat. Debe cumplir las reglas de nombre comercial de Meta y **cambiarlo
-      después es un trámite**. Sugerido: `Mozaprint`
-- [ ] Meta → WhatsApp → **API Setup** → *Add phone number*
-- [ ] Recibir el PIN de 6 dígitos y verificar
-- [ ] Anotar su **Phone Number ID** (distinto al del número de prueba) → Bitwarden
-
-> **Decisión de negocio pendiente**: si este número aparece en el sitio, en las
-> cotizaciones o en la firma de correo. Se puede posponer — arranca siendo interno,
-> para avisos y cotizaciones a clientes que ya nos escribieron, y se publica cuando
-> el equipo lo tenga dominado.
+> **Si la 7 falla, detenerse**: algo está creando código de Studio y eso reabre el
+> problema de la [ADR 007](../decisions/007-retiro-motor-cotizacion-costo-codigo.md).
+>
+> **La 6 es la más importante.** Es la preocupación principal del operador y lo
+> único que no se puede predecir leyendo. Hacerla en serio, no de paso.
 
 ---
 
-## Fase 3 · Producción
+## Bloque C · Producción
 
-Solo cuando las 7 pruebas de 1.7 estén en verde.
+Solo con las 7 en verde.
 
 - [ ] Instalar `whatsapp`, `whatsapp_crm`, `whatsapp_sale` en producción
-- [ ] Configurar la cuenta con los mismos App ID / Secret / WABA / token, pero con
-      el **Phone Number ID del número nuevo**
+- [ ] Configurar la cuenta con el **Phone Number ID del número nuevo**
 - [ ] Repuntar el webhook de Meta a la **Callback URL de producción**
-- [ ] `python scripts/audit_lineas_facturables.py --max-bloques 0` → debe seguir en **0**
-- [ ] Mandar una cotización real a un número propio antes de usarlo con un cliente
-
-### Plantillas a aprobación de Meta (24-72 h)
-
-Empezar por las de **utilidad**, que cuestan **$0.0080 USD** contra $0.0436 de las
-de marketing, y son las que un cliente B2B agradece:
-
-- `cotizacion_lista` — con link o PDF
-- `anticipo_recibido`
-- `pedido_en_produccion`
-- `arte_requerido`
+- [ ] `python scripts/audit_lineas_facturables.py --max-bloques 0` → sigue en **0**
+- [ ] Enviar una cotización real a un número propio **antes** de usarlo con cliente
 
 ---
 
-## Cómo se trabaja el día a día (lo que hay que explicarle al equipo)
+## Bloque D · Plantillas
+
+Se mandan a aprobación **en paralelo al bloque B**: Meta tarda 24-72 h por
+plantilla y son el cuello de botella del arranque.
+
+Empezar por las de **utilidad** ($0.0080 vs $0.0436 de marketing):
+
+| Plantilla | Para qué |
+|---|---|
+| `cotizacion_lista` | Con link o PDF. **La más importante** |
+| `anticipo_recibido` | |
+| `pedido_en_produccion` | |
+| `arte_requerido` | |
+
+> Con el canal único hay tráfico entrante, así que muchas conversaciones abrirán
+> con el cliente escribiendo — ahí contestas libre, sin plantilla. Las plantillas
+> son para **reabrir conversaciones frías**.
+
+---
+
+## Bloque E · El canal único
+
+El sitio tiene enlaces de WhatsApp al `5632776277` en **8 vistas**:
+
+| Vista | Dónde | En la prueba |
+|---|---|---|
+| **5029** `website_sale.products_oe_structure_products_header_shop` | Header de `/shop` | ⬅️ **cambia al número nuevo** |
+| 4095 `header_social_links` | Header global | se queda |
+| 2342 `inicio` · 5020 `inicio_ed64ed` | Home | se queda |
+| 3884 `servicios` | Página de servicios | se queda |
+| 5049 · 5052 `kits-de-bienvenida` | Landings con UTM | se queda |
+| 4725 `landing-page_321f1b` | Landing de catálogos | se queda |
+
+*(Además hay `tel:` y texto plano en 4121, 4548 y 3886 — son teléfono, no
+WhatsApp, y no se tocan.)*
+
+**Por qué `/shop`**: es donde alguien mira productos y pregunta precio —la
+intención más alta—, está aislado en una sola vista, y revertirlo es un cambio.
+
+> ⚠️ **`arch_db` es campo traducido.** Al escribirlo por API hay que **iterar los
+> idiomas** (`en_US` primero, luego los activos). Escribir solo el de la sesión
+> deja el sitio roto para el visitante con el backend viéndose bien. **Ya mordió a
+> dos scripts de este repo.**
+>
+> Por eso el cambio va con **script** (`scripts/cambiar_whatsapp_shop.py`, dry-run
+> por defecto y `--rollback`, siguiendo el patrón de `fix_vista_contactanos.py`),
+> **no editando a mano en el editor web**.
+
+---
+
+## Bloque F · El período de prueba
+
+**Duración: 6 semanas**, con revisión a las 3. A ~36 cotizaciones/mes son ~50 de
+muestra, suficiente para decidir con datos y no con corazonada.
+
+### Criterio (a) · ¿Puedes contestar desde el celular?
+
+Lleva la cuenta de las conversaciones que respondiste **desde la app de Odoo**
+frente a las que pospusiste hasta llegar a la computadora. Si el segundo número es
+alto, **el intercambio de números es mala idea** y conviene quedarse con dos líneas.
+
+### Criterio (b) · ¿Ahorra tiempo al cotizar?
+
+Compara contra hoy: de lead a cotización enviada. Hoy es todo manual. La señal
+buena es mandarla desde el propio `sale.order`, con el historial pegado al cliente,
+sin copiar datos entre ventanas.
+
+### Cómo se decide
+
+| Resultado | Decisión |
+|---|---|
+| Los dos criterios bien | **Intercambiar**: el `5632776277` pasa a Odoo y el sitio vuelve a un solo número |
+| Solo (b) bien | Dos números: Odoo para cotizar, celular para conversar |
+| (a) mal | No intercambiar. Reevaluar si Odoo es el canal de conversación correcto |
+
+---
+
+## Cómo se trabaja el día a día
 
 ### La ventana de 24 horas — la regla que más confunde
 
 | Situación | Qué se puede mandar |
 |---|---|
 | El cliente escribió hace **menos de 24 h** | **Lo que sea**: texto libre, PDF, imágenes |
-| Pasaron **más de 24 h** | **Solo una plantilla aprobada** por Meta |
+| Pasaron **más de 24 h** | **Solo una plantilla aprobada** |
 
-Es de Meta, no de Odoo, y no hay forma de saltársela. En la práctica: **si el
-cliente escribió hoy, contesta normal; si la conversación se enfrió, arranca con
-plantilla.**
+Es de Meta, no de Odoo. En la práctica: si el cliente escribió hoy, contesta
+normal; si la conversación se enfrió, arranca con plantilla.
+
+### Límites de archivos
+
+| Tipo | Máximo |
+|---|---|
+| **Documentos** (PDF, AI, EPS) | **100 MB** |
+| Imágenes | **5 MB** — una foto grande va como documento |
+| Video / audio | 16 MB |
 
 ### Dónde vive cada cosa
 
@@ -234,22 +256,24 @@ plantilla.**
 
 ---
 
-## Riesgos y qué hacer
+## Riesgos
 
 | Riesgo | Mitigación |
 |---|---|
-| Que el módulo genere código facturable | Prueba 7 en test **antes** de producción |
-| Que el token permanente caduque o se revoque | En Bitwarden; si Odoo deja de enviar, sospechar de esto primero |
-| Que el número nuevo confunda a los clientes | Arranca interno: solo a quien ya nos escribió |
-| Que el equipo no adopte Discuss | Es la razón de haber elegido número nuevo: la app del celular sigue viva |
+| **No registrar la tarjeta antes del 30-sep** | Es A2 y va primero. Sin eso no puedes contestar desde el 1 de octubre |
+| Meta rechaza el nombre visible | `Mozaprint MX` coincide con marca y dominio; riesgo bajo. Reintentar con `Mozaprint` |
+| El módulo genera código facturable | Prueba 7 antes de producción |
+| Romper `/shop` al cambiar el enlace | Script con dry-run, rollback y escritura por idioma |
+| Que el token se revoque | En Bitwarden; si Odoo deja de enviar, es lo primero que hay que mirar |
+| Clientes escribiendo a dos números | Costo aceptado del canal único, acotado a 6 semanas |
 | Que un upgrade rompa el módulo | Es módulo oficial de Odoo. Entra al checklist post-upgrade |
 
 ---
 
 ## Lo que esta etapa NO incluye
 
-- **IA que conteste.** Es la Fase 6 del roadmap y depende de esto, no al revés.
-- **El livechat del sitio.** Descartado explícitamente el 2026-09-01.
-- **Migrar el número principal.** Se decide después, con datos de uso real.
-- **Campañas de marketing por WhatsApp.** Necesita `marketing_automation_whatsapp`
-  y plantillas de marketing aprobadas; va después de que esto funcione.
+- **IA que conteste** — Fase 6 del roadmap; depende de esto, no al revés.
+- **Campañas de marketing por WhatsApp** — necesita `marketing_automation_whatsapp`
+  y plantillas de marketing aprobadas; va después.
+- **El intercambio de números** — se decide al final del bloque F, con datos.
+- **El livechat del sitio** — descartado explícitamente el 2026-09-01.
