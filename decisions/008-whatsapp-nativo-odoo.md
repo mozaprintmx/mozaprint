@@ -1,7 +1,9 @@
 # ADR 008: WhatsApp nativo de Odoo, con Odoo como dueño del webhook
 
 **Fecha**: 2026-08-31
-**Estado**: Propuesto — condicionado a los experimentos A' y B (ver «Criterios de aceptación»).
+**Estado**: **ACEPTADO** — validado en test el 2026-09-09. El diseño funciona:
+entran y salen mensajes, se ligan a contactos y **no genera código facturable**.
+Las pruebas 4-6 (cotización, chatter, app móvil) pasan a producción.
 El experimento A original (Coexistence) se resolvió el 2026-09-01: **descartado**, se va
 con un **número nuevo dedicado**.
 **Decisores**: Juan Carlos Asomoza
@@ -79,9 +81,11 @@ no cambia la arquitectura: si nunca se enciende, no se pierde nada de lo demás.
 6. **Claude se conserva** (ADR 002), corriendo fuera de Odoo. El agente nativo solo
    habla OpenAI y Gemini.
 
-## Criterios de aceptación (experimentos, en TEST primero)
+## Criterios de aceptación — resueltos
 
-Esta ADR **no pasa a Aceptado** hasta que ambos se resuelvan.
+**Validado en test el 2026-09-09.** Lo esencial funciona y no genera código
+facturable, así que la ADR pasa a **Aceptada**. Las pruebas 4-6 (cotización con
+PDF, chatter y app móvil) se hacen ya en producción, con el número real.
 
 ### ~~Experimento A~~ · RESUELTO el 2026-09-01: Coexistence queda descartado
 
@@ -97,9 +101,13 @@ Review es desproporcionado para una operación de tres personas.
 
 **Y aunque lo hubiéramos conseguido, no habría servido.** En coexistence los
 mensajes que el equipo manda desde el celular llegan como **`smb_message_echoes`**,
-un campo de webhook **distinto** de `messages`. Odoo se suscribe a `messages`,
-`message_status` y `message_template_status_update`. El historial habría quedado
-partido igual — la sospecha original era correcta, por una razón más profunda.
+un campo de webhook **distinto** de `messages`, que es al que se suscribe Odoo.
+El historial habría quedado partido igual — la sospecha original era correcta,
+por una razón más profunda.
+
+*(Corrección del 2026-09-08: `message_status` **no existe** como campo de webhook.
+Los acuses de entrega viajan dentro de `messages`. Los campos a suscribir son dos:
+`messages` y `message_template_status_update`.)*
 
 **Decisión tomada: número nuevo y dedicado.** El número actual no se toca y sigue
 en la app del celular; el equipo no cambia su día a día. Es la única salida
@@ -109,17 +117,28 @@ un BSP con coexistence, que se quedaría con el webhook y rompería este diseño
 
 Pasos en [`docs/whatsapp-implementacion.md`](../docs/whatsapp-implementacion.md).
 
-### Experimento A' · Que el módulo funcione, con el número de prueba de Meta
+### ~~Experimento A'~~ · ✅ SUPERADO el 2026-09-09
 
-Sustituye al anterior. Se valida en una base de **test** con el **número de prueba
-gratuito de Meta** (5 destinatarios verificados, sin verificación de negocio), así
-que no toca nada real. Las 7 pruebas están en la guía de implementación; la
-séptima es la que no se puede saltar:
+Validado en `mp-watest` con el número de prueba de Meta.
 
-> `python scripts/audit_lineas_facturables.py --target test --max-bloques 0`
->
-> Si el módulo generara código de Studio, reabriría el problema de la ADR 007 y
-> habría que detenerse.
+| Prueba | Resultado |
+|---|---|
+| Enviar desde Odoo | ✅ con `msg_uid` real |
+| Recibir en Discuss | ✅ |
+| Ligar a contacto | ✅ canal con nombre del cliente |
+| **Código facturable** | ✅ **0 líneas** — 242 acciones, todas de módulos de Odoo |
+
+**El módulo no genera código de Studio.** La ADR 007 sigue a salvo, que era la
+única condición capaz de tumbar este diseño.
+
+Tres hallazgos no documentados por Odoo ni por Meta, con su corrección, en
+[`docs/whatsapp-implementacion.md`](../docs/whatsapp-implementacion.md):
+
+1. **La app debe suscribirse a la WABA** (`POST /{waba-id}/subscribed_apps`) y
+   **no hay botón** en la consola. Sin eso: cero webhooks, todo verde.
+2. **Las plantillas se atan a una cuenta y a un modelo**, y no se heredan.
+3. **La app debe estar publicada** o Meta no entrega webhooks de producción —
+   ni mensajes entrantes ni acuses de entrega.
 
 ### Experimento B · ¿El agente nativo contesta en un canal de WhatsApp?
 

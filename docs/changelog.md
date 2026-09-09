@@ -4,6 +4,62 @@
 
 ---
 
+## 2026-09-09 · bloque B (v71) — WhatsApp validado en test, con tres trampas encontradas
+
+**Tipo**: `configuración` (**TEST**) + `docs`. Producción sin tocar.
+
+**Resultado**: el módulo nativo de WhatsApp funciona en `mp-watest` (saas~19.3+e).
+Envío, recepción, ligado automático a contacto y acuses de entrega. La
+[ADR 008](../decisions/008-whatsapp-nativo-odoo.md) pasa a **Aceptada**.
+
+**La prueba que podía matar el proyecto salió limpia**:
+`audit_lineas_facturables --target test` → **0 líneas** (242 acciones con código,
+todas de módulos de Odoo). Instalar WhatsApp **no** genera código de Studio, así
+que no reabre el cargo de la ADR 007. Instalar `whatsapp` arrastra ~14 módulos
+puente por auto-instalación; ninguno factura.
+
+### Tres hallazgos que no están en la documentación de nadie
+
+**1. La app debe suscribirse a la WABA, y no hay botón.** Síntoma: todo verde
+—URL verificada, campos suscritos, envío funcionando— y **cero webhooks**, ni
+entrantes ni acuses; los salientes clavados en `sent`. Causa: en Cloud API hay dos
+registros distintos y la consola solo expone el de la app. El de la WABA
+(`POST /{waba-id}/subscribed_apps`) es **solo por API**. Peor: el flujo nuevo de
+Meta por «casos de uso» suscribe **su propia app** (`WA DevX Webhook Events 1P
+App`) a la WABA de prueba, y la tuya nunca entra. Se diagnosticó comprobando el
+endpoint de Odoo con un `curl` del handshake —respondió HTTP 200 con el
+challenge— lo que descartó el lado de Odoo y dejó la causa del lado de Meta.
+**Hay que repetirlo con la WABA de producción `358071354051207` o producción
+falla idéntico.**
+
+**2. Las plantillas se atan a una cuenta y a un modelo.** Desde un contacto se
+enviaba bien, pero desde `sale.order` Odoo usaba la cuenta demo **archivada**,
+porque la única plantilla del modelo *Orden de venta* vivía ahí. Las 6 de la
+cuenta propia son las de ejemplo de Meta, todas del modelo *Contacto*. **No se
+heredan entre cuentas**: en producción hay que recrearlas y volver a esperar
+aprobación.
+
+**3. La app debe estar publicada.** En modo desarrollo Meta no entrega webhooks de
+producción ni a los administradores. No solo no llegan los entrantes: **tampoco
+los acuses**, así que nunca sabes si tu mensaje llegó.
+
+**Bug de Odoo, de paso**: `_compute_callback_url` llama `self.get_base_url()`
+sobre el conjunto en vez de por registro → con dos cuentas activas, leer la
+Callback URL de ambas lanza «Expected singleton». Razón práctica para archivar la
+cuenta demo.
+
+**Correcciones a la guía**: el Webhook Verify Token **lo genera Odoo** (campo de
+solo lectura), no se inventa. Y **`message_status` no existe** como campo de
+webhook: los acuses viajan dentro de `messages`. Son dos campos a suscribir, no
+tres.
+
+**Actualizados**: `docs/whatsapp-implementacion.md` (bloque A marcado como hecho,
+bloque B con resultados, sección nueva de hallazgos y **bloque C reescrito como
+plan detallado de producción** con C0-C8 y rollback), `decisions/008` (Aceptada) y
+`docs/roadmap.md`.
+
+---
+
 ## 2026-09-04 · escenario aprobado (v70) — número nuevo a prueba, con fecha límite
 
 **Tipo**: `docs`. Producción sin tocar.

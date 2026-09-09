@@ -130,9 +130,12 @@ se bloquean los mensajes salientes (Meta empieza a cobrar los *service messages*
 - [ ] **A3** System User + token permanente (`whatsapp_business_messaging`,
       `whatsapp_business_management`) → Bitwarden
 - [ ] **A4** Alta y verificación del número, nombre visible `Mozaprint MX`
-- [ ] **B** Las 7 pruebas en test con el número de prueba de Meta. La 6ª
-      (contestar desde la app móvil) es criterio de la decisión final; la 7ª
-      (`audit_lineas_facturables --target test`) es innegociable
+- [x] **A1-A3** App `Mozaprintmx Odoo`, System User con token permanente y
+      **método de pago agregado** — 2026-09-08
+- [x] **B** Validado en test (`mp-watest`) el 2026-09-09: envío, recepción, ligado
+      a contacto y **0 líneas facturables**. Pruebas 4-6 pasan a producción
+- [x] Tres hallazgos documentados: `subscribed_apps` sin botón, plantillas atadas
+      a cuenta, y la app debe publicarse
 - [ ] **D** Plantillas de utilidad a aprobación (en paralelo a B)
 - [ ] **C** Instalar en producción y repuntar el webhook al número nuevo
 - [ ] **E** `scripts/cambiar_whatsapp_shop.py` — cambiar la vista 5029 iterando

@@ -53,36 +53,47 @@ Por eso **el método de pago es el paso A2, no el último**.
 
 ---
 
-## Bloque A · Meta
+## Bloque A · Meta — ✅ COMPLETADO salvo A4
 
-### A1 · App y WABA
+App creada: **`Mozaprintmx Odoo`**, App ID `1417946286897018`, portfolio
+`mozaprint_mx`. Usuario del sistema `odoo-whatsapp` con token permanente.
+Método de pago **agregado**. Falta solo dar de alta el número real (A4), que
+se hace ya en el bloque C.
 
-- [ ] [Meta for Developers](https://developers.facebook.com) → **My Apps** →
+> ⚠️ Meta usa ahora un flujo **por casos de uso**: no hay producto «WhatsApp»
+> en la barra lateral, todo vive dentro de *Casos de uso → Conectar en WhatsApp*.
+> Y **ignora «Conviértete en proveedor de tecnología»**: es el camino de Tech
+> Provider que descartamos.
+
+### A1 · App y WABA ✅
+
+- [x] [Meta for Developers](https://developers.facebook.com) → **My Apps** →
       *Create App*. Nombre `Odoo`, tipo **Business**, portfolio `mozaprint_mx`
       (Business ID `100794159106337`)
-- [ ] Panel → **WhatsApp** → *Set up*
+- [x] Panel → **WhatsApp** → *Set up*
 - [ ] **Usar la WABA existente** «Moza Print» (`358071354051207`), no crear otra:
       conserva la identidad de negocio y facilita el intercambio de números del
       paso 4. Una WABA admite varios números
-- [ ] Anotar **App ID** y **App Secret** (Settings → Basic) → **Bitwarden**
+- [x] Anotar **App ID** y **App Secret** (Settings → Basic) → **Bitwarden**
 
-### A2 · Método de pago ← primero, no al final
+### A2 · Método de pago ✅ — figura como «Agregada»
 
-- [ ] Business Settings → **WhatsApp Accounts** → «Moza Print» → *Payment settings*
-- [ ] Tarjeta Visa/Mastercard/Amex que **permita cargos internacionales**
-- [ ] Confirmar que quedó activa **antes del 30 de septiembre**
+- [x] Business Settings → **WhatsApp Accounts** → «Moza Print» → *Payment settings*
+- [x] Tarjeta Visa/Mastercard/Amex que **permita cargos internacionales**
+- [x] Confirmar que quedó activa **antes del 30 de septiembre** — hecho el 2026-09-08
 
-### A3 · Token permanente
+### A3 · Token permanente ✅
 
 ⚠️ El token que Meta muestra por defecto **caduca en 24 h**. No sirve.
 
-- [ ] Business Settings → **System Users** → crear uno
-- [ ] Asignarle la app y la WABA con permiso de administración
-- [ ] Generar token con **exactamente**: `whatsapp_business_messaging` y
-      `whatsapp_business_management`
-- [ ] → **Bitwarden**. Nunca en el repo, nunca en un commit
+- [x] Business Settings → **System Users** → `odoo-whatsapp`
+- [x] Asignarle la app y la WABA con permiso de administración
+- [x] Generar token con **exactamente**: `whatsapp_business_messaging` y
+      `whatsapp_business_management`. **NO** marcar `manage_app_solution` ni
+      `whatsapp_business_manage_events`: no se usan
+- [x] → **Bitwarden**. Nunca en el repo, nunca en un commit
 
-### A4 · Alta del número nuevo
+### A4 · Alta del número nuevo — ⏳ se hace en el bloque C (paso C1)
 
 - [ ] Confirmar que **no está registrado en WhatsApp** (ni personal ni Business
       App). Si lo estuvo: **borrar la cuenta** desde la app — desinstalar no basta
@@ -99,52 +110,252 @@ Por eso **el método de pago es el paso A2, no el último**.
 
 ---
 
-## Bloque B · Validar el módulo en test
+## Bloque B · Validar el módulo en test — ✅ COMPLETADO (2026-09-09)
 
-Base lista: `https://mozaprintmx-watest.odoo.com/` (db `mozaprintmx-watest`,
-**saas~19.3+e**, copia de producción). `ODOO_TEST_URL` ya apunta ahí.
+Base: `https://mp-watest.odoo.com/` (db `mp-watest`, saas~19.3+e, copia de
+producción). Número de prueba de Meta `+1 555-678-0188`.
 
-Se usa el **número de prueba gratuito de Meta** — 5 destinatarios verificados, sin
-tocar el número real. Riesgo: cero.
+### Resultado de las 7 pruebas
 
-- [ ] Instalar `whatsapp`, `whatsapp_crm`, `whatsapp_sale`
-- [ ] WhatsApp → Configuración → **Cuentas de WhatsApp Business** → nueva, con los
-      valores de A1/A3 y el **Phone Number ID del número de prueba**
-- [ ] Inventar un **Webhook Verify Token** propio y guardarlo
-- [ ] Copiar la **Callback URL** que genera Odoo (bajo «Recibiendo mensajes»)
-- [ ] Meta → WhatsApp → *Configuration* → Webhooks: pegar URL y token, y suscribir
-      `messages` · `message_status` · `message_template_status_update`
-- [ ] Meta → *Send and receive messages* → agregar tu celular como destinatario
-
-### Las 7 pruebas
-
-| # | Prueba | Qué demuestra |
+| # | Prueba | Resultado |
 |---|---|---|
-| 1 | Mensaje **desde Odoo** al celular | Saliente |
-| 2 | Responder **desde el celular** y verlo en Discuss | Entrante |
-| 3 | La conversación queda ligada a un **contacto** | Integración CRM |
-| 4 | Enviar **cotización con PDF** desde `sale.order` | Caso de uso central |
-| 5 | Abrirla desde el **chatter** del cliente | Seguimiento en contexto |
-| 6 | ⭐ **Contestar desde la app móvil de Odoo** | Criterio (a) de la decisión final |
-| 7 | `audit_lineas_facturables.py --target test --max-bloques 0` | El módulo no genera código facturable |
+| 1 | Enviar desde Odoo | ✅ `state=sent`, con `msg_uid` real de Meta |
+| 2 | Recibir en Discuss | ✅ entrante «Gracias» en `received` |
+| 3 | Ligar a un contacto | ✅ canal creado como *Juan Carlos Asomoza Ponce (525548118158)* |
+| 4 | Cotización con PDF desde `sale.order` | ⏳ **pendiente** — falta plantilla propia (ver hallazgo 2) |
+| 5 | Abrir desde el chatter | ⏳ pendiente |
+| 6 | **Contestar desde la app móvil** | ⏳ **pendiente — es criterio de decisión** |
+| 7 | `audit_lineas_facturables --target test` | ✅ **0 líneas** · 242 acciones, todas de módulos de Odoo |
 
-> **Si la 7 falla, detenerse**: algo está creando código de Studio y eso reabre el
-> problema de la [ADR 007](../decisions/007-retiro-motor-cotizacion-costo-codigo.md).
->
-> **La 6 es la más importante.** Es la preocupación principal del operador y lo
-> único que no se puede predecir leyendo. Hacerla en serio, no de paso.
+**La prueba 7 era la que podía matar el proyecto y salió limpia**: instalar
+WhatsApp no genera código facturable de Studio. La ADR 007 sigue a salvo.
+
+**Dato de paso**: instalar `whatsapp` arrastra **14 módulos puente** por
+auto-instalación (`whatsapp_crm`, `whatsapp_sale`, `whatsapp_account`,
+`whatsapp_pos`, `marketing_automation_whatsapp`…). Es normal —los bridges se
+instalan solos cuando sus dos dependencias están presentes— pero es más
+superficie de la prevista. Ninguno genera código facturable.
 
 ---
 
-## Bloque C · Producción
+## ⚠️ Los tres hallazgos que costaron la noche
 
-Solo con las 7 en verde.
+Ninguno está en la documentación de Odoo ni en la de Meta. **Si se repiten en
+producción, el síntoma es idéntico y el diagnóstico vuelve a costar horas.**
 
-- [ ] Instalar `whatsapp`, `whatsapp_crm`, `whatsapp_sale` en producción
-- [ ] Configurar la cuenta con el **Phone Number ID del número nuevo**
-- [ ] Repuntar el webhook de Meta a la **Callback URL de producción**
-- [ ] `python scripts/audit_lineas_facturables.py --max-bloques 0` → sigue en **0**
-- [ ] Enviar una cotización real a un número propio **antes** de usarlo con cliente
+### Hallazgo 1 · La app debe suscribirse a la WABA, y no hay botón
+
+**Síntoma**: todo verde —URL verificada, campos suscritos, envío funcionando— y
+**cero webhooks**. Ni mensajes entrantes ni acuses de entrega: los salientes se
+quedan clavados en `sent` para siempre.
+
+**Causa**: en Cloud API hay **dos registros distintos**, y la consola solo expone
+uno.
+
+| Registro | Qué declara | Dónde |
+|---|---|---|
+| A nivel **app** | «mis eventos, a esta URL, de estos campos» | Panel de la app, con palomita verde |
+| A nivel **WABA** | «esta cuenta entrega sus eventos a estas apps» | **Solo por API. No hay botón** |
+
+Peor aún: el flujo nuevo de Meta por «casos de uso» crea la WABA de prueba y
+**suscribe su propia app** (`WA DevX Webhook Events 1P App`, id
+`2202427980234937`) para que funcionen los botones «Probar» del panel. La tuya
+nunca entra, y nada en la interfaz lo dice.
+
+**Verificar** — en el [Explorador de la API Graph](https://developers.facebook.com/tools/explorer/),
+con el token permanente y la app seleccionada:
+
+```
+GET   <WABA_ID>/subscribed_apps
+```
+
+Si tu app no aparece en `data`, ese es el problema.
+
+**Corregir** — misma ruta, método `POST`:
+
+```
+POST  <WABA_ID>/subscribed_apps      →  {"success": true}
+```
+
+> ⚠️ **Es por WABA.** Hacerlo en la de prueba **no** sirve para la de producción.
+> En el bloque C hay que repetirlo con `358071354051207`.
+>
+> La suscripción **no rellena hacia atrás**: solo aplica a eventos posteriores.
+
+### Hallazgo 2 · Las plantillas se atan a una cuenta y a un modelo
+
+**Síntoma**: desde un contacto se envía bien, pero al mandar una cotización desde
+`sale.order` Odoo avisa *«Este mensaje se enviará con una cuenta de demostración»*
+y usa la cuenta demo — **incluso archivada**.
+
+**Causa**: `whatsapp.template` tiene `wa_account_id` y `model_id`. Odoo ofrece las
+plantillas cuyo modelo coincide con el registro. En la base había:
+
+| Cuenta | Plantillas | Modelo *Orden de venta* |
+|---|---|---|
+| Odoo Demo Account *(archivada)* | 12 | ✅ `Sale Order` |
+| Mozaprint MX (prueba) | 6 | ❌ las 6 son de *Contacto* |
+
+Las 6 propias son las de ejemplo que Meta regala con el número de prueba
+(`Hello World`, las de *Jaspers Market*), todas del modelo *Contacto*. Como no
+había ninguna de *Orden de venta* en la cuenta propia, Odoo caía en la demo.
+
+**Corregir**: duplicar la plantilla `Sale Order`, cambiarle la cuenta a la propia
+y enviarla a aprobación.
+
+> ⚠️ **Las plantillas NO se heredan entre cuentas.** Al crear la cuenta de
+> producción hay que crearlas de nuevo ahí y volver a esperar la aprobación de
+> Meta. Es la razón por la que el bloque D va en paralelo y no al final.
+
+### Hallazgo 3 · La app tiene que estar publicada
+
+Con la app en modo desarrollo, Meta **no entrega webhooks de producción** — ni
+siquiera a los administradores de la app. Lo dice su propio aviso, pero es fácil
+leerlo como una advertencia menor.
+
+Con la app sin publicar no solo no llegan los mensajes entrantes: **tampoco los
+acuses de entrega**, así que nunca sabes si tus mensajes llegaron. Para un
+vendedor mandando cotizaciones, eso lo vuelve obligatorio.
+
+### Un bug de Odoo, de paso
+
+`_compute_callback_url` llama `self.get_base_url()` sobre el conjunto completo en
+vez de registro por registro. **Con dos cuentas activas, leer la Callback URL de
+ambas a la vez lanza «Expected singleton».** Razón práctica para archivar la
+cuenta demo en cuanto exista la propia.
+
+---
+
+## Bloque C · Producción — plan detallado
+
+> **Nada de esto se improvisa.** Los tres hallazgos del bloque B se repiten aquí
+> con síntomas idénticos si se saltan pasos. El orden importa.
+
+### C0 · Antes de tocar producción
+
+- [ ] **Backup de referencia**: `python scripts/backup_catalog.py --output backups/pre_whatsapp_AAAAMMDD.json`
+- [ ] **Línea base de código facturable**: `python scripts/audit_lineas_facturables.py --max-bloques 0` → debe dar **0**
+- [ ] **Salud del sitio**: `python scripts/audit_post_upgrade.py --comparar` → limpio
+- [ ] Confirmar en Bitwarden que están los 5 datos: App ID, App Secret, token
+      permanente, WABA de producción, y —tras C1— el Phone Number ID real
+
+### C1 · Dar de alta el número real en Meta
+
+- [ ] Meta → WhatsApp → **API Setup** → *Add phone number*
+- [ ] **WABA: «Moza Print» `358071354051207`** — la de producción, NO la de prueba
+- [ ] **Nombre visible: `Mozaprint MX`**. Lo revisa Meta; si lo rechaza, `Mozaprint`
+- [ ] Verificar con el PIN de 6 dígitos
+- [ ] Anotar el **Phone Number ID real** → Bitwarden
+
+> ⚠️ **Tope de 2 números sin verificación de negocio.** Con el de prueba ya usas
+> uno. Si más adelante quieres meter también el `5632776277` para el intercambio,
+> hará falta **verificación del negocio** (2-4 días hábiles). Conviene iniciarla
+> con tiempo — hoy figura como *No iniciado*.
+
+### C2 · Suscribir la app a la WABA de producción ← el paso invisible
+
+**Este es el hallazgo 1 y no tiene botón en la consola.** Si se salta, producción
+falla exactamente como falló test: todo verde y cero webhooks.
+
+- [ ] [Explorador de la API Graph](https://developers.facebook.com/tools/explorer/),
+      app `Mozaprintmx Odoo`, token permanente
+- [ ] Comprobar:  `GET 358071354051207/subscribed_apps`
+- [ ] Si no aparece `Mozaprintmx Odoo` → `POST 358071354051207/subscribed_apps`
+- [ ] Confirmar `{"success": true}` y repetir el `GET`
+
+### C3 · Instalar el módulo en producción
+
+- [ ] Aplicaciones → **WhatsApp** → Instalar
+- [ ] Aceptar que se auto-instalen los ~14 módulos puente
+- [ ] `python scripts/audit_lineas_facturables.py --max-bloques 0` → **sigue en 0**
+
+> Si este auditor deja de dar 0, **detenerse**: algo generó código de Studio y eso
+> reabre el cargo de la ADR 007.
+
+### C4 · Crear la cuenta en Odoo
+
+WhatsApp → Configuración → Cuentas de WhatsApp Business → **Nuevo**
+
+| Campo (en español) | Valor |
+|---|---|
+| Nombre | `Mozaprint MX` |
+| ID de la aplicación | `1417946286897018` |
+| Secreto de la aplicación | *(Bitwarden)* |
+| **ID del número de teléfono** ⬅️ izquierda | *(el real, de C1)* |
+| **ID de la cuenta de WhatsApp Business** ➡️ derecha | `358071354051207` |
+| Token de acceso | *(el permanente, de Bitwarden)* |
+| Usuarios predeterminados | Juan Carlos |
+
+- [ ] **Probar credenciales** → debe autocompletar el **Número de teléfono**.
+      Ese autocompletado es la prueba de que el token y los IDs son correctos
+- [ ] Copiar **URL de retrollamada** y **Token de verificación** → Bitwarden
+- [ ] **Archivar la cuenta demo** si aparece — por el bug del *singleton*
+
+> ⚠️ Los dos IDs numéricos están uno frente al otro y son el error clásico.
+> Izquierda = número, derecha = cuenta.
+
+### C5 · Webhook en Meta
+
+- [ ] Pegar la **Callback URL de producción** y el **Verify Token**
+- [ ] **Verificar y guardar**
+- [ ] Suscribir **`messages`** y **`message_template_status_update`**
+      *(`message_status` no existe: los acuses viajan dentro de `messages`)*
+
+Comprobación independiente, sin salir de la terminal:
+
+```bash
+curl -s -o /dev/null -w "HTTP %{http_code}
+"   "https://mozaprintmx.odoo.com/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=<TOKEN>&hub.challenge=PRUEBA"
+```
+
+Debe responder **HTTP 200** y devolver `PRUEBA`.
+
+### C6 · Plantillas ← no se heredan
+
+**Hallazgo 2**: las plantillas de test **no sirven** en producción. Hay que
+crearlas en la cuenta nueva y esperar aprobación de Meta (24-72 h en una WABA
+real, no minutos como en la de prueba).
+
+- [ ] Duplicar `Sale Order` → cuenta **Mozaprint MX**, nombre `Cotización Mozaprint`
+- [ ] Crear las de **utilidad** ($0.0080 vs $0.0436 de marketing):
+      `cotizacion_lista` · `anticipo_recibido` · `pedido_en_produccion` · `arte_requerido`
+- [ ] Enviar todas a aprobación **el mismo día que se instala el módulo**, para que
+      la espera corra en paralelo
+
+### C7 · Validación en producción
+
+Antes de usarlo con un cliente real, contra un número propio:
+
+| # | Prueba | Por qué |
+|---|---|---|
+| 1 | Enviar un mensaje desde Odoo | Saliente |
+| 2 | Contestar desde el celular → llega a Discuss | **Valida C2** |
+| 3 | Que el saliente pase de `sent` a `delivered` | Confirma el webhook completo |
+| 4 | **Cotización con PDF desde `sale.order`** | El caso de uso central — pendiente desde test |
+| 5 | Abrirla desde el chatter del cliente | Seguimiento en contexto |
+| 6 | **Contestar desde la app móvil de Odoo** | ⭐ **Criterio (a) de la decisión final** |
+
+> **La 6 no se puede saltar.** Es uno de los dos criterios con los que vas a
+> decidir si intercambias el número. Sin ella, las 6 semanas del bloque F terminan
+> en corazonada.
+
+### C8 · Encender el canal único
+
+Solo cuando C7 esté completo. Ver bloque E: cambiar **únicamente** la vista
+`5029` con `scripts/cambiar_whatsapp_shop.py` (dry-run, rollback, y escritura
+**idioma por idioma** porque `arch_db` es campo traducido).
+
+### Rollback
+
+| Si falla | Qué hacer |
+|---|---|
+| El webhook no entrega | `GET subscribed_apps`. Es la causa en el 90% de los casos |
+| Odoo descarta los webhooks | Revisar que el **App Secret** sea el de esta app: uno bien formado pero equivocado los tira en silencio, y «Probar credenciales» **no lo detecta** porque no usa el App Secret |
+| Hay que revertir el canal | `cambiar_whatsapp_shop.py --rollback` |
+| Hay que apagar todo | Archivar la cuenta en Odoo: deja de enviar y de recibir sin desinstalar nada |
+
+> **No desinstales el módulo** para revertir. Desinstalar en Odoo Online no es
+> limpio. Archivar la cuenta corta el servicio sin tocar la estructura.
 
 ---
 
