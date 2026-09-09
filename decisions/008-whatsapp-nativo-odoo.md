@@ -1,7 +1,7 @@
 # ADR 008: WhatsApp nativo de Odoo, con Odoo como dueño del webhook
 
 **Fecha**: 2026-08-31
-**Estado**: **ACEPTADO** — validado en test el 2026-09-09. El diseño funciona:
+**Estado**: **ACEPTADO Y EN PRODUCCIÓN** desde el 2026-09-09. El diseño funciona:
 entran y salen mensajes, se ligan a contactos y **no genera código facturable**.
 Las pruebas 4-6 (cotización, chatter, app móvil) pasan a producción.
 El experimento A original (Coexistence) se resolvió el 2026-09-01: **descartado**, se va

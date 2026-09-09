@@ -138,7 +138,7 @@ superficie de la prevista. Ninguno genera código facturable.
 
 ---
 
-## ⚠️ Los tres hallazgos que costaron la noche
+## ⚠️ Los cuatro hallazgos que costaron la noche
 
 Ninguno está en la documentación de Odoo ni en la de Meta. **Si se repiten en
 producción, el síntoma es idéntico y el diagnóstico vuelve a costar horas.**
@@ -217,6 +217,42 @@ Con la app sin publicar no solo no llegan los mensajes entrantes: **tampoco los
 acuses de entrega**, así que nunca sabes si tus mensajes llegaron. Para un
 vendedor mandando cotizaciones, eso lo vuelve obligatorio.
 
+### Hallazgo 4 · Un App Secret mal pegado no da NINGÚN error
+
+**El más traicionero de los cuatro**, y el que costó producción.
+
+**Síntoma**: **se envía perfecto** —las plantillas llegan al celular con su PDF—
+pero **no entra absolutamente nada**. Ni mensajes ni acuses. Y el registro de
+depuración de Odoo está **vacío**: ni siquiera aparece un intento rechazado.
+
+**Causa**: enviar y recibir usan credenciales distintas.
+
+| Operación | Qué usa |
+|---|---|
+| **Enviar** | el **token** de acceso |
+| **Recibir** | el **App Secret**, para validar la firma `X-Hub-Signature-256` de Meta |
+
+Con un App Secret equivocado, Odoo recibe cada webhook, calcula la firma, no
+coincide, y lo descarta **sin registrar nada** — para Odoo esa petición nunca fue
+legítima. Y como enviar no lo usa, todo lo demás sigue funcionando.
+
+En producción se había pegado un valor de **12 caracteres**. Un App Secret de Meta
+son **32 hexadecimales**.
+
+> ⚠️ **«Probar credenciales» NO detecta esto**, porque esa prueba solo llama a la
+> Graph API con el token. Puede salir en verde con el App Secret completamente mal.
+
+**Cómo detectarlo en 10 segundos** — comparando la huella del secreto entre dos
+bases, o simplemente midiendo:
+
+```python
+# app_secret debe cumplir: 32 caracteres, solo [0-9a-f]
+re.fullmatch(r"[0-9a-f]{32}", app_secret)
+```
+
+**Regla práctica**: si envías pero no recibes, y el log de depuración está vacío,
+**mide el App Secret antes de tocar cualquier otra cosa.**
+
 ### Un bug de Odoo, de paso
 
 `_compute_callback_url` llama `self.get_base_url()` sobre el conjunto completo en
@@ -226,18 +262,66 @@ cuenta demo en cuanto exista la propia.
 
 ---
 
-## Bloque C · Producción — plan detallado
+## Bloque C · Producción — ✅ CIRCUITO COMPLETO (2026-09-09)
+
+**WhatsApp funciona en producción.** Entra, sale, liga al contacto, manda
+cotizaciones con PDF, y **0 líneas facturables**.
+
+### Configuración final
+
+| Dato | Valor |
+|---|---|
+| WABA de producción | `1055533050656636` («MozaPrint MX») |
+| Phone Number ID | `1299638423233370` |
+| Número | `+52 1 56 6470 5479` |
+| Callback URL | `https://www.mozaprintmx.com/whatsapp/webhook` |
+| Campos suscritos | `messages` · `message_template_status_update` |
+| App Secret y token | **en Bitwarden** — nunca en el repo |
+
+> La WABA `358071354051207` («Moza Print») **quedó descartada**: está atada a la
+> WhatsApp Business App del `5632776277` y por eso no dejaba agregar números.
+> La nueva se creó para Cloud API, con su propio método de pago y la verificación
+> del negocio ya aprobada.
+
+### Resultado de las validaciones
+
+| # | Prueba | Resultado |
+|---|---|---|
+| 1 | Enviar desde Odoo | ✅ |
+| 2 | Recibir en Discuss | ✅ canal creado automáticamente |
+| 3 | Ligar a un contacto | ✅ con nombre del cliente |
+| 4 | **Cotización con PDF desde `sale.order`** | ✅ llega el PDF y el link de seguimiento |
+| 5 | Ver la conversación en el chatter | ✅ |
+| 6 | **Contestar desde la app móvil de Odoo** | ⏳ **pendiente — criterio de decisión** |
+| 7 | Código facturable | ✅ **0 líneas** |
+
+**Nombre visible**: `MozaPrint MX` aparece correctamente en el chat del cliente.
+
+**Pendiente menor**: la plantilla usada es la de *Orden de venta*; conviene una
+específica de **cotización**.
+
+---
+
+## Bloque C · Los pasos, para repetirlos
 
 > **Nada de esto se improvisa.** Los tres hallazgos del bloque B se repiten aquí
 > con síntomas idénticos si se saltan pasos. El orden importa.
 
-### C0 · Antes de tocar producción
+### C0 · Antes de tocar producción — ✅ hecho el 2026-09-09
 
-- [ ] **Backup de referencia**: `python scripts/backup_catalog.py --output backups/pre_whatsapp_AAAAMMDD.json`
-- [ ] **Línea base de código facturable**: `python scripts/audit_lineas_facturables.py --max-bloques 0` → debe dar **0**
-- [ ] **Salud del sitio**: `python scripts/audit_post_upgrade.py --comparar` → limpio
-- [ ] Confirmar en Bitwarden que están los 5 datos: App ID, App Secret, token
-      permanente, WABA de producción, y —tras C1— el Phone Number ID real
+- [x] **Línea base de código facturable**: `python scripts/audit_lineas_facturables.py --max-bloques 0` → **0** ✅
+- [x] **Salud del sitio**: `python scripts/audit_post_upgrade.py` → sin hallazgos ✅
+- [ ] Confirmar en Bitwarden: App ID, App Secret, token permanente, WABA de
+      producción, y —tras C1— el Phone Number ID real
+
+> **Sin backup de catálogo, a propósito.** Instalar WhatsApp no toca productos ni
+> cotizaciones: crea modelos y menús propios. Un respaldo de catálogo protegería
+> algo que este cambio no puede romper. *(`backup_catalog.py` además requiere
+> `ODOO_API_KEY` para JSON-2, que no está configurada en este entorno.)*
+>
+> **El rollback real es archivar la cuenta** (ver tabla al final del bloque), no
+> restaurar datos. La línea base que sí importa es la de código facturable: si
+> deja de dar 0 después de instalar, hay que parar.
 
 ### C1 · Dar de alta el número real en Meta
 

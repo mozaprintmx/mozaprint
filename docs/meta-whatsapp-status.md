@@ -44,8 +44,17 @@ El número está activo en la **WhatsApp Business App** del celular del negocio.
 | Uso | **Cloud API → Odoo**. Clientes, cotizaciones, seguimiento |
 | Nombre visible | **`Mozaprint MX`** (lo revisa Meta; cambiarlo después es trámite) |
 | WABA | La existente, **Moza Print** (`358071354051207`) |
-| Número | Conseguido el 2026-09-04. **El número y sus IDs viven en Bitwarden**, no aquí |
-| Estado | Pendiente de alta y verificación en Meta |
+| Número | **`+52 1 56 6470 5479`** — en producción desde el 2026-09-09 |
+| WABA | **`1055533050656636`** (nueva, para Cloud API) |
+| Phone Number ID | `1299638423233370` |
+| Estado | ✅ **CONNECTED** · `platform_type: CLOUD_API` · nombre visible OK |
+| Callback URL | `https://www.mozaprintmx.com/whatsapp/webhook` |
+| App Secret · token | **en Bitwarden** — nunca en el repo |
+
+> ⚠️ La WABA **«Moza Print» `358071354051207` quedó descartada**: está atada a la
+> WhatsApp Business App del `5632776277` y no permitía agregar números. Se creó una
+> WABA nueva para Cloud API, con su propio método de pago y la verificación del
+> negocio aprobada (2026-09-08).
 
 El número actual **`+52 1 56 3277 6277` NO se toca**: sigue en la WhatsApp Business
 App, con sus llamadas, grupos y archivos pesados. Tras 6 semanas de prueba se

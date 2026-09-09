@@ -4,6 +4,76 @@
 
 ---
 
+## 2026-09-09 · bloque C (v72) — WhatsApp EN PRODUCCIÓN, y el hallazgo del App Secret
+
+**Tipo**: `configuración` (**PRODUCCIÓN**) + `docs`.
+
+**WhatsApp nativo funciona en producción.** Entra, sale, liga la conversación al
+contacto, manda cotizaciones con PDF y link de seguimiento, y **0 líneas
+facturables**. La [ADR 008](../decisions/008-whatsapp-nativo-odoo.md) pasa a
+**Aceptada y en producción**.
+
+| Dato | Valor |
+|---|---|
+| Número | `+52 1 56 6470 5479` · nombre visible `MozaPrint MX` |
+| WABA | `1055533050656636` (nueva, Cloud API) |
+| Callback | `https://www.mozaprintmx.com/whatsapp/webhook` |
+| Estado | `CONNECTED` · `platform_type: CLOUD_API` |
+
+**La WABA «Moza Print» (`358071354051207`) quedó descartada**: está atada a la
+WhatsApp Business App del `5632776277`, y por eso el botón «Agregar número» salía
+deshabilitado. El asistente de Meta proponía *liberar* ese número borrando la
+cuenta de la app — justo lo que este diseño protege. Se creó una **WABA nueva** con
+su propio método de pago; la verificación del negocio quedó aprobada el 2026-09-08,
+lo que además sube el tope de 2 a 20 números y desbloquea el intercambio futuro.
+
+### ⚠️ Hallazgo 4 — un App Secret mal pegado no produce NINGÚN error
+
+El más traicionero de la serie. **Síntoma**: se envía perfecto —las plantillas
+llegan con su PDF— y **no entra absolutamente nada**, ni mensajes ni acuses. El
+registro de depuración de Odoo, **vacío**: ni un intento rechazado.
+
+**Causa**: enviar usa el **token**; recibir usa el **App Secret** para validar la
+firma `X-Hub-Signature-256`. Con el secreto equivocado, Odoo descarta cada webhook
+sin registrar nada, y el envío sigue impecable. En producción se había pegado un
+valor de **12 caracteres**; un App Secret de Meta son **32 hexadecimales**.
+
+**«Probar credenciales» no lo detecta**, porque solo llama a la Graph API con el
+token: sale en verde con el App Secret completamente mal.
+
+Se diagnosticó comparando la huella del secreto entre producción y test —la base
+de test sí recibía— y midiendo su longitud. **Regla que queda**: si envías pero no
+recibes y el log está vacío, mide el App Secret antes de tocar nada más.
+
+### Camino de diagnóstico que sí sirvió
+
+Antes de dar con el secreto se descartaron, en orden y con evidencia:
+la URL del webhook (`GET /{waba}/phone_numbers` mostraba
+`webhook_configuration.application` correcto), la suscripción de la app a la WABA
+(`GET /{waba}/subscribed_apps`), los campos suscritos, el registro del número
+(`GET /{phone_id}?fields=status` → `CONNECTED`), y el verify token — probando el
+endpoint con `curl`, incluida la ambigüedad tipográfica entre `l` minúscula e `I`
+mayúscula, que Odoo rechaza con **403** y el correcto responde **200** con el
+challenge.
+
+### Validaciones
+
+| # | Prueba | Resultado |
+|---|---|---|
+| 1-3 | Enviar, recibir, ligar a contacto | ✅ |
+| 4 | Cotización con PDF desde `sale.order` | ✅ |
+| 5 | Conversación en el chatter | ✅ |
+| 6 | **App móvil de Odoo** | ⏳ pendiente — es criterio de decisión |
+| 7 | Código facturable | ✅ **0 líneas** |
+
+**Pendientes**: plantilla específica de cotización (la usada es la de *Orden de
+venta*), la prueba de la app móvil, y **C8** — el canal único en `/shop`.
+
+**Actualizados**: `docs/whatsapp-implementacion.md` (hallazgo 4 y resultados del
+bloque C), `docs/meta-whatsapp-status.md`, `docs/roadmap.md` y `decisions/008`.
+
+---
+
 ## 2026-09-09 · bloque B (v71) — WhatsApp validado en test, con tres trampas encontradas
 
 **Tipo**: `configuración` (**TEST**) + `docs`. Producción sin tocar.

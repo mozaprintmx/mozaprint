@@ -137,7 +137,10 @@ se bloquean los mensajes salientes (Meta empieza a cobrar los *service messages*
 - [x] Tres hallazgos documentados: `subscribed_apps` sin botón, plantillas atadas
       a cuenta, y la app debe publicarse
 - [ ] **D** Plantillas de utilidad a aprobación (en paralelo a B)
-- [ ] **C** Instalar en producción y repuntar el webhook al número nuevo
+- [x] **C** ✅ **EN PRODUCCIÓN el 2026-09-09**: módulo instalado, cuenta
+      configurada, webhook apuntando a `www.mozaprintmx.com`, app suscrita a la
+      WABA. Validado: envía, recibe, liga a contacto, manda cotizaciones con PDF,
+      **0 líneas facturables**. Falta solo la prueba de la **app móvil de Odoo**
 - [ ] **E** `scripts/cambiar_whatsapp_shop.py` — cambiar la vista 5029 iterando
       idiomas (`arch_db` es campo traducido)
 - [ ] **F** 6 semanas de prueba, revisión a las 3, y decisión del número definitivo
