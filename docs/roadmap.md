@@ -107,7 +107,9 @@
 - [ ] Crear AI Cotizador asistente para vendedor
 
 ### FASE 4: WhatsApp nativo en Odoo (con personas)
-**Estado**: 🟡 Diseñada, no iniciada — ver `decisions/008-whatsapp-nativo-odoo.md`
+**Estado**: 🟢 **EN PRODUCCIÓN desde el 2026-09-09** (bloques A, B y C). Quedan
+D (plantillas), E (canal de entrada) y F (6 semanas de prueba). Ver
+`decisions/008-whatsapp-nativo-odoo.md` y `docs/whatsapp-implementacion.md`
 **Cambio de rumbo (2026-08-31)**: se revirtió la ADR 005. **Odoo es el dueño del
 webhook**, no n8n. Odoo Online ya es URL pública, así que **el VPS deja de ser
 prerrequisito** de esta fase y de las siguientes.
@@ -117,21 +119,22 @@ número que viene de la WhatsApp Business App. El número actual **no se toca** 
 equipo conserva la app del celular. Pasos: `docs/whatsapp-implementacion.md`.
 **Escenario aprobado el 2026-09-04**: número nuevo → Odoo → probar con clientes
 reales 6 semanas → decidir si se **intercambia** por el actual. Nombre visible
-`Mozaprint MX`. Tráfico de prueba por **un solo canal**: el header de `/shop`.
-**⚠️ Fecha límite 30-sep**: sin método de pago en Meta, desde el **1 de octubre**
-se bloquean los mensajes salientes (Meta empieza a cobrar los *service messages*).
-**Bloquea hasta**: las 7 pruebas del módulo en test
+`Mozaprint MX`. Tráfico de prueba por **un solo canal de entrada**; el destino se replanteó el
+2026-09-09 y está **abierto** — ver bloque E.
+**✅ Fecha límite del 30-sep RESUELTA**: método de pago registrado en Meta el
+2026-09-08. El bloqueo de salientes del 1 de octubre ya no aplica.
+**Ya no bloquea nada**: las 7 pruebas pasaron y el circuito está en producción.
 **Tareas** — detalle en `docs/whatsapp-implementacion.md`:
 - [x] ~~Experimento A (Coexistence)~~ — descartado, Meta no lo permite (2026-09-01)
 - [x] Base de test operativa: `mozaprintmx-watest` — 2026-09-01
 - [x] Conseguir el número nuevo — 2026-09-04
-- [ ] **A1** App en Meta + WABA existente «Moza Print»
-- [ ] **A2** ⚠️ **Método de pago antes del 30-sep** — va primero, no al final
-- [ ] **A3** System User + token permanente (`whatsapp_business_messaging`,
-      `whatsapp_business_management`) → Bitwarden
-- [ ] **A4** Alta y verificación del número, nombre visible `Mozaprint MX`
-- [x] **A1-A3** App `Mozaprintmx Odoo`, System User con token permanente y
-      **método de pago agregado** — 2026-09-08
+- [x] **A1** App `Mozaprintmx Odoo` (`1417946286897018`) — 2026-09-08
+- [x] **A2** Método de pago registrado en Meta — 2026-09-08
+- [x] **A3** System User + token permanente (`whatsapp_business_messaging`,
+      `whatsapp_business_management`) → Bitwarden — 2026-09-08
+- [x] **A4** Número `+52 1 56 6470 5479` dado de alta y verificado, nombre visible
+      `MozaPrint MX`. **WABA nueva `1055533050656636`**: la existente «Moza Print»
+      no admitía números por estar atada a la WhatsApp Business App — 2026-09-09
 - [x] **B** Validado en test (`mp-watest`) el 2026-09-09: envío, recepción, ligado
       a contacto y **0 líneas facturables**. Pruebas 4-6 pasan a producción
 - [x] Tres hallazgos documentados: `subscribed_apps` sin botón, plantillas atadas
@@ -140,9 +143,14 @@ se bloquean los mensajes salientes (Meta empieza a cobrar los *service messages*
 - [x] **C** ✅ **EN PRODUCCIÓN el 2026-09-09**: módulo instalado, cuenta
       configurada, webhook apuntando a `www.mozaprintmx.com`, app suscrita a la
       WABA. Validado: envía, recibe, liga a contacto, manda cotizaciones con PDF,
-      **0 líneas facturables**. Falta solo la prueba de la **app móvil de Odoo**
-- [ ] **E** `scripts/cambiar_whatsapp_shop.py` — cambiar la vista 5029 iterando
-      idiomas (`arch_db` es campo traducido)
+      **0 líneas facturables**. La prueba de la **app móvil de Odoo pasó** el mismo
+      día — criterio (a) del bloque F cumplido
+- [ ] **E** Canal de entrada al número nuevo — **replanteado el 2026-09-09,
+      decisión abierta**. El script se descartó y se borró: el sitio tiene un solo
+      idioma activo, así que basta el editor web. El inventario real es de **14
+      vistas**, no 8, y **3 son globales**. Destino recomendado: la zona vacía
+      `oe_structure_website_sale_product_1` de la ficha de producto. Inventario
+      completo en `docs/sitio-web-enlaces-whatsapp.md`
 - [ ] **F** 6 semanas de prueba, revisión a las 3, y decisión del número definitivo
 - [ ] **Experimento B** (IA): ¿un agente nativo contesta en un canal de WhatsApp?
       Si sí, la Fase 6 se cae entera. Va después de que C funcione
@@ -202,7 +210,13 @@ de las 36.
 - [ ] Migrar script actual a workflows de n8n
 - [ ] Migrar XML-RPC → JSON-2 API
 - [ ] Configurar webhooks salientes para sync inverso
-- [ ] Implementar "Consultar inventario" en vivo en ficha
+- [ ] **Rediseñar «Consultar inventario» de la ficha de producto** — 🟠 **riesgo
+      aceptado desde el 2026-09-09, con pendiente de diseño abierto**. Hoy corre
+      en el navegador del visitante desde `website.custom_code_footer`. Hay que
+      moverlo a n8n (patrón del `CLAUDE.md`: HTTP saliente y secretos fuera del
+      cliente) o resolverlo con existencias ya sincronizadas. **Detalle, alcance
+      medido y la decisión en `analysis/supplier-sync/HALLAZGO_JS_INVENTARIO.md`**
+      — no se documenta aquí porque el repo es público
 - [ ] Cron de sync nocturno consolidado
 
 ### FASE 9: SEO + Home + Dashboard
@@ -280,14 +294,24 @@ de las 36.
 - AI Lead Scoring nativo de Odoo (probabilidad automática)
 - Pipeline limpio con etiquetas "Urge contactar" y "Peligro, posible pérdida"
 - 3 alertas automáticas: lead sin calificar en 1 día, oportunidad sin avanzar en 1 día, oportunidad en peligro a los 3 días
-- WhatsApp del negocio operado manualmente desde celular
+- **WhatsApp nativo en Odoo** (desde 2026-09-09): número `+52 1 56 6470 5479`,
+  entra y sale, liga la conversación al contacto, manda cotizaciones con PDF, y
+  **se contesta desde la app móvil de Odoo**. 0 líneas facturables
+- WhatsApp del negocio (`5632776277`) sigue operándose a mano desde el celular —
+  son **dos números en paralelo** durante las 6 semanas del bloque F
 
 ### Lo que NO funciona aún
 - `x_studio_origen_url` sin captura automática aún
 - Descuentos no se aplican automáticamente en cotización
 - Odoo no detecta actividad si el vendedor actúa desde Gmail (depende de mover tarjetas manualmente — ver `docs/proceso-equipo-crm.md`)
 - La cotización se arma a mano línea por línea — el **precio** de personalización ya lo pone Odoo, lo que no existe es el auto-populado de las líneas
-- Sin trazabilidad de WhatsApp en Odoo
+- El sitio **todavía apunta al número viejo en las 14 vistas**: falta decidir el
+  canal de entrada al número nuevo (bloque E). Sin eso, la prueba de 6 semanas no
+  recibe tráfico
+- **Plantillas propias sin aprobar**: se usa la genérica de *orden de venta*;
+  falta `cotizacion_lista` y las de utilidad (bloque D)
+- El `5632776277` sigue **sin trazabilidad en Odoo** — es el número que no está
+  conectado
 - **Agente IA a medias**: hay 6 agentes activos (incluido «ChatBot MozaPrint») pero con **0 fuentes cargadas** — sabe usar skills, no sabe del negocio. El livechat del sitio sigue con el nombre por defecto y sin publicar. Ver `docs/marketing-diagnostico.md`
 - **4Promotional sin tarifas de personalización**, y las de Promo Opción arrancan por encima de la mediana de pedido → esos casos van por comodín «(precio a cotizar)», con el precio tecleado a mano
 - Sin webhooks Odoo → externo

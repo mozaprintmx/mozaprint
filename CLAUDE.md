@@ -17,8 +17,7 @@ Karina Asomoza (Marketing) será dueña del knowledge base del agente "Moza".
 
 - **Odoo Online saas~19.3 Custom** (`mozaprint.odoo.com`): datos, CRM, ventas,
   catálogo, inventario, sitio web. Toda la lógica de negocio vive aquí.
-- **n8n self-hosted** (VPS Hetzner): orquestador y **router único** del webhook
-  de WhatsApp (Cloud API permite 1 webhook por número).
+- **n8n self-hosted**: opcional, sin aprovisionar (ADR 008 — Odoo toma el webhook).
 - **LLM** (Claude vs OpenAI — se decide en piloto, Fase 7): agente "Moza".
 - **GitHub público** + Claude Code. Secretos en **Bitwarden**, NUNCA en el repo.
 
@@ -185,8 +184,9 @@ python3 scripts/rollback_category_images.py --from backups/category_images_AAAAM
   Verificación: `python scripts/audit_personalizacion.py --target prod`. El motor anterior
   se retiró el 2026-08-17 por el cargo por línea de código (`decisions/007`);
   `specs/motor-cotizacion.md` es histórica.
-- WhatsApp/IA/Marketing: **Odoo será dueño del webhook** (`decisions/008`, propuesta,
-  pendiente de 2 experimentos). Estado real de Marketing: `docs/marketing-diagnostico.md`.
+- WhatsApp nativo: **EN PRODUCCIÓN desde 2026-09-09** (`decisions/008` aceptada;
+  guía en `docs/whatsapp-implementacion.md`). Enlaces del sitio y zonas editables:
+  `docs/sitio-web-enlaces-whatsapp.md`. Marketing: `docs/marketing-diagnostico.md`.
 - Actualizaciones de Odoo: `docs/upgrades/README.md`. Las dos bases corren **saas~19.3**
   desde 2026-08-22. Cuando diverjan, lo que falla en test es aviso anticipado de
   producción — no lo repares antes de tiempo, salvo que el arreglo valga en ambas.

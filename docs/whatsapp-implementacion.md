@@ -32,7 +32,12 @@ igual.
 
 ---
 
-## ⚠️ Fecha límite: 30 de septiembre de 2026
+## ✅ Fecha límite del 30 de septiembre — RESUELTA el 2026-09-08
+
+**Método de pago registrado en Meta el 2026-09-08** (Mastercard, en la WABA
+nueva `1055533050656636`). **El riesgo de bloqueo del 1 de octubre ya no
+aplica.** Se conserva el contexto porque explica por qué el método de pago fue
+el paso A2 y no el último, y porque el costo por mensaje sigue vigente.
 
 **Desde el 1 de octubre Meta cobra los *service messages*** — las respuestas
 normales dentro de la ventana de 24 h, gratis hasta hoy.
@@ -53,7 +58,7 @@ Por eso **el método de pago es el paso A2, no el último**.
 
 ---
 
-## Bloque A · Meta — ✅ COMPLETADO salvo A4
+## Bloque A · Meta — ✅ COMPLETADO (A4 se cerró dentro del bloque C)
 
 App creada: **`Mozaprintmx Odoo`**, App ID `1417946286897018`, portfolio
 `mozaprint_mx`. Usuario del sistema `odoo-whatsapp` con token permanente.
@@ -124,7 +129,7 @@ producción). Número de prueba de Meta `+1 555-678-0188`.
 | 3 | Ligar a un contacto | ✅ canal creado como *Juan Carlos Asomoza Ponce (525548118158)* |
 | 4 | Cotización con PDF desde `sale.order` | ⏳ **pendiente** — falta plantilla propia (ver hallazgo 2) |
 | 5 | Abrir desde el chatter | ⏳ pendiente |
-| 6 | **Contestar desde la app móvil** | ⏳ **pendiente — es criterio de decisión** |
+| 6 | **Contestar desde la app móvil** | ✅ **confirmado en producción el 2026-09-09** |
 | 7 | `audit_lineas_facturables --target test` | ✅ **0 líneas** · 242 acciones, todas de módulos de Odoo |
 
 **La prueba 7 era la que podía matar el proyecto y salió limpia**: instalar
@@ -292,7 +297,7 @@ cotizaciones con PDF, y **0 líneas facturables**.
 | 3 | Ligar a un contacto | ✅ con nombre del cliente |
 | 4 | **Cotización con PDF desde `sale.order`** | ✅ llega el PDF y el link de seguimiento |
 | 5 | Ver la conversación en el chatter | ✅ |
-| 6 | **Contestar desde la app móvil de Odoo** | ⏳ **pendiente — criterio de decisión** |
+| 6 | **Contestar desde la app móvil de Odoo** | ✅ **PASA** — se contestó desde la app el 2026-09-09. Criterio (a) del bloque F **cumplido** |
 | 7 | Código facturable | ✅ **0 líneas** |
 
 **Nombre visible**: `MozaPrint MX` aparece correctamente en el chat del cliente.
@@ -423,11 +428,11 @@ Antes de usarlo con un cliente real, contra un número propio:
 > decidir si intercambias el número. Sin ella, las 6 semanas del bloque F terminan
 > en corazonada.
 
-### C8 · Encender el canal único
+### C8 · Encender el canal de entrada — ⏳ PENDIENTE
 
-Solo cuando C7 esté completo. Ver bloque E: cambiar **únicamente** la vista
-`5029` con `scripts/cambiar_whatsapp_shop.py` (dry-run, rollback, y escritura
-**idioma por idioma** porque `arch_db` es campo traducido).
+**Replanteado el 2026-09-09: cambió de forma y de destino.** Se hace **a mano
+desde el editor web**, no con script, y el destino recomendado ya no es el header
+de `/shop`. Ver el bloque E.
 
 ### Rollback
 
@@ -435,7 +440,7 @@ Solo cuando C7 esté completo. Ver bloque E: cambiar **únicamente** la vista
 |---|---|
 | El webhook no entrega | `GET subscribed_apps`. Es la causa en el 90% de los casos |
 | Odoo descarta los webhooks | Revisar que el **App Secret** sea el de esta app: uno bien formado pero equivocado los tira en silencio, y «Probar credenciales» **no lo detecta** porque no usa el App Secret |
-| Hay que revertir el canal | `cambiar_whatsapp_shop.py --rollback` |
+| Hay que revertir el canal | Editor web: regresar el enlace al `5632776277`. Si se cambió por API, restaurar desde `backups/` |
 | Hay que apagar todo | Archivar la cuenta en Odoo: deja de enviar y de recibir sin desinstalar nada |
 
 > **No desinstales el módulo** para revertir. Desinstalar en Odoo Online no es
@@ -457,39 +462,74 @@ Empezar por las de **utilidad** ($0.0080 vs $0.0436 de marketing):
 | `pedido_en_produccion` | |
 | `arte_requerido` | |
 
-> Con el canal único hay tráfico entrante, así que muchas conversaciones abrirán
+> Con un canal de entrada al número nuevo hay tráfico entrante, así que muchas conversaciones abrirán
 > con el cliente escribiendo — ahí contestas libre, sin plantilla. Las plantillas
 > son para **reabrir conversaciones frías**.
 
 ---
 
-## Bloque E · El canal único
+## Bloque E · El canal de entrada — ⏳ PENDIENTE, decisión abierta
 
-El sitio tiene enlaces de WhatsApp al `5632776277` en **8 vistas**:
+> **Replanteado el 2026-09-09.** El plan original —cambiar la vista `5029` (header
+> de `/shop`) con un script— **se descartó**. Lo que sigue es el estado real.
 
-| Vista | Dónde | En la prueba |
+### Qué cambió y por qué
+
+**1. El inventario estaba mal.** El plan decía «8 vistas». El barrido completo
+encontró **14**. El error: se buscó `arch_db ilike 'whatsapp'`, y **`wa.me` no
+contiene esa palabra**.
+
+**2. Tres de los enlaces son globales.** Las vistas `4095` (redes del header),
+`4318` (botón verde del header) y `4504` (pie de página) salen en **todas** las
+páginas. Eso rompe la premisa del plan original: cambiar la `5029` no crea un
+«canal único» — crea una página donde conviven **dos números** en pantalla, y el
+del header compite con el nuevo.
+
+**3. El script se descartó.** `scripts/cambiar_whatsapp_shop.py` se escribió y se
+borró el 2026-09-09 sin llegar a producción. Razón: **el sitio tiene un solo
+idioma activo** (`es_419`), así que la trampa de `arch_db` traducido —que era el
+argumento para usar script en vez del editor— pesa mucho menos de lo supuesto.
+Para **un** enlace, el editor web es más simple y deja ver el resultado.
+
+> El inventario completo, las zonas editables y el procedimiento manual están en
+> **`docs/sitio-web-enlaces-whatsapp.md`**. No los repitas aquí.
+
+### El destino recomendado
+
+**`oe_structure_website_sale_product_1`** — la zona editable superior de la ficha
+de producto. Hoy está **vacía**: renderiza en la página pero no tiene vista.
+
+| Por qué | |
+|---|---|
+| **Intención más alta** | La persona ya está viendo un producto concreto, no navegando |
+| **Aislada** | Una zona, una vista. Revertir es borrar el bloque |
+| **No compite** | Header y pie se quedan con el número de siempre |
+| **Puede llevar contexto** | El JS del sitio ya calcula nombre de producto y SKU |
+
+Ahí vivió un botón «Cotizar por WhatsApp» que se perdió (ver
+`docs/sitio-web-enlaces-whatsapp.md`, sección 5). Rehacerlo apuntando al número
+nuevo resuelve dos cosas de una vez.
+
+### Alternativas consideradas
+
+| Opción | A favor | En contra |
 |---|---|---|
-| **5029** `website_sale.products_oe_structure_products_header_shop` | Header de `/shop` | ⬅️ **cambia al número nuevo** |
-| 4095 `header_social_links` | Header global | se queda |
-| 2342 `inicio` · 5020 `inicio_ed64ed` | Home | se queda |
-| 3884 `servicios` | Página de servicios | se queda |
-| 5049 · 5052 `kits-de-bienvenida` | Landings con UTM | se queda |
-| 4725 `landing-page_321f1b` | Landing de catálogos | se queda |
+| **Ficha de producto** (`_1`) ⬅️ recomendada | Máxima intención, aislado | Menos tráfico que un elemento global |
+| Header de `/shop` (`5029`) | Era el plan original | Compite con el header global en la misma pantalla |
+| Botón del header (`4318`) | Todo el tráfico del sitio | **Toda** la exposición: si falla, falla en todo el sitio. No es una prueba acotada |
+| Landings con UTM (`5049`, `5052`) | Atribución ya medible | Tráfico de campaña, no orgánico |
 
-*(Además hay `tel:` y texto plano en 4121, 4548 y 3886 — son teléfono, no
-WhatsApp, y no se tocan.)*
+**La decisión es del operador.** Define de dónde viene el tráfico de las 6 semanas
+del bloque F, y con él la calidad de los datos para decidir el número definitivo.
 
-**Por qué `/shop`**: es donde alguien mira productos y pregunta precio —la
-intención más alta—, está aislado en una sola vista, y revertirlo es un cambio.
+### Cuando se ejecute
 
-> ⚠️ **`arch_db` es campo traducido.** Al escribirlo por API hay que **iterar los
-> idiomas** (`en_US` primero, luego los activos). Escribir solo el de la sesión
-> deja el sitio roto para el visitante con el backend viéndose bien. **Ya mordió a
-> dos scripts de este repo.**
->
-> Por eso el cambio va con **script** (`scripts/cambiar_whatsapp_shop.py`, dry-run
-> por defecto y `--rollback`, siguiendo el patrón de `fix_vista_contactanos.py`),
-> **no editando a mano en el editor web**.
+1. Editor web, **no** `Ajustes → Técnico → Vistas`
+2. Enlace: `https://wa.me/525664705479?text=Hola%2C%20me%20interesa%20cotizar`
+3. Verificar como visitante en ventana privada
+4. **Dar clic real desde un celular ajeno al negocio**: debe abrir chat con
+   `MozaPrint MX`. Es el único paso que prueba que Meta enruta
+5. Confirmar que inicio y `/contactanos` siguen en el `5632776277`
 
 ---
 

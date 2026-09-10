@@ -82,7 +82,58 @@ en scripts del repo, que corren desde la computadora del operador.
   revisa la decisión): `specs/motor-cotizacion.md`,
   `docs/checklist-deploy-produccion.md` y `docs/manual-personalizacion-cotizacion.md`.
 
+## Fase 4 — WhatsApp nativo en Odoo — 🟢 EN PRODUCCIÓN (2026-09-09)
+
+Odoo es **dueño del webhook** (ADR 008 revirtió la 005: n8n ya no es el router).
+Odoo Online es URL pública, así que **el VPS dejó de ser prerrequisito** de las
+fases 4-7.
+
+| Dato | Valor |
+|---|---|
+| Número | `+52 1 56 6470 5479` · nombre visible `MozaPrint MX` |
+| WABA | `1055533050656636` (**nueva**; la vieja «Moza Print» no admitía números) |
+| Phone Number ID | `1299638423233370` |
+| Callback | `https://www.mozaprintmx.com/whatsapp/webhook` |
+| Código facturable | **0 líneas** |
+
+**Validado en producción**: envía, recibe, liga al contacto, manda cotizaciones
+con PDF, y **se contesta desde la app móvil de Odoo** (criterio (a) del bloque F,
+cumplido). Método de pago en Meta registrado — la fecha límite del 30-sep ya no
+aplica.
+
+**Falta**: bloque D (plantillas propias a aprobación), bloque E (**decidir el
+canal de entrada** — replanteado, ver abajo) y bloque F (6 semanas de prueba).
+
+### Los cuatro hallazgos que costaron la noche
+
+Están completos en `docs/whatsapp-implementacion.md`. En una línea cada uno:
+
+1. **`subscribed_apps` no tiene botón**: hay dos registros, el de la app (visible
+   en la consola) y el de la **WABA**, que solo se hace por API. Sin el segundo no
+   llega **ningún** webhook, y no hay error. Causa del 90% de las fallas.
+2. **Las plantillas se atan a cuenta + modelo**: no se heredan entre cuentas.
+3. **La app debe estar publicada** o Meta no entrega webhooks de producción.
+4. **Un App Secret mal pegado no da ningún error**: solo rompe la **entrada**, y
+   «Probar credenciales» **no lo detecta** porque esa prueba usa el token, no el
+   secret. Debe ser **32 caracteres hexadecimales**.
+
+### Bloque E — replanteado el 2026-09-09, decisión abierta
+
+El plan original (cambiar la vista `5029` con un script) **se descartó**:
+
+- El inventario real es de **14 vistas**, no 8. El error fue buscar
+  `arch_db ilike 'whatsapp'` — **`wa.me` no contiene esa palabra**.
+- **Tres enlaces son globales** (header, redes, pie): cambiar una página deja
+  **dos números en la misma pantalla**.
+- El script se borró: el sitio tiene **un solo idioma activo**, así que la trampa
+  de `arch_db` traducido pesa poco y el editor web basta.
+
+Destino recomendado: la zona vacía `oe_structure_website_sale_product_1` de la
+ficha de producto. **Inventario completo, zonas editables y procedimiento manual
+en `docs/sitio-web-enlaces-whatsapp.md`.**
+
 ## PENDIENTES / próximas piezas (cada una = chat nuevo)
+- 🟠 **Rediseñar «Consultar inventario» de la ficha de producto** — **riesgo aceptado el 2026-09-09**, pendiente **de diseño**, no de ejecución: el botón «Consultar inventario» de la ficha de producto vive en `website.custom_code_footer` y consulta a los proveedores **desde el navegador del visitante**. Rehacerlo contra n8n (patrón del `CLAUDE.md`: HTTP saliente y secretos fuera del cliente), o resolverlo con existencias ya sincronizadas por el sync nocturno, que elimina la llamada en vivo. **No se corrige a medias**: el razonamiento de por qué está en el archivo. Detalle, alcance medido y la decisión en `analysis/supplier-sync/HALLAZGO_JS_INVENTARIO.md` — **no se documenta aquí porque el repo es público**.
 - **Vigilar** primeras corridas: desactivación de sobrantes (riesgo API inestable bajo umbral 10%); que imágenes AVIF se conviertan/salten; que la derivación se dispare sola post-sync; que el backup productos_INN_*.json se genere. Revisar logs en ProductSync\logs\.
 - **Limpieza fina opcional** (higiene, sin prisa): borrar de verdad los atributos basura; limpiar valores de Color (10 huérfanos + 40 de-1-producto).
 - **Piezas de Fase 2 sin tocar**: swatches de color, optional/accessory products. **Descripciones con IA DESCARTADAS del cierre de Fase 2** (2026-07-06) — reencuadradas como iniciativa SEO DIRIGIDA de Fase 9, condicionada a diagnóstico GSC. Señal: clientes que buscan productos agotados en otros revendedores caen aquí, pero compartimos la descripción duplicada del proveedor → Google deprioritiza. Palanca real = title/H1 únicos, no el body. Ver `decisions/006` y roadmap Fase 9.

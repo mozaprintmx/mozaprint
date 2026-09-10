@@ -4,6 +4,73 @@
 
 ---
 
+## 2026-09-09 · bloque E replanteado (v73) — el mapa real del sitio
+
+**Tipo**: `docs` + `investigación` (solo lectura sobre producción).
+
+Al ir a ejecutar el bloque E —conectar el sitio al número nuevo— el plan no
+sobrevivió al contacto con los datos. **Nada se cambió en producción.**
+
+### Lo que se descubrió
+
+**El inventario estaba mal: son 14 vistas, no 8.** El error de la primera pasada
+fue buscar `arch_db ilike 'whatsapp'`. **`wa.me` no contiene esa palabra**, así
+que se escaparon enlaces. Hay que buscar los dos patrones.
+
+**Tres de los enlaces son globales** — header (`4318`), redes del header (`4095`)
+y pie (`4504`). Salen en **todas** las páginas. Eso rompe la premisa del plan: no
+existía un «canal único» al cambiar la `5029`; existía una página con **dos
+números compitiendo en la misma pantalla**.
+
+**Solo hay un idioma activo en el sitio** (`es_419`). La trampa de `arch_db`
+traducido —el argumento para usar script en vez del editor— pesa mucho menos de
+lo que se supuso. La regla de iterar idiomas al escribir por API **no cambia**;
+cambia la severidad si se olvida.
+
+**El header manda `[NOMBRE_PRODUCTO]` y `[SKU]` literales.** El enlace de la vista
+`4318` lleva esos corchetes como texto fijo: no hay `t-esc` ni `t-out` en toda la
+vista. Cada clic en el botón verde manda el mensaje con los corchetes. El
+JavaScript del sitio **sí calcula** nombre y SKU, pero nunca reescribe ese enlace.
+
+**Un botón «Cotizar por WhatsApp» de la ficha de producto se perdió.** Se buscó en
+siete lugares —238 vistas activas y archivadas, los 10 campos de descripción de
+producto, el código personalizado, los assets, el Wayback Machine— y no está en
+ninguno. La zona `oe_structure_website_sale_product_1` renderiza vacía y **sin
+vista asociada**, que es la firma de contenido borrado. **No es recuperable**: el
+editor web y el código personalizado del sitio no guardan historial.
+
+### Decisiones
+
+- **`scripts/cambiar_whatsapp_shop.py` se descartó y se borró** sin llegar a
+  producción. Para un enlace, con un idioma, el editor web es más simple.
+- **El cambio en la base de test se revirtió** y quedó verificado en los dos
+  idiomas. Test volvió al estado original.
+- **El bloque E queda abierto**: el destino recomendado pasa a ser la zona vacía
+  de la ficha de producto, pero la elección es del operador porque define de dónde
+  viene el tráfico de las 6 semanas del bloque F.
+- 🟠 **«Consultar inventario» de la ficha: riesgo aceptado**, con pendiente **de
+  diseño**. Rotar credenciales sin cambiar la arquitectura no aporta nada — el
+  razonamiento completo y el alcance medido están en `analysis/` (gitignored), no
+  aquí, por ser repo público.
+
+### Documentación
+
+**Nuevo**: `docs/sitio-web-enlaces-whatsapp.md` — el inventario de las 14 vistas,
+las zonas editables de la ficha y del listado, el bug de los corchetes, el botón
+perdido, el procedimiento manual de edición y las consultas para regenerarlo todo.
+Existe para que nadie vuelva a derivar esto desde cero.
+
+**Corregido en `docs/roadmap.md`** — cuatro contradicciones que dejó el bloque C:
+Fase 4 decía «diseñada, no iniciada» con C ya en producción; A1-A4 aparecían sin
+marcar y marcados tres líneas después; la tarea E citaba el script borrado; y
+decía pendiente la prueba de la app móvil, que pasó.
+
+**Actualizado**: `docs/whatsapp-implementacion.md` (fecha límite del 30-sep
+resuelta, bloque A completo, prueba 6 en verde, bloque E reescrito) y
+`docs/punto-de-control.md` (sección de Fase 4 con los cuatro hallazgos resumidos).
+
+---
+
 ## 2026-09-09 · bloque C (v72) — WhatsApp EN PRODUCCIÓN, y el hallazgo del App Secret
 
 **Tipo**: `configuración` (**PRODUCCIÓN**) + `docs`.
