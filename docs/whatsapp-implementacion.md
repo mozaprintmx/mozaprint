@@ -468,15 +468,158 @@ Empezar por las de **utilidad** ($0.0080 vs $0.0436 de marketing):
 
 ---
 
-## Bloque E · El canal de entrada — ⏳ PENDIENTE, decisión abierta
+## Bloque E · El canal de entrada — ✅ HECHO el 2026-09-11
 
-> **Replanteado el 2026-09-09.** El plan original —cambiar la vista `5029` (header
-> de `/shop`) con un script— **se descartó**. Lo que sigue es el estado real.
+> **Replanteado el 2026-09-09; ejecutado a mano entre el 10 y el 11.** El plan
+> original —cambiar la vista `5029` con un script— se descartó: el sitio tiene un
+> solo idioma activo, así que el editor web basta. JC hizo las ediciones.
 
-### Qué cambió y por qué
+### ⚠️ El tráfico: una medición equivocada, y la trampa que la causó
+
+> **Corrección del 2026-09-11.** Una versión anterior de este documento afirmaba que
+> `/shop` tenía **0 visitas en 90 días** y concluía que el listado «está muerto».
+> **Era falso**, y el error fue de instrumento.
+
+**Hay dos analíticas en esta instancia y miden cosas distintas:**
+
+| | Qué es | Qué ve |
+|---|---|---|
+| `website.track` | Rastreo **server-side** de Odoo | Solo lo que puede atribuir: un `website.page` o un `product_id` |
+| **Analítica** (`Sitio web → Analítica`) | **Plausible**, client-side por JS (`plausible_site` en el modelo `website`) | Todas las páginas |
+
+**`/shop` no es un `website.page`.** Es una ruta del controlador de `website_sale`, y
+no está entre los 28 registros de `website.page`. Por eso `website.track` **nunca**
+la registra: en sus **28,870 registros históricos**, la URL exacta `/shop` aparece
+**0 veces**. No es ausencia de tráfico, es ceguera del modelo.
+
+Plausible sí la ve: **34 visitantes únicos / 37 visitas / 71 páginas vistas en 28
+días**.
+
+**Y hay un segundo sesgo, de escala**: `website.track` contaba **5,630** páginas
+vistas en 30 días; Plausible cuenta **1,259**. La diferencia son **bots** —
+`website.track` mide server-side e incluye crawlers; Plausible corre en el navegador
+y no los ve. La lectura del tamaño del sitio estaba inflada ~4.5×.
+
+> 📌 **La regla que queda**: para tráfico de páginas usa **la Analítica (Plausible)**,
+> no `website.track`. `website.track` sirve para lo que sí sabe atribuir —vistas de
+> **producto** y de las páginas con registro— y para ligar visitantes con leads.
+> Un cero perfecto en `website.track` es sospecha de ruta no atribuible, no un dato.
+> Cómo consultar Plausible por API: `docs/sitio-web-enlaces-whatsapp.md` §8.
+
+### El tráfico real (Plausible, 28 días al 2026-09-10)
+
+**357 visitantes únicos · 477 visitas · 1,259 páginas vistas · rebote 67%**
+
+| Grupo | Visitantes | % |
+|---|---:|---:|
+| **Ficha de producto** | 275 | **37.3%** |
+| **`/shop/category/*`** | 184 | **24.9%** |
+| Portada | 116 | 15.7% |
+| *(backend `/web`, `/odoo`)* | 39 | 5.3% |
+| **`/shop` (listado)** | 34 | 4.6% |
+| Carrito / checkout | 27 | 3.7% |
+| `/blog/*` | 14 | 1.9% |
+| `/contactanos` | 11 | 1.5% |
+
+A 6 meses la forma se repite: ficha 37.1%, categorías 21.6%, portada 20.6%,
+`/shop` 5.8%.
+
+**Las landings de marketing no existen para el visitante**: `/kits-de-bienvenida` 4
+visitantes en 6 meses, `/eventos-y-agencias` 4, `/regalos-corporativos` 3,
+`/lp-nadiveno-2025` 0. `/servicios` tiene 7. Las cifras altas que se habían anotado
+antes (211, 50, 47) venían de `website.track` y eran casi puro bot.
+
+**Tres lecturas:**
+
+1. **La ficha de producto es la página #1**, y ahí sigue sin haber botón propio.
+2. **`/shop` no está muerta**: 4.6%, una octava parte de las fichas. El botón que se
+   migró ahí es modesto, no inútil.
+3. **Las páginas de categoría son el #2 con 24.9%** — casi el doble que la portada y
+   cinco veces `/shop`. En `website.track` parecían ruido y se descartaron. Es un
+   dato con consecuencias más allá de WhatsApp: es la palanca 2 de la Fase 9
+   (linking interno).
+
+**Y el dato que no depende de tracking**: de 62 leads en 90 días solo 13 traen origen
+de formulario, y **«Producto» es el primero** (7 de 13), por encima de «Contactanos»
+(4). La ficha es donde el visitante convierte.
+
+**Dimensiona el bloque F**: a ~357 visitantes únicos al mes, pasarán unos **535 por
+el sitio en las 6 semanas** de prueba.
+
+Por eso el peso de la migración se movió a los **elementos globales**, que salen en
+todas las páginas —ficha, categorías, `/shop` y portada— y hacen la decisión robusta
+a esta clase de error de medición.
+
+### La política — qué número va en cada lugar
+
+> No es una migración a medias: es el diseño. Si ves el viejo en estos lugares,
+> **está bien así**.
+
+| Grupo | Número | Por qué |
+|---|---|---|
+| Botón del header (`4318`), redes (`4095`), `/shop` (`5029`), `/servicios` (`3884`) | **Nuevo** | Canales de entrada de la prueba del bloque F |
+| Portada (`2342`), `/contactanos` (`4122`), **pie** (`4504`) | **Los dos** | Los clientes de siempre conocen el `5632776277` y lo buscan ahí |
+| **Todos los enlaces `tel:`** | **Viejo, permanente** | El `5632776277` **sí recibe llamadas**. El nuevo es una línea de **Cloud API**: gestiona mensajes, no llamadas |
+| Landings de marketing (`4725`, `5049`, `5050`, `5052`) | **Viejo** | Son de prueba y su **tráfico prácticamente nulo**: 0-4 visitantes en 6 meses cada una (Plausible). Migrarlas no aporta muestra |
+
+> ⛔ **No "completes" los `tel:` por consistencia.** Quien marque al número nuevo no
+> timbra en ningún lado, y **el bloque F no lo detecta**: la llamada nunca llega a
+> Odoo.
+
+El enlace canónico del nuevo:
+
+```
+https://wa.me/525664705479?text=Hola%2C%20me%20interesa%20cotizar
+```
+
+Correcto: `+52 1 56 6470 5479` → nacional `5664705479` → `52` + 10 dígitos.
+
+### Lo que queda abierto (y no es del bloque E)
+
+**1. El JS del pie ya apunta al nuevo, pero su pendiente de fondo sigue abierto.**
+`custom_code_footer` pasó a `wa.me/5215664705479` el 2026-09-11. El botón
+«Consultar inventario» no está en el HTML: lo inyecta el JS, y el enlace de WhatsApp
+solo aparece **tras el clic** y solo cuando el producto **no** trae etiqueta `4P` ni
+`PO` — el JS nunca pregunta por `INN`:
+
+| Rama | Templates publicados | |
+|---|---:|---|
+| `4P` → consulta la API y pinta tabla | 1,872 | 37.3% |
+| `PO` → consulta la API y pinta tabla | 1,732 | 34.5% |
+| **sin `4P` ni `PO` → WhatsApp** | **1,412** | **28.1%** |
+
+Es además **el único enlace del sitio que manda nombre de producto y SKU**.
+
+🟠 **Cambiar el número no cerró nada de fondo**: la consulta a los proveedores sigue
+saliendo del navegador del visitante. Eso es arquitectura y va con el rediseño de
+«Consultar inventario» (Fase 8).
+
+**2. La ficha de producto sigue sin botón propio**, con la zona
+`oe_structure_website_sale_product_1` vacía — y es el **primer origen de leads de
+formulario** (7 de 13 con origen, por encima de «Contactanos»). Para dimensionar su
+tráfico frente al resto, usa la **Analítica**, no `website.track`.
+
+### Las correcciones de la revalidación
+
+**El inventario son 15 vistas, no 14.** Faltaba la `2521` (`website.s_share`), el
+snippet de compartir: trae `wa.me` pero **sin número**, así que no es un canal.
+
+**El bug de los corchetes ya no existe.** La vista `4318` renderizaba
+`?text=…%5BNOMBRE_PRODUCTO%5D%20SKU%3A%20%5BSKU%5D`. Hoy el `href` es
+`https://wa.me/525632776277`, sin `?text=`. Verificado con `grep` en portada,
+`/shop` y ficha: **0 ocurrencias** en las tres.
+
+**El número estaba hardcodeado en el JS del pie**, fuera del alcance del editor
+web. `custom_code_footer` (el de «Consultar inventario») ofrecía
+`wa.me/5215632776277` cuando el producto no trae etiqueta de proveedor. **Migrado el
+2026-09-11** a `wa.me/5215664705479`. Sigue siendo el **único** enlace del sitio que
+arma el mensaje con nombre de producto y SKU reales — y el pendiente de arquitectura
+de ese bloque sigue abierto (`analysis/supplier-sync/HALLAZGO_JS_INVENTARIO.md`).
+
+### Qué se supo el 2026-09-09 y sigue vigente
 
 **1. El inventario estaba mal.** El plan decía «8 vistas». El barrido completo
-encontró **14**. El error: se buscó `arch_db ilike 'whatsapp'`, y **`wa.me` no
+encontró 14 (hoy 15). El error: se buscó `arch_db ilike 'whatsapp'`, y **`wa.me` no
 contiene esa palabra**.
 
 **2. Tres de los enlaces son globales.** Las vistas `4095` (redes del header),
@@ -510,26 +653,42 @@ Ahí vivió un botón «Cotizar por WhatsApp» que se perdió (ver
 `docs/sitio-web-enlaces-whatsapp.md`, sección 5). Rehacerlo apuntando al número
 nuevo resuelve dos cosas de una vez.
 
-### Alternativas consideradas
+### Alternativas consideradas — y cómo se resolvió
 
-| Opción | A favor | En contra |
-|---|---|---|
-| **Ficha de producto** (`_1`) ⬅️ recomendada | Máxima intención, aislado | Menos tráfico que un elemento global |
-| Header de `/shop` (`5029`) | Era el plan original | Compite con el header global en la misma pantalla |
-| Botón del header (`4318`) | Todo el tráfico del sitio | **Toda** la exposición: si falla, falla en todo el sitio. No es una prueba acotada |
-| Landings con UTM (`5049`, `5052`) | Atribución ya medible | Tráfico de campaña, no orgánico |
+| Opción | Veredicto |
+|---|---|
+| **Ficha de producto** (`_1`) | Era la recomendada y **sigue sin hacerse**. Es el primer origen de leads de formulario (7 de 13) |
+| Header de `/shop` (`5029`) | Migrada. Tráfico real pero modesto: **34 visitantes únicos en 28 días** (4.6%) |
+| Páginas de categoría (`/shop/category/*`) | **Nunca se consideró, y son el #2 con 24.9%.** Candidato real para un botón, pendiente de evaluar |
+| **Botón del header** (`4318`) | ⬅️ **la que resolvió la prueba.** Se descartó al principio por «toda la exposición», pero es lo que sí sale en la ficha, que es donde está la gente |
+| Landings con UTM (`5049`, `5052`) | Descartadas: son de prueba y su tráfico es marginal |
 
-**La decisión es del operador.** Define de dónde viene el tráfico de las 6 semanas
-del bloque F, y con él la calidad de los datos para decidir el número definitivo.
+**La lección, en dos partes.** La primera: elegir el destino por intuición sobre la
+intención del visitante (`/shop` → «está comprando») no basta; hay que mirar el
+tráfico. La segunda, más cara: **mirarlo con el instrumento equivocado es peor que no
+mirarlo**, porque produce una conclusión con apariencia de dato. `website.track` no
+ve `/shop` y devolvió un cero que se leyó como «página muerta».
 
-### Cuando se ejecute
+Lo que salvó la decisión fue que **no dependía de ese número**: los elementos
+globales salen en todas las páginas, así que la entrada queda cubierta sin importar
+cuál gane.
+
+### El procedimiento (para cualquier enlace que se quiera cambiar después)
 
 1. Editor web, **no** `Ajustes → Técnico → Vistas`
 2. Enlace: `https://wa.me/525664705479?text=Hola%2C%20me%20interesa%20cotizar`
-3. Verificar como visitante en ventana privada
-4. **Dar clic real desde un celular ajeno al negocio**: debe abrir chat con
+3. **Reemplaza** el enlace viejo de esa pantalla; no agregues el nuevo al lado. Eso
+   es lo que dejó mixtas la portada y `/contactanos`
+4. Verificar como visitante en ventana privada
+5. **Dar clic real desde un celular ajeno al negocio**: debe abrir chat con
    `MozaPrint MX`. Es el único paso que prueba que Meta enruta
-5. Confirmar que inicio y `/contactanos` siguen en el `5632776277`
+6. Volver a correr el barrido de `docs/sitio-web-enlaces-whatsapp.md` §8 para
+   confirmar qué quedó en cada vista
+
+**Pendiente de verificación**: el paso 5 —el clic real desde un celular ajeno— **no
+consta** para ninguna de las vistas migradas. Es lo único que prueba que Meta enruta
+el número nuevo desde el sitio. Es lo único que prueba que Meta
+enruta el número nuevo desde el sitio.
 
 ---
 

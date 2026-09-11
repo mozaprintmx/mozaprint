@@ -21,6 +21,15 @@ Karina Asomoza (Marketing) será dueña del knowledge base del agente "Moza".
 - **LLM** (Claude vs OpenAI — se decide en piloto, Fase 7): agente "Moza".
 - **GitHub público** + Claude Code. Secretos en **Bitwarden**, NUNCA en el repo.
 
+## Los dos números de WhatsApp (corren en paralelo)
+
+- **En Odoo (nuevo)**: `525664705479` · WABA `1055533050656636` · Phone ID
+  `1299638423233370`. A prueba 6 semanas desde 2026-09-09 (bloque F).
+- **Del negocio (histórico)**: `525632776277`, celular con WA Business App, **sin
+  trazabilidad en Odoo**. Al cerrar el bloque F se decide si se intercambian.
+- Públicos los dos (están en el sitio); token y App Secret SOLO en Bitwarden. Qué
+  vista del sitio apunta a cuál: `docs/sitio-web-enlaces-whatsapp.md`.
+
 ## Lo que NO debes asumir
 
 - **No hay acceso a `addons/`**: es Odoo Online, no se instalan módulos custom
@@ -184,9 +193,8 @@ python3 scripts/rollback_category_images.py --from backups/category_images_AAAAM
   Verificación: `python scripts/audit_personalizacion.py --target prod`. El motor anterior
   se retiró el 2026-08-17 por el cargo por línea de código (`decisions/007`);
   `specs/motor-cotizacion.md` es histórica.
-- WhatsApp nativo: **EN PRODUCCIÓN desde 2026-09-09** (`decisions/008` aceptada;
-  guía en `docs/whatsapp-implementacion.md`). Enlaces del sitio y zonas editables:
-  `docs/sitio-web-enlaces-whatsapp.md`. Marketing: `docs/marketing-diagnostico.md`.
+- WhatsApp nativo: **EN PRODUCCIÓN desde 2026-09-09** (`decisions/008`; guía en
+  `docs/whatsapp-implementacion.md`). Marketing: `docs/marketing-diagnostico.md`.
 - Actualizaciones de Odoo: `docs/upgrades/README.md`. Las dos bases corren **saas~19.3**
   desde 2026-08-22. Cuando diverjan, lo que falla en test es aviso anticipado de
   producción — no lo repares antes de tiempo, salvo que el arreglo valga en ambas.

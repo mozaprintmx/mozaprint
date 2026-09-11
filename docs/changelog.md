@@ -4,6 +4,175 @@
 
 ---
 
+## 2026-09-11 · bloque E CERRADO (v74) — el tráfico desmintió al plan
+
+**Tipo**: `configuración` (**PRODUCCIÓN**, por el editor web) + `investigación` +
+`docs`. Las ediciones del sitio las hizo JC a mano; las mediciones son de solo
+lectura.
+
+El bloque E se cierra. Y en el camino se cometió —y se corrigió el mismo día— un
+error de medición que vale más documentar que el resto de la entrada.
+
+### ⚠️ El error: leer un hueco del instrumento como si fuera un dato
+
+Para elegir dónde poner el botón se consultó `website.track` y **`/shop` devolvió 0
+visitas**. Se concluyó que el listado «está muerto» y eso se escribió en cuatro
+documentos. **JC lo desmintió con la pantalla de `Sitio web → Analítica`**, que
+muestra `/shop` con **34 visitantes únicos, 37 visitas y 71 páginas vistas en 28
+días**.
+
+**Hay dos analíticas en la instancia y miden cosas distintas:**
+
+| | Qué es | Qué ve |
+|---|---|---|
+| `website.track` | Rastreo **server-side** de Odoo | Solo lo que puede atribuir: un `website.page` o un `product_id` |
+| **Analítica** | **Plausible**, client-side (`website.plausible_site` = `mozaprintmx.odoo.com-f6fa`) | Todas las páginas |
+
+**`/shop` no es un `website.page`**: es una ruta del controlador de `website_sale` y
+no está entre los 28 registros del modelo. Por eso `website.track` nunca la registra
+— en sus **28,870 registros históricos** la URL exacta `/shop` aparece **0 veces**.
+No es ausencia de tráfico: es ceguera del modelo.
+
+**Y un segundo sesgo, de escala**: `website.track` contaba 5,630 páginas vistas en
+30 días; Plausible cuenta **1,259**. La diferencia son **bots** — `website.track` mide
+server-side e incluye crawlers. El tamaño del sitio estaba inflado ~4.5×.
+
+> 📌 **Regla que queda**: para tráfico de páginas, **la Analítica (Plausible)**;
+> `website.track` solo para vistas de **producto**, páginas con registro y para ligar
+> visitantes con leads. **Un cero perfecto es sospecha de ruta no atribuible, no un
+> dato.**
+
+### El tráfico real, ya con la fuente correcta
+
+Se encontró cómo consultar Plausible por API —el camino está en
+`docs/sitio-web-enlaces-whatsapp.md` §8— y la comparación se rehízo entera.
+**28 días: 357 visitantes únicos, 477 visitas, 1,259 páginas vistas, rebote 67%.**
+
+| Grupo | Visitantes | % |
+|---|---:|---:|
+| **Ficha de producto** | 275 | **37.3%** |
+| **`/shop/category/*`** | 184 | **24.9%** |
+| Portada | 116 | 15.7% |
+| `/shop` (listado) | 34 | 4.6% |
+| `/contactanos` | 11 | 1.5% |
+
+**La dirección de la conclusión original era correcta; la magnitud y el método, no.**
+La ficha es la página #1, pero `/shop` no está muerta: es una octava parte de las
+fichas, modesta y no nula.
+
+**Lo que se había escapado**: las **páginas de categoría son el #2 con 24.9%**, casi
+el doble que la portada y cinco veces `/shop`. En `website.track` parecían ruido.
+Tiene consecuencias fuera de WhatsApp: es la palanca 2 de la Fase 9 (linking
+interno).
+
+**Qué se cae**: la afirmación sobre `/shop` y la comparación entre páginas, que
+mezclaba dos fuentes distintas y por tanto no era válida.
+
+**Qué se sostiene**: el dato de leads —de 62 en 90 días solo 13 traen origen de
+formulario, y **«Producto» es el primero** (7 de 13) por encima de «Contactanos»
+(4)— y, sobre todo, la decisión: se resolvió con los **elementos globales**, que
+salen en **todas** las páginas. Por eso sobrevivió al error: si se hubiera elegido
+una sola página con aquel número, hoy se estaría revirtiendo. JC migró el botón del
+header (`4318`) y las redes (`4095`): en la ficha de producto el balance pasó de
+**1-contra-7 a 4-contra-5**.
+
+### La política del número — decidida, no improvisada
+
+| Grupo | Número | Por qué |
+|---|---|---|
+| Header (`4318`), redes (`4095`), `/shop` (`5029`), `/servicios` (`3884`) | **nuevo** | Canales de entrada de la prueba |
+| Portada (`2342`), `/contactanos` (`4122`), pie (`4504`) | **los dos** | Los clientes de siempre buscan el `5632776277` ahí |
+| **Todos los `tel:`** | **viejo, permanente** | Ése **sí recibe llamadas**; el nuevo es Cloud API y solo gestiona mensajes |
+| Landings `4725`, `5049`, `5050`, `5052` | viejo | De prueba, **tráfico prácticamente nulo**: 0-4 visitantes en 6 meses cada una (Plausible) |
+
+> ⛔ **La trampa que queda documentada**: no "completar" los `tel:` por
+> consistencia. Quien marque al número nuevo no timbra en ningún lado, y **el
+> bloque F no lo detecta** porque la llamada nunca llega a Odoo.
+
+### El JS del pie: migrado, y de paso se entendió qué hace
+
+`custom_code_footer` tenía `wa.me/5215632776277` hardcodeado, fuera del alcance del
+editor web. **JC lo migró el mismo día** a `wa.me/5215664705479`.
+
+Antes de tocarlo se leyó el código completo, y ahí estaba lo interesante: el botón
+«Consultar inventario» **no está en el HTML** —lo inyecta el JS al cargar— y el
+enlace de WhatsApp aparece **solo tras el clic**, en la rama donde el producto
+**no** trae etiqueta `4P` ni `PO`. **El JS nunca pregunta por `INN`.**
+
+| Rama | Templates publicados | |
+|---|---:|---|
+| `4P` → consulta la API y pinta tabla | 1,872 | 37.3% |
+| `PO` → consulta la API y pinta tabla | 1,732 | 34.5% |
+| **sin `4P` ni `PO` → WhatsApp** | **1,412** | **28.1%** |
+
+Los 1,412 son los 1,400 de `INN` más 12 sin etiqueta. **No es la rama de «sin
+inventario»: es la de «no sé consultar este proveedor».** Y es **el único enlace del
+sitio que manda nombre de producto y SKU** — justo la función que el bloque E quería
+en la ficha, que ya existía escondida tras un clic.
+
+> 🟠 **Cambiar el número no cerró el pendiente de fondo.** La consulta a los
+> proveedores sigue saliendo del navegador del visitante; eso es arquitectura y va
+> en Fase 8 (`analysis/supplier-sync/HALLAZGO_JS_INVENTARIO.md`).
+
+> 📌 **El sitio quedó con el número nuevo en dos formatos**: `525664705479` en los
+> enlaces del editor y `5215664705479` en el JS. Se conservó el `521` que ese JS ya
+> traía con el número viejo, porque llevaba años funcionando así. WhatsApp normaliza
+> el `1` de los móviles de México y los dos deben resolver — pero si un día falla
+> **solo** ese enlace, la causa es ésta.
+
+### Correcciones al inventario
+
+1. **Son 15 vistas, no 14.** Faltaba la `2521` (`website.s_share`): trae `wa.me`
+   pero **sin número**, así que no es un canal. Se lista para que no vuelva a
+   aparecer como hallazgo nuevo.
+2. **El bug de los corchetes se resolvió.** La vista `4318` ya no manda
+   `[NOMBRE_PRODUCTO]` ni `SKU: [SKU]`. `grep` da 0 en portada, `/shop` y ficha.
+3. **La ficha de producto sigue sin botón propio**
+   (`oe_structure_website_sale_product_1` vacía), justo donde cae la mitad del
+   tráfico. Lo único contextual sigue siendo el JS, tras un clic y solo en el 28%.
+
+### Cómo quedó la ficha de producto
+
+| | Enlaces |
+|---|---|
+| **Al nuevo (7)** | Botón del header (×2), redes (×2), pie «Cotiza aquí» y el número escrito, **y el JS con producto + SKU** |
+| **Al viejo (4)** | 3 × `tel:` (política permanente) + 1 de WhatsApp en el pie (política: ahí van los dos) |
+
+**Nada quedó apuntando al viejo por descuido.**
+
+### ⚠️ Hallazgo colateral — la API key JSON-2 del repo está muerta
+
+La `ODOO_API_KEY` del `.env` del repo devuelve **401**. Los scripts construidos
+sobre `scripts/odoo_client.py` (`derive_tecnicas`, `derive_colores`,
+`audit_catalog`, `audit_atributos`, `seed_tecnicas`, …) **no corren hoy**. Nadie lo
+había notado porque las piezas recientes usan XML-RPC con
+`analysis/supplier-sync/.env`, que sí funciona. Todas las mediciones de esta entrada
+se hicieron por ese camino.
+
+Convierte «rotar la API key del sync» de higiene de Fase 0 en **reparar la mitad del
+instrumental del repo**. Queda pendiente decidir si se unifica en JSON-2 —lo que
+pide el `CLAUDE.md`, y XML-RPC se deprecia en 2027— o al revés.
+
+### Documentación
+
+**Nuevo en `CLAUDE.md`**: bloque con los dos números, la WABA y el Phone Number ID.
+Va en el archivo que se carga en toda sesión porque el número nuevo solo vivía
+enterrado en dos documentos largos.
+
+**Nuevo en `docs/sitio-web-enlaces-whatsapp.md`**: sección **2.bis** con la política
+de qué número va en cada lugar. Existe para que nadie lea el número viejo del pie o
+de un `tel:` como un pendiente y lo "arregle".
+
+**Actualizados**: `docs/whatsapp-implementacion.md` (bloque E cerrado, con la tabla
+de tráfico y la lección de haber elegido el destino por intuición),
+`docs/roadmap.md` (E marcado hecho; **E-bis** el JS del pie y **E-ter** el botón de
+la ficha quedan como pendientes propios) y `docs/punto-de-control.md`.
+
+**Pendiente de verificación**: el clic real desde un celular ajeno al negocio —el
+único paso que prueba que Meta enruta— **no consta** para ninguna vista migrada.
+
+---
+
 ## 2026-09-09 · bloque E replanteado (v73) — el mapa real del sitio
 
 **Tipo**: `docs` + `investigación` (solo lectura sobre producción).

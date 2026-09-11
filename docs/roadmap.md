@@ -107,8 +107,8 @@
 - [ ] Crear AI Cotizador asistente para vendedor
 
 ### FASE 4: WhatsApp nativo en Odoo (con personas)
-**Estado**: 🟢 **EN PRODUCCIÓN desde el 2026-09-09** (bloques A, B y C). Quedan
-D (plantillas), E (canal de entrada) y F (6 semanas de prueba). Ver
+**Estado**: 🟢 **EN PRODUCCIÓN desde el 2026-09-09** (bloques A, B, C y **E**).
+Quedan D (plantillas) y F (6 semanas de prueba). Ver
 `decisions/008-whatsapp-nativo-odoo.md` y `docs/whatsapp-implementacion.md`
 **Cambio de rumbo (2026-08-31)**: se revirtió la ADR 005. **Odoo es el dueño del
 webhook**, no n8n. Odoo Online ya es URL pública, así que **el VPS deja de ser
@@ -119,8 +119,10 @@ número que viene de la WhatsApp Business App. El número actual **no se toca** 
 equipo conserva la app del celular. Pasos: `docs/whatsapp-implementacion.md`.
 **Escenario aprobado el 2026-09-04**: número nuevo → Odoo → probar con clientes
 reales 6 semanas → decidir si se **intercambia** por el actual. Nombre visible
-`Mozaprint MX`. Tráfico de prueba por **un solo canal de entrada**; el destino se replanteó el
-2026-09-09 y está **abierto** — ver bloque E.
+`Mozaprint MX`. El plan de **un solo canal de entrada** se abandonó el 2026-09-11: la
+entrada se resolvió con los **elementos globales** (botón del header y redes), que
+salen en todas las páginas, más una política explícita de qué número va en cada
+lugar — ver bloque E.
 **✅ Fecha límite del 30-sep RESUELTA**: método de pago registrado en Meta el
 2026-09-08. El bloqueo de salientes del 1 de octubre ya no aplica.
 **Ya no bloquea nada**: las 7 pruebas pasaron y el circuito está en producción.
@@ -145,12 +147,40 @@ reales 6 semanas → decidir si se **intercambia** por el actual. Nombre visible
       WABA. Validado: envía, recibe, liga a contacto, manda cotizaciones con PDF,
       **0 líneas facturables**. La prueba de la **app móvil de Odoo pasó** el mismo
       día — criterio (a) del bloque F cumplido
-- [ ] **E** Canal de entrada al número nuevo — **replanteado el 2026-09-09,
-      decisión abierta**. El script se descartó y se borró: el sitio tiene un solo
-      idioma activo, así que basta el editor web. El inventario real es de **14
-      vistas**, no 8, y **3 son globales**. Destino recomendado: la zona vacía
-      `oe_structure_website_sale_product_1` de la ficha de producto. Inventario
-      completo en `docs/sitio-web-enlaces-whatsapp.md`
+- [x] **E** Canal de entrada al número nuevo — **HECHO el 2026-09-11**, con
+      política explícita. JC migró las vistas con el editor web y se validó contra
+      producción. **Limpias en el nuevo**: botón del header (`4318`), redes
+      (`4095`), `/shop` (`5029`) y `/servicios` (`3884`). **Los dos números, a
+      propósito**: portada (`2342`), `/contactanos` (`4122`) y pie (`4504`) — los
+      clientes de siempre conocen el `5632776277` y lo buscan ahí. **Los `tel:` se
+      quedan en el viejo de forma permanente**: ése sí recibe llamadas y el nuevo es
+      una línea de Cloud API que solo gestiona mensajes. Las landings de marketing
+      (`4725`, `5049`, `5050`, `5052`) quedan descartadas: son de prueba y su
+      tráfico es prácticamente nulo: **0-4 visitantes en 6 meses** cada una
+      (Plausible; las cifras altas que se habían anotado antes eran de
+      `website.track`, o sea casi puro bot).
+      Política completa y estado por vista: `docs/sitio-web-enlaces-whatsapp.md` §2.bis
+- [x] **E-bis** El JS del pie migrado al número nuevo — 2026-09-11.
+      `custom_code_footer` pasó a `wa.me/5215664705479`. Alcanza al **28% del
+      catálogo** (1,412 de 5,016 publicados: todo INN + 12 sin etiqueta), porque el
+      JS solo pregunta por las etiquetas `4P` y `PO` y **nunca por `INN`**. Es
+      además **el único enlace del sitio que manda nombre de producto y SKU**.
+      🟠 **Cambiar el número NO cierra el pendiente**: la consulta a proveedores
+      sigue saliendo del navegador del visitante. Eso es arquitectura y va en Fase 8
+      (ver `analysis/supplier-sync/HALLAZGO_JS_INVENTARIO.md`).
+      Nota: el sitio quedó con el número nuevo en **dos formatos** —`52…` en los
+      enlaces del editor y `521…` en el JS—; ambos deben resolver, pero si un día
+      falla solo ese enlace, ahí está la causa
+- [ ] **E-ter** La ficha de producto sigue **sin botón propio**: la zona
+      `oe_structure_website_sale_product_1` está vacía. Es la **página #1 del sitio**
+      (37.3% de los visitantes, Plausible 28 d) y el **primer origen de leads de
+      formulario** (7 de 13 con origen, por encima de «Contactanos»).
+      Evaluar también las **páginas de categoría** (`/shop/category/*`), que son el
+      **#2 con 24.9%** y nunca se consideraron.
+      ⚠️ Para medir tráfico usa **`Sitio web → Analítica`** (Plausible), NO
+      `website.track`: ese modelo no ve rutas de controlador como `/shop` y además
+      cuenta bots (infla ~4.5×). Cómo consultarlo por API:
+      `docs/sitio-web-enlaces-whatsapp.md` §8
 - [ ] **F** 6 semanas de prueba, revisión a las 3, y decisión del número definitivo
 - [ ] **Experimento B** (IA): ¿un agente nativo contesta en un canal de WhatsApp?
       Si sí, la Fase 6 se cae entera. Va después de que C funcione
@@ -226,9 +256,10 @@ de las 36.
 
 **Palancas SEO en orden de prioridad**:
 - [ ] 1. `title` / meta description / H1 **únicos** por producto (mayor leverage)
-- [ ] 2. Productos alternativos/accesorios para **linking interno** — automatiza la retención manual de "similar disponible"; conecta con Fase 2 (optional/accessory products)
+- [ ] 2. Productos alternativos/accesorios para **linking interno** — automatiza la retención manual de "similar disponible"; conecta con Fase 2 (optional/accessory products). **Dato nuevo (2026-09-11)**: las páginas de **categoría** (`/shop/category/*`) son el **#2 del sitio con 24.9%** de los visitantes, casi el doble que la portada. Son el nodo natural del linking interno y nadie las estaba mirando
 - [ ] 3. schema.org/Product markup + Open Graph (para WhatsApp share)
 - [ ] 4. Descripciones únicas **DIRIGIDAS** (top productos / categorías ancla), NO masivas — solo tras el diagnóstico GSC. Diseño en `decisions/006`
+- [ ] **Línea base de tráfico ya disponible** (2026-09-11): Plausible dice **357 visitantes únicos / 28 días**, repartidos en ficha de producto 37.3%, categorías 24.9%, portada 15.7%, `/shop` 4.6%. ⚠️ NO uses `website.track` para esto: no ve rutas de controlador y cuenta bots (inflaba ~4.5×). Cómo consultar Plausible por API: `docs/sitio-web-enlaces-whatsapp.md` §8
 - [ ] **Diagnóstico GSC previo** (condición para pasar de "targeted" a "hacer"): en Search Console → Performance filtrado a URLs de producto, medir impresiones totales vs por página, posición media (15-30 ≈ filtrado por duplicado) y si las queries son nombre/SKU vs genéricas
 
 **Otras tareas de fase**:
@@ -305,9 +336,10 @@ de las 36.
 - Descuentos no se aplican automáticamente en cotización
 - Odoo no detecta actividad si el vendedor actúa desde Gmail (depende de mover tarjetas manualmente — ver `docs/proceso-equipo-crm.md`)
 - La cotización se arma a mano línea por línea — el **precio** de personalización ya lo pone Odoo, lo que no existe es el auto-populado de las líneas
-- El sitio **todavía apunta al número viejo en las 14 vistas**: falta decidir el
-  canal de entrada al número nuevo (bloque E). Sin eso, la prueba de 6 semanas no
-  recibe tráfico
+- La **ficha de producto no tiene botón propio de WhatsApp**: la zona
+  `oe_structure_website_sale_product_1` está vacía, y es la **página #1 del sitio**
+  (37.3% de los visitantes). Lo único contextual que existe ahí está escondido tras
+  el clic de «Consultar inventario», y solo aparece en el **28%** de los productos
 - **Plantillas propias sin aprobar**: se usa la genérica de *orden de venta*;
   falta `cotizacion_lista` y las de utilidad (bloque D)
 - El `5632776277` sigue **sin trazabilidad en Odoo** — es el número que no está

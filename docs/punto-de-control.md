@@ -101,8 +101,8 @@ con PDF, y **se contesta desde la app móvil de Odoo** (criterio (a) del bloque 
 cumplido). Método de pago en Meta registrado — la fecha límite del 30-sep ya no
 aplica.
 
-**Falta**: bloque D (plantillas propias a aprobación), bloque E (**decidir el
-canal de entrada** — replanteado, ver abajo) y bloque F (6 semanas de prueba).
+**Falta**: bloque D (plantillas propias a aprobación) y bloque F (6 semanas de
+prueba). El **bloque E se cerró el 2026-09-11** con política explícita — ver abajo.
 
 ### Los cuatro hallazgos que costaron la noche
 
@@ -117,20 +117,48 @@ Están completos en `docs/whatsapp-implementacion.md`. En una línea cada uno:
    «Probar credenciales» **no lo detecta** porque esa prueba usa el token, no el
    secret. Debe ser **32 caracteres hexadecimales**.
 
-### Bloque E — replanteado el 2026-09-09, decisión abierta
+### Bloque E — ✅ HECHO el 2026-09-11, con política explícita
 
-El plan original (cambiar la vista `5029` con un script) **se descartó**:
+El script se descartó (un solo idioma activo → el editor web basta). JC migró las
+vistas a mano; se validó contra producción con `curl` + `ir.ui.view`, solo lectura.
 
-- El inventario real es de **14 vistas**, no 8. El error fue buscar
-  `arch_db ilike 'whatsapp'` — **`wa.me` no contiene esa palabra**.
-- **Tres enlaces son globales** (header, redes, pie): cambiar una página deja
-  **dos números en la misma pantalla**.
-- El script se borró: el sitio tiene **un solo idioma activo**, así que la trampa
-  de `arch_db` traducido pesa poco y el editor web basta.
+**La política, que NO es una migración a medias sino el diseño:**
 
-Destino recomendado: la zona vacía `oe_structure_website_sale_product_1` de la
-ficha de producto. **Inventario completo, zonas editables y procedimiento manual
-en `docs/sitio-web-enlaces-whatsapp.md`.**
+| Grupo | Número | Por qué |
+|---|---|---|
+| Header (`4318`), redes (`4095`), `/shop` (`5029`), `/servicios` (`3884`) | **nuevo** | Canales de entrada de la prueba |
+| Portada (`2342`), `/contactanos` (`4122`), pie (`4504`) | **los dos** | Los clientes de siempre buscan el `5632776277` ahí |
+| **Todos los `tel:`** | **viejo, permanente** | Ése sí recibe llamadas; el nuevo es Cloud API y **solo gestiona mensajes** |
+| Landings `4725`, `5049`, `5050`, `5052` | viejo | De prueba, tráfico marginal |
+
+> ⛔ **No "completes" los `tel:` por consistencia.** Un cliente que marque al número
+> nuevo no timbra en ningún lado, y eso **no lo detecta el bloque F**: la llamada
+> nunca llega a Odoo.
+
+**El JS de `custom_code_footer` también se migró** el 2026-09-11
+(`wa.me/5215664705479`). Alcanza al **28% del catálogo** (1,412 de 5,016 publicados
+— todo INN, porque el JS pregunta por `4P` y `PO` y **nunca por `INN`**) y es **el
+único enlace del sitio que manda nombre de producto y SKU**.
+🟠 **Cambiar el número NO cerró el pendiente**: la consulta a proveedores sigue
+saliendo del navegador del visitante. Eso es arquitectura y va en Fase 8.
+📌 El sitio quedó con el nuevo en **dos formatos**: `52…` en los enlaces del editor
+y `521…` en el JS. Ambos deben resolver; si un día falla solo ese, ahí está la causa.
+
+**La ficha de producto sigue sin botón propio** (`oe_structure_website_sale_product_1`
+vacía), que es el **primer origen de leads de formulario** (7 de 13 con origen).
+
+**Corrección**: el bug de los corchetes (`[NOMBRE_PRODUCTO]` / `[SKU]`) **ya no
+existe**. El inventario real es de **15 vistas**, no 14 (faltaba `2521` `s_share`,
+sin número).
+
+> ⚠️ **Trampa de medición que ya costó una conclusión equivocada**: para tráfico de
+> páginas usa **`Sitio web → Analítica`** (es **Plausible**), NO `website.track`. Ese
+> modelo solo registra lo que puede atribuir a un `website.page` o a un `product_id`,
+> así que rutas de controlador como **`/shop` devuelven 0 siempre** — 0 en 28,870
+> registros históricos, aunque Plausible le cuente 34 visitantes únicos en 28 días.
+
+**Política completa, estado por vista y procedimiento en
+`docs/sitio-web-enlaces-whatsapp.md` §2.bis.**
 
 ## PENDIENTES / próximas piezas (cada una = chat nuevo)
 - 🟠 **Rediseñar «Consultar inventario» de la ficha de producto** — **riesgo aceptado el 2026-09-09**, pendiente **de diseño**, no de ejecución: el botón «Consultar inventario» de la ficha de producto vive en `website.custom_code_footer` y consulta a los proveedores **desde el navegador del visitante**. Rehacerlo contra n8n (patrón del `CLAUDE.md`: HTTP saliente y secretos fuera del cliente), o resolverlo con existencias ya sincronizadas por el sync nocturno, que elimina la llamada en vivo. **No se corrige a medias**: el razonamiento de por qué está en el archivo. Detalle, alcance medido y la decisión en `analysis/supplier-sync/HALLAZGO_JS_INVENTARIO.md` — **no se documenta aquí porque el repo es público**.
@@ -140,7 +168,7 @@ en `docs/sitio-web-enlaces-whatsapp.md`.**
 - **15 kits multicomponente**: refinamiento manual de default (cosmético).
 - **Backlog del sync** (Fase 8 / mini-proyectos): XML-RPC→JSON-2; precio en pricelist en vez de ×1.5 en código; supplierinfo completo (product_code/min_qty para matriz de costos Fase 3); Materiales[] en PO/4P; tags de material palabra-completa vs primera palabra; "esperar 2-3 corridas antes de desactivar sobrantes".
 - **Fase 3 CERRADA** (2026-08-25). Lo que queda no es código: **costos de 4P** (único proveedor sin lista tabulada) y preguntarle a **Promo Opción** si tiene tarifa para pedidos por debajo de sus mínimos. Falta también la **prueba manual de JC**: armar una cotización completa en producción con el manual del vendedor delante — es lo único que puede decir si el flujo funciona para quien lo usa a diario. Higiene: partners de proveedor duplicados (INN 82/32, PO 11/8).
-- **Fases siguientes**: el cuello de botella es el **VPS de n8n** (~€5/mes, Fase 0) — bloquea enteras las fases 4-7 (WhatsApp + agente), que son el corazón del proyecto. La WABA de Meta ya está aprobada; solo falta una URL pública. La **Fase 9 (SEO)** no depende de nada y se puede avanzar en paralelo.
+- **Fases siguientes**: ~~el cuello de botella es el VPS de n8n~~ — **falso desde el 2026-08-31** (ADR 008): Odoo Online es URL pública y es dueño del webhook, así que el VPS dejó de ser prerrequisito de las fases 4-7. La Fase 4 está en producción sin él. Los cuellos de botella reales hoy son **las plantillas de Meta** (bloque D, 24-72 h de aprobación cada una) y **el bloque F** (6 semanas de prueba). La **Fase 9 (SEO)** sigue sin depender de nada y se puede avanzar en paralelo — ya tiene línea base de tráfico, ver `docs/roadmap.md` Fase 9.
 
 ## Upgrades de Odoo (apartado nuevo, 2026-08-15)
 - Producción y test corren **las dos saas~19.3** desde el 2026-08-22. Test es la base `mozaprintmx-test-saas19-0818` (la anterior, `…-0807`, caducó y Odoo la eliminó). Test vuelve a ir una versión adelante. Seguimiento en `docs/upgrades/` (README + checklist + incidencias).
