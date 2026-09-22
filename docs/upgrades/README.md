@@ -73,7 +73,7 @@ meses de anticipación para resolverlo.
 > la tercera es un **error de ejecución** que solo ve el barrido HTTP [5] — por eso ese
 > barrido pasó a cubrir todas las páginas publicadas y no una lista fija.
 
-## Los tres comandos
+## Los cinco comandos
 
 ```bash
 # 1. Salud general: sitio web, vistas, metadatos custom  (solo lectura)
@@ -85,12 +85,26 @@ python scripts/deploy_reporte_cotizacion.py --target test --verificar
 
 # 3. Que no se haya colado código que Odoo factura
 python scripts/audit_lineas_facturables.py --target test
+
+# 4. Que matriz, productos y reglas de personalización sigan diciendo lo mismo
+python scripts/audit_personalizacion.py --target test
+
+# 5. Que la tienda siga SIN cobrar en línea (y el portal sí cobrando)
+python scripts/audit_checkout_sin_pago.py --target test
 ```
 
-Los tres son de solo lectura y salen con código 1 si encuentran algo. Se
-complementan: el primero cubre el sitio y las vistas, el segundo el PDF, y el
+Los cinco son de solo lectura y salen con código 1 si encuentran algo. Se
+complementan: el primero cubre el sitio y las vistas, el segundo el PDF, el
 tercero vigila que no reaparezca código facturable (ver
-[ADR 007](../../decisions/007-retiro-motor-cotizacion-costo-codigo.md)).
+[ADR 007](../../decisions/007-retiro-motor-cotizacion-costo-codigo.md)), el cuarto
+la personalización nativa y el quinto el checkout sin cobro
+([ADR 010](../../decisions/010-checkout-sin-pago-en-linea.md)).
+
+> **El quinto es el más urgente.** Su filtro vive en dos vistas heredadas de plantillas
+> de Odoo: si el upgrade las reestructura y Odoo desactiva las nuestras, la tarjeta
+> reaparece en el checkout **sin avisar** y un cliente puede pagar algo sin existencias.
+> El barrido HTTP del comando 1 no lo ve: `/shop/payment` necesita un carrito con
+> dirección, que no se puede simular desde un script.
 
 > El cuarto comando histórico, `deploy_motor_cotizacion.py --verificar`, solo aplica
 > si algún día se reconstruye el motor: se retiró de producción el 2026-08-17.

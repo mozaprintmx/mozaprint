@@ -4,6 +4,58 @@
 
 ---
 
+## 2026-09-22 · la tienda pide, no cobra (v75) — el checkout deja de cobrar en línea
+
+**Tipo**: `configuración` (**PRODUCCIÓN**) + `scripts` + `docs`. Cero líneas facturables:
+todo son vistas, datos y automatizaciones declarativas.
+
+Mozaprint no tiene inventario propio, pero la tienda cobraba con Mercado Pago en el checkout.
+El 42 % de las variantes publicadas están en cero con el proveedor, así que cada cobro podía
+terminar en devolución. Desde hoy el cliente **envía una solicitud sin pagar** y el cobro llega
+después, por enlace, cuando el vendedor ya validó existencias.
+
+### Cómo se logró
+
+El filtro es **por pantalla**, con dos vistas heredadas: en `/shop/payment` solo queda el medio
+manual renombrado *"Solicitar pedido (sin pago en línea)"*; en el portal y el enlace de pago se
+quita ese medio y queda la tarjeta. Mercado Pago no se tocó: sigue publicado y global.
+
+Se eligió el proveedor de **transferencia** y no "contra entrega" por una diferencia verificada
+en el código de Odoo: contra entrega **confirma el pedido solo** (genera entrega y cuenta como
+venta), mientras que la transferencia pendiente deja la orden en *"Cotización enviada"*. Si el
+pedido no procede, no hay nada que cancelar ni devolver.
+
+Se sumaron dos automatizaciones declarativas —los pedidos de la tienda nacen sin pago en línea,
+y al enviarse la solicitud se crea la actividad *"Validar existencias con proveedor"*— y se
+normalizaron **213 carritos** que ya existían con cobro habilitado.
+
+### Tres cosas que se aprendieron aplicándolo
+
+1. **El botón de pago exprés vive en el carrito**, no en el paso de pago: ninguna vista del
+   checkout lo filtra. Hoy ningún proveedor de producción lo soporta, pero se apagó por si
+   mañana se habilita otro, y el auditor lo vigila.
+2. **Odoo no conserva cuerpos por idioma al reestructurar una plantilla de correo**: el último
+   idioma escrito queda para todos. Con es_419 como único idioma activo el resultado es el
+   correcto, pero conviene saberlo antes de "arreglar" el inglés.
+3. **Los respaldos de un script que crece no sirven sueltos**: ninguno tenía el estado original
+   completo. La reversa se rehízo **compuesta**, tomando para cada pieza el respaldo más antiguo.
+
+### Riesgo que queda abierto
+
+Las dos vistas se apoyan en plantillas de Odoo. Si un upgrade las reestructura, Odoo puede
+desactivar las nuestras y **la tarjeta reaparece en el checkout en silencio**. Por eso
+`audit_checkout_sin_pago.py` entra al checklist post-upgrade como comando (e), el más urgente
+de los cinco.
+
+**Pendiente de JC**: reescribir el aviso rojo del paso de pago, que todavía dice "antes de
+realizar pagos con tarjeta, solicita a un asesor que confirme existencias" — ya no hay tarjeta
+en ese paso.
+
+Detalle completo: `decisions/010-checkout-sin-pago-en-linea.md`.
+Operación diaria: `docs/manual-vendedor-pedidos-web.md`.
+
+---
+
 ## 2026-09-11 · bloque E CERRADO (v74) — el tráfico desmintió al plan
 
 **Tipo**: `configuración` (**PRODUCCIÓN**, por el editor web) + `investigación` +

@@ -256,6 +256,15 @@ Cada trimestre, revisar:
   ```bash
   python scripts/audit_post_upgrade.py --target prod
   ```
+- ¿La tienda sigue **sin cobrar en línea**, y el portal sí cobrando? (solo lectura):
+  ```bash
+  python scripts/audit_checkout_sin_pago.py --target prod
+  ```
+  El filtro depende de dos vistas heredadas de Odoo: si un upgrade las tumba, la tarjeta vuelve
+  al checkout en silencio. Configuración y reversa:
+  `python scripts/configurar_checkout_sin_pago.py --target prod [--apply|--rollback] --si-produccion`.
+  El porqué, en `decisions/010-checkout-sin-pago-en-linea.md`; la operación diaria, en
+  `docs/manual-vendedor-pedidos-web.md`.
 - ¿La matriz de costos, los productos de personalización y las reglas de precio siguen
   diciendo lo mismo? (solo lectura):
   ```bash

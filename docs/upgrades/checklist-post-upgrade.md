@@ -10,7 +10,7 @@ la imprime en el encabezado (`Odoo saas~19.2`).
 
 ---
 
-## 1. Automático — los cuatro comandos
+## 1. Automático — los cinco comandos
 
 ```bash
 # a) Salud general: vistas, sitio web, censo de objetos custom
@@ -24,9 +24,17 @@ python scripts/audit_lineas_facturables.py --target test
 
 # d) Que matriz, productos y reglas de personalización sigan diciendo lo mismo
 python scripts/audit_personalizacion.py --target test
+
+# e) Que la tienda siga SIN cobrar en línea (y el portal sí cobrando)
+python scripts/audit_checkout_sin_pago.py --target test
 ```
 
-Los cuatro son **solo lectura** y salen con código 1 si hay hallazgos.
+Los cinco son **solo lectura** y salen con código 1 si hay hallazgos.
+
+> **(e) es el más urgente de los cinco.** El filtro del checkout vive en dos vistas heredadas de
+> plantillas de Odoo. Si el upgrade las reestructura y Odoo desactiva las nuestras, la tarjeta
+> reaparece en el checkout **sin avisar** y un cliente puede pagar algo sin existencias. Ver
+> `decisions/010-checkout-sin-pago-en-linea.md`.
 
 - [ ] **(a) sale limpio** — `✓ Sin hallazgos bloqueantes.`
 - [ ] **(b) sale limpio** — `✓ El reporte está completo y cuadrado.` Incluye la revisión
@@ -223,3 +231,5 @@ reparación lista. Resultado del día:
 |---|---|
 | 14 vistas cambiaron de key | `website_sale_comparison` se fusionó en `website_sale` en 19.2. Mismos ids, mismo estado |
 | Vista kanban de `social_twitter` con `t-call` "roto" | Falso positivo ya corregido en el auditor: las vistas de backend resuelven `t-call` contra plantillas OWL de cliente, que no viven en `ir.ui.view` |
+| `mozaprint.checkout_solo_solicitud` y `mozaprint.portal_sin_solicitud` con **ids distintos** en cada base (prod 5426/5427, test 5435/5436) | Se crearon por separado en cada base el 2026-09-21/22, no por duplicado de prod. Como `--comparar` compara por **id**, el id 5427 sale como "renombrada": en prod es nuestra vista y en test es `payment_demo.inline_form`. No investigar: comparar estas dos por **key**, no por id |
+| Módulo `payment_demo` instalado **solo en test** | Se instaló para probar el cobro por enlace, porque la base de test va neutralizada y Mercado Pago no conserva credenciales. **Nunca debe instalarse en producción** |

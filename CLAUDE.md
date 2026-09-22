@@ -195,6 +195,11 @@ python3 scripts/rollback_category_images.py --from backups/category_images_AAAAM
   `specs/motor-cotizacion.md` es histórica.
 - WhatsApp nativo: **EN PRODUCCIÓN desde 2026-09-09** (`decisions/008`; guía en
   `docs/whatsapp-implementacion.md`). Marketing: `docs/marketing-diagnostico.md`.
+- **La tienda NO cobra en línea desde 2026-09-22** (`decisions/010`): el checkout solo
+  ofrece «Solicitar pedido» y el pedido queda en *Cotización enviada*; el cobro va después
+  por enlace, ya validadas las existencias. El filtro son dos vistas heredadas: si un upgrade
+  las tumba, la tarjeta vuelve **en silencio** → `scripts/audit_checkout_sin_pago.py`.
+  Operación diaria: `docs/manual-vendedor-pedidos-web.md`.
 - Actualizaciones de Odoo: `docs/upgrades/README.md`. Las dos bases corren **saas~19.3**
   desde 2026-08-22. Cuando diverjan, lo que falla en test es aviso anticipado de
   producción — no lo repares antes de tiempo, salvo que el arreglo valga en ambas.

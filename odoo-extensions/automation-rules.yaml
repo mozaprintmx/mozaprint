@@ -6,7 +6,7 @@
 # Cada cambio en Odoo debe reflejarse aquí.
 
 version: '0.1.0'
-last_updated: 2026-05-23
+last_updated: 2026-09-22
 
 rules:
 
@@ -224,3 +224,49 @@ rules:
         action: action_archive_old_logs
     notes: |
       Mantiene la tabla manejable. Solo archiva, no borra.
+
+  # ===========================================================================
+  # Tienda sin cobro en línea  ·  EN PRODUCCIÓN desde 2026-09-22
+  # Las crea y las revierte `scripts/configurar_checkout_sin_pago.py`.
+  # Ver `decisions/010-checkout-sin-pago-en-linea.md`.
+  # ===========================================================================
+
+  - id: ar_tienda_sin_cobro_inicial
+    name: 'Tienda · pedido nace sin cobro en línea'
+    model: sale.order
+    trigger: on_create
+    filter_domain: [
+      ['website_id', '!=', false]
+    ]
+    actions:
+      - type: object_write
+        field: require_payment
+        value: false
+    notes: |
+      Sin esto, el pedido nace con "Pago en línea = Sí" y el cliente podría pagar
+      desde su portal ANTES de que el vendedor valide existencias — justo lo que
+      el rediseño evita en el checkout.
+      Solo toca pedidos de la tienda: las cotizaciones del backend conservan su
+      pago en línea. El vendedor lo habilita al validar, marcando la casilla o
+      generando un enlace de pago (el enlace funciona aunque esté en "No").
+
+  - id: ar_tienda_validar_existencias
+    name: 'Tienda · validar existencias de una solicitud'
+    model: sale.order
+    trigger: on_state_set        # valor: sent ("Cotización enviada")
+    filter_domain: [
+      ['state', '=', 'sent'],
+      ['website_id', '!=', false]
+    ]
+    actions:
+      - type: activity
+        activity_type: mail.mail_activity_data_todo
+        summary: 'Validar existencias con proveedor'
+        user: Juan Carlos Asomoza
+        date_deadline: '+1 día'
+    notes: |
+      Es el ÚNICO aviso de que entró una solicitud: Odoo no asigna vendedor a los
+      pedidos web sin confirmar, así que nadie queda como seguidor y no sale correo.
+      El disparador es el ESTADO y no la creación: el carrito nace en borrador y solo
+      pasa a "Cotización enviada" cuando el cliente termina. Dispararlo al crear
+      generaría una actividad por cada carrito abandonado (183 en el histórico).

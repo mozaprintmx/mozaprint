@@ -1,6 +1,6 @@
 # Punto de control — Mozaprint MX
 
-Última actualización: 2026-08-25. Pegar/leer al iniciar un chat nuevo para retomar con contexto mínimo.
+Última actualización: 2026-09-22. Pegar/leer al iniciar un chat nuevo para retomar con contexto mínimo.
 
 ## Cómo trabajar (para ahorrar tokens)
 - Un chat nuevo por pieza de trabajo; cortar al cerrar cada pieza, no a media tarea.
@@ -159,6 +159,16 @@ sin número).
 
 **Política completa, estado por vista y procedimiento en
 `docs/sitio-web-enlaces-whatsapp.md` §2.bis.**
+
+## Tienda sin cobro en línea — 🟢 EN PRODUCCIÓN (2026-09-22)
+- El checkout **ya no cobra**: única opción "Solicitar pedido (sin pago en línea)" (el proveedor manual de transferencia, renombrado). El pedido queda en **Cotización enviada**: sin venta confirmada, sin entrega, sin dinero de por medio. Motivo: 42% de las variantes publicadas están en cero con el proveedor y cada cobro podía acabar en devolución.
+- El cobro va DESPUÉS: enlace de pago desde la cotización, o marcar "Pago en línea". Al pagar, la orden se confirma sola, nace la entrega y el pago se registra. Mercado Pago intacto para portal y enlaces.
+- **"Pago contra entrega" se APAGÓ**: confirmaba pedidos en automático (entrega + venta que cancelar). El pago exprés del carrito también, en todos los proveedores: ese botón no pasa por el paso de pago y ninguna vista lo filtra.
+- Dos automatizaciones declarativas (0 líneas facturables): los pedidos de tienda nacen con `require_payment=False`, y al pasar a "Cotización enviada" se crea la actividad "Validar existencias con proveedor". Esa actividad es el **único** aviso: Odoo no asigna vendedor a pedidos web sin confirmar, así que no llega correo. Las cotizaciones del backend no se tocaron.
+- Riesgo vivo: el filtro son dos vistas heredadas de plantillas de Odoo → comando **(e)** del checklist post-upgrade, `python scripts/audit_checkout_sin_pago.py --target prod`.
+- Reversa compuesta y probada: `python scripts/configurar_checkout_sin_pago.py --target prod --rollback --apply --si-produccion`.
+- Pendiente de JC: reescribir el aviso rojo del paso de pago (aún dice "antes de realizar pagos con tarjeta, solicita a un asesor…", y ya no hay tarjeta ahí).
+- Detalle: `decisions/010-checkout-sin-pago-en-linea.md` · operación: `docs/manual-vendedor-pedidos-web.md`.
 
 ## PENDIENTES / próximas piezas (cada una = chat nuevo)
 - 🟠 **Rediseñar «Consultar inventario» de la ficha de producto** — **riesgo aceptado el 2026-09-09**, pendiente **de diseño**, no de ejecución: el botón «Consultar inventario» de la ficha de producto vive en `website.custom_code_footer` y consulta a los proveedores **desde el navegador del visitante**. Rehacerlo contra n8n (patrón del `CLAUDE.md`: HTTP saliente y secretos fuera del cliente), o resolverlo con existencias ya sincronizadas por el sync nocturno, que elimina la llamada en vivo. **No se corrige a medias**: el razonamiento de por qué está en el archivo. Detalle, alcance medido y la decisión en `analysis/supplier-sync/HALLAZGO_JS_INVENTARIO.md` — **no se documenta aquí porque el repo es público**.
