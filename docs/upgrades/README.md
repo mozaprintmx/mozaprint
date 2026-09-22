@@ -32,8 +32,21 @@ traducida con el formato viejo, y **tumbó las 5,000+ fichas de producto con un
 
 | Base | Versión | Última auditoría | Resultado |
 |---|---|---|---|
-| Producción `mozaprintmx.odoo.com` | **saas~19.3** | 2026-08-22 | ✓ limpia (tras reparar `/contactanos`; el PDF volvió a sobrevivir solo) |
-| Test `mozaprintmx-test-saas19-0818.odoo.com` | **saas~19.3** | 2026-08-18 | ✓ limpia (tras reparar `/contactanos`) |
+| Producción `mozaprintmx.odoo.com` | **saas~19.3** | 2026-09-22 | ✓ limpia — las cinco auditorías (`checklist_upgrade.py`) |
+| Test (la vigente vive en `ODOO_TEST_URL`) | **saas~19.3** | 2026-09-22 | ✓ limpia — hoy es `mp-watest`, **caduca el 2026-09-24** |
+
+> ⚠️ **La base de test es desechable.** Es un duplicado de producción en modo *trial*: dura
+> unos 15 días y Odoo la elimina. Ya pasó dos veces (`…-0807` → `…-0818` → `mp-watest`). Por
+> eso ningún documento debe depender de su nombre: **la vigente es siempre la de
+> `ODOO_TEST_URL`** en `analysis/supplier-sync/.env` (gitignored).
+>
+> **Antes del próximo upgrade —o de cualquier cambio que vaya a tocar producción—**: duplicar
+> producción desde el gestor de bases de Odoo, actualizar `ODOO_TEST_URL` y comprobar con
+> `python scripts/checklist_upgrade.py --target test`. Sin base de test no hay dónde validar, y
+> la regla de "no desplegar directo a producción" se queda sin sustento.
+>
+> Ojo al duplicar: la copia va **neutralizada** (sin credenciales de pago ni correo saliente).
+> Para probar cobros hay que instalar `payment_demo` **solo ahí**.
 
 **Las dos bases van parejas otra vez** desde el 2026-08-22. Se pierde el aviso
 anticipado hasta que Odoo libere la siguiente versión y test la tome primero.

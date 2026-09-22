@@ -47,9 +47,9 @@ desactivar las nuestras y **la tarjeta reaparece en el checkout en silencio**. P
 `audit_checkout_sin_pago.py` entra al checklist post-upgrade como comando (e), el más urgente
 de los cinco.
 
-**Pendiente de JC**: reescribir el aviso rojo del paso de pago, que todavía dice "antes de
-realizar pagos con tarjeta, solicita a un asesor que confirme existencias" — ya no hay tarjeta
-en ese paso.
+**Cerrado el mismo día**: JC reescribió el aviso del paso de pago, que hablaba de pagos con
+tarjeta que ya no existen ahí. Ahora dice *"PREVIO A SOLICITARTE UN PAGO TENEMOS QUE VALIDAR
+EXISTENCIAS… GENERA TU SOLICITUD Y UNA VEZ CONFIRMADO TE CONTACTAREMOS PARA LOS PAGOS"*.
 
 ### Y una pieza que faltaba desde antes
 
