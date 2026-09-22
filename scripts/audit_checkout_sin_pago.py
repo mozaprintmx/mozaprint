@@ -213,6 +213,15 @@ def rev_proveedores(call: Callable, r: Reporte) -> None:
     else:
         r.ok("ningún proveedor con pago exprés: el carrito no puede cobrar")
 
+    # `payment_demo` se instala en TEST para poder probar el cobro por enlace (la base
+    # neutralizada no conserva credenciales de Mercado Pago). En producción no pinta nada
+    # y añade un proveedor de pago falso.
+    demo = call("ir.module.module", "search_read", [["name", "=", "payment_demo"]],
+                fields=["state"])
+    if demo and demo[0]["state"] == "installed":
+        r.aviso("`payment_demo` está instalado: correcto en test, "
+                "**quitarlo si esta base es producción**")
+
 
 def rev_metodo(call: Callable, langs: list[str], r: Reporte) -> None:
     print("\n[4] Nombre del método que ve el cliente")

@@ -73,7 +73,15 @@ meses de anticipación para resolverlo.
 > la tercera es un **error de ejecución** que solo ve el barrido HTTP [5] — por eso ese
 > barrido pasó a cubrir todas las páginas publicadas y no una lista fija.
 
-## Los cinco comandos
+## Los cinco comandos (o uno solo)
+
+Los cinco de una vez, con resumen en tabla y código 1 si alguno encuentra algo:
+
+```bash
+python scripts/checklist_upgrade.py --target test
+```
+
+Uno por uno:
 
 ```bash
 # 1. Salud general: sitio web, vistas, metadatos custom  (solo lectura)

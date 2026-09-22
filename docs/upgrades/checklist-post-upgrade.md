@@ -12,6 +12,17 @@ la imprime en el encabezado (`Odoo saas~19.2`).
 
 ## 1. Automático — los cinco comandos
 
+**De un jalón** (los corre todos en orden y resume en una tabla; sale con código 1 si
+alguno encuentra algo):
+
+```bash
+python scripts/checklist_upgrade.py --target test
+python scripts/checklist_upgrade.py --target test --sin-http   # más rápido, sin barrido de rutas
+python scripts/checklist_upgrade.py --target test --ver        # salida completa de cada uno
+```
+
+Uno por uno, si hace falta el detalle:
+
 ```bash
 # a) Salud general: vistas, sitio web, censo de objetos custom
 python scripts/audit_post_upgrade.py --target test

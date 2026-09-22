@@ -51,6 +51,19 @@ de los cinco.
 realizar pagos con tarjeta, solicita a un asesor que confirme existencias" — ya no hay tarjeta
 en ese paso.
 
+### Y una pieza que faltaba desde antes
+
+Cada cosa que entró a producción dejó su propio auditor, y en un upgrade hay que correrlos
+todos: el que se olvide será justo el que falle. `scripts/checklist_upgrade.py` los encadena
+en orden y resume en una tabla — **5 de 5 limpias en producción, en 40 segundos**. De paso se
+corrigió que `docs/upgrades/README.md` seguía hablando de "los tres comandos" y ni siquiera
+incluía el de personalización, que existe desde agosto.
+
+También quedó documentada una divergencia que habría costado tiempo en el próximo upgrade: el
+id 5427 es nuestra vista del portal en producción, pero `payment_demo.inline_form` en test, así
+que `--comparar` la reportará como "renombrada". Estas dos vistas se comparan por **key**, no
+por id.
+
 Detalle completo: `decisions/010-checkout-sin-pago-en-linea.md`.
 Operación diaria: `docs/manual-vendedor-pedidos-web.md`.
 

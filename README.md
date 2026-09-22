@@ -265,6 +265,11 @@ Cada trimestre, revisar:
   `python scripts/configurar_checkout_sin_pago.py --target prod [--apply|--rollback] --si-produccion`.
   El porqué, en `decisions/010-checkout-sin-pago-en-linea.md`; la operación diaria, en
   `docs/manual-vendedor-pedidos-web.md`.
+- ¿Todo lo anterior de un jalón? Las cinco auditorías en orden, con resumen en tabla y
+  código 1 si alguna encuentra algo (solo lectura):
+  ```bash
+  python scripts/checklist_upgrade.py --target prod
+  ```
 - ¿La matriz de costos, los productos de personalización y las reglas de precio siguen
   diciendo lo mismo? (solo lectura):
   ```bash
