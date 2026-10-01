@@ -54,7 +54,7 @@ Antes de esta configuración tenía permisos casi-admin. Se redujeron al mínimo
 
 | Nombre | Propósito | Estado | Almacenamiento |
 |---|---|---|---|
-| `scripts-repo-2026-09` | Scripts JSON-2 de este repo (`ODOO_API_KEY` del `.env` raíz): derivación de técnicas post-sync, respaldos, auditorías y herramientas de la Fase 8 | ✓ Activa desde 2026-09-30 · **vence 2026-12-28** | `.env` raíz local (fuera de git) |
+| `scripts-repo-2026-09` | Scripts JSON-2 de este repo (`ODOO_API_KEY` del `.env` raíz): derivación de técnicas post-sync, respaldos, auditorías y herramientas de la Fase 8 | ✓ Activa desde 2026-09-30 · **vence 2026-12-28** | Bitwarden + `.env` raíz local (fuera de git) |
 | `n8n-produccion` (probable) | La llave anterior del `.env` raíz, la que usaban esos mismos scripts | ✗ Caducó ~2026-08-29 (primer 401 en los logs del sync); ya no aparece en Odoo | — |
 | `proveedores-sync` | Sync de catálogo de proveedores (v3, por JSON-2) | Pendiente — se genera al construir la v3 (Fase 8) | — |
 
