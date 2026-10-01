@@ -77,6 +77,7 @@ class OdooClient:
         limit: int | None = None,
         offset: int = 0,
         context: dict[str, Any] | None = None,
+        order: str | None = None,
     ) -> list[dict[str, Any]]:
         """Llama a search_read y devuelve la lista de resultados."""
         payload: dict[str, Any] = {
@@ -88,6 +89,8 @@ class OdooClient:
             payload['limit'] = limit
         if context:
             payload['context'] = context
+        if order:
+            payload['order'] = order
 
         data = self._post(model, 'search_read', payload)
         return data if isinstance(data, list) else data.get('records', data)
@@ -99,12 +102,20 @@ class OdooClient:
         fields: list[str] | None = None,
         batch_size: int = 500,
         context: dict[str, Any] | None = None,
+        order: str = 'id',
     ) -> list[dict[str, Any]]:
-        """Paginación automática hasta traer todos los registros."""
+        """
+        Paginación automática hasta traer todos los registros.
+
+        Pagina con un orden único y estable (por defecto `id`). Con el orden por
+        defecto del modelo (p. ej. por nombre), los empates en el borde de una
+        página hacen que un registro se repita y otro se salte EN SILENCIO
+        (visto el 2026-09-30 en un respaldo de product.template).
+        """
         results = []
         offset = 0
         while True:
-            batch = self.search_read(model, domain, fields, batch_size, offset, context)
+            batch = self.search_read(model, domain, fields, batch_size, offset, context, order)
             results.extend(batch)
             if len(batch) < batch_size:
                 break

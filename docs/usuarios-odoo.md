@@ -54,8 +54,13 @@ Antes de esta configuración tenía permisos casi-admin. Se redujeron al mínimo
 
 | Nombre | Propósito | Estado | Almacenamiento |
 |---|---|---|---|
-| `n8n-produccion` | Autenticación de n8n → Odoo JSON-2 API | ✓ Activa | Bitwarden |
-| `proveedores-sync` | Script de sync de catálogo de proveedores | Pendiente — generar en Fase 8 | — |
+| `scripts-repo-2026-09` | Scripts JSON-2 de este repo (`ODOO_API_KEY` del `.env` raíz): derivación de técnicas post-sync, respaldos, auditorías y herramientas de la Fase 8 | ✓ Activa desde 2026-09-30 · **vence 2026-12-28** | `.env` raíz local (fuera de git) |
+| `n8n-produccion` (probable) | La llave anterior del `.env` raíz, la que usaban esos mismos scripts | ✗ Caducó ~2026-08-29 (primer 401 en los logs del sync); ya no aparece en Odoo | — |
+| `proveedores-sync` | Sync de catálogo de proveedores (v3, por JSON-2) | Pendiente — se genera al construir la v3 (Fase 8) | — |
+
+**Rotación**: las llaves de Odoo caducan en silencio y, cuando mueren, lo que dependía de
+ellas falla sin avisar (la derivación de técnicas estuvo un mes caída por eso). Generar la
+sucesora **antes** del vencimiento, cambiarla en el `.env` y probar con una lectura.
 
 **Regla**: ninguna API key se guarda en el repo ni en variables de entorno sin cifrar. Todas van a Bitwarden y se inyectan en n8n como credentials.
 

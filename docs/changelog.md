@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-09-30 · la derivación vuelve y un aviso falso sale de 1,438 productos (v76)
+
+**Tipo**: `datos` (**PRODUCCIÓN**) + `scripts` + `docs`. Cero líneas facturables.
+
+### La derivación de técnicas llevaba un mes caída sin que nada lo dijera
+
+`derive_tecnicas.py` corre después de cada sync y fallaba desde el 2026-08-29 con **401**: la
+llave API del `.env` raíz caducó, y el correo del sync sale *antes* de derivar, así que nadie
+se enteró. Se generó una llave nueva (`scripts-repo-2026-09`, **vence el 2026-12-28**) y, con
+respaldo previo del catálogo, se aplicó lo acumulado: **420 plantillas, 0 errores**. 69
+recibieron técnica por primera vez y 351 se corrigieron (sobre todo por una actualización
+masiva de un proveedor). La derivación automática de ese mismo día ya salió OK. Quedan sin
+técnica 11 productos cuyo proveedor dice «N/A»; es correcto. `docs/usuarios-odoo.md` ya lista la
+llave, su vencimiento y la regla de rotarla **antes** de que caduque.
+
+### Un «Pocas piezas» que no era cierto
+
+Un proveedor dejó de informar existencias y el sync leía ese hueco como **cero**: listón y
+aviso «Pocas piezas» en sus **1,438** productos. Se ajustó el sync para que *sin dato* signifique
+*desconocido* (no se muestra nada) y se quitaron listón y aviso con respaldo y reversa. El aviso
+vivía en la descripción, que es un campo traducido: se limpió en inglés interno y en español. De
+paso se republicaron **53** productos que el sync ocultó el 2026-09-24 al voltear la publicación
+color por color; ahora se decide una vez por producto. El detalle vive en el repo privado del
+sync, donde va el rediseño de la Fase 8.
+
+### El cliente JSON-2 perdía registros en silencio
+
+`search_read_all` paginaba con el orden por defecto del modelo. Con nombres repetidos, un
+registro en el borde de una página salía dos veces y otro ninguna, sin error: lo delató un
+respaldo de técnicas con 1 repetido y 1 faltante de 5,319. Ahora pagina por `id` (único y
+estable) salvo que se pida otro orden. Corrige de golpe a los 13 scripts que lo usan (respaldos,
+derivaciones, auditorías y reversas); lo único visible es que algunos reportes salen ordenados
+por id.
+
+---
+
 ## 2026-09-22 · la tienda pide, no cobra (v75) — el checkout deja de cobrar en línea
 
 **Tipo**: `configuración` (**PRODUCCIÓN**) + `scripts` + `docs`. Cero líneas facturables:
