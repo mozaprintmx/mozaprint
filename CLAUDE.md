@@ -116,7 +116,7 @@ Documentar cada campo nuevo de API en `specs/api-shapes.md`.
   completadas → `docs/roadmap.md`; scripts o `data/` nuevos → `README.md`; workflow
   n8n nuevo → exporta el JSON a `n8n-workflows/`. **NUNCA** documentes en el repo
   público detalle sensible del sync (endpoints, credenciales, lógica de proveedores,
-  horarios): eso vive en `analysis/` (gitignored).
+  horarios): eso vive en el repo **privado** `mozaprint-sync` (ADR 011).
 - **Scripts nuevos, generados por Claude Code (no por Cowork)**: cuando la pieza
   de trabajo requiere un script nuevo, Juan Carlos prefiere recibir el prompt
   (requisitos, spec de referencia, patrón a seguir) para pegarlo en Claude Code y

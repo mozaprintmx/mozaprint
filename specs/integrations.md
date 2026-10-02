@@ -411,26 +411,18 @@ Mozaprint sincroniza catálogo, precios y stock de tres proveedores:
 
 > 🔒 El **detalle de integración del sync** (endpoints, autenticación, paginación,
 > lógica por proveedor, cadencia/horarios) **NO se documenta en este repo público**.
-> Vive en `analysis/AUDITORIA_SYNC.md` (local, **gitignored**). Hoy el sync corre
-> como un paquete Python independiente (XML-RPC); su migración a n8n/JSON-2 es Fase 8.
+> Vive en el repo **privado** `mozaprint-sync`: inventario de la v2, diseño de la v3,
+> decisiones y bitácora (`analysis/AUDITORIA_SYNC.md` quedó como histórico). Hoy corre la
+> v2 (paquete Python, XML-RPC) mientras se construye la v3 (Python, JSON-2): ver
+> `decisions/011-rediseno-sync-proveedores.md`.
 
-### Interfaz común propuesta
+### Interfaz común (v3)
 
-Cada proveedor implementa un workflow n8n con estos sub-workflows:
-
-```
-proveedor-{nombre}-fetch-catalog
-  → output: lista de productos con shape estándar
-
-proveedor-{nombre}-fetch-pricing(skus[])
-  → output: precios actuales
-
-proveedor-{nombre}-fetch-inventory(skus[])
-  → output: stock disponible
-
-proveedor-{nombre}-create-po(sale_order_id)
-  → output: po_id del proveedor
-```
+Cada proveedor implementa un **adaptador** con dos operaciones, `catálogo` y `existencias`,
+que solo transportan y mapean al shape estándar de abajo. Las reglas de negocio
+(publicación, precio, tipo, etiquetas, «Pocas piezas», dueños por campo) son **una sola
+para los tres** y viven en el núcleo de la v3, no en cada adaptador. La creación de órdenes
+de compra en el proveedor queda fuera del alcance de la v3.
 
 ### Shape estándar de producto del proveedor
 
@@ -445,7 +437,7 @@ type ProductoProveedor = {
   categoria_proveedor: string;
   costo: number; // sin IVA, MXN
   moneda: 'MXN' | 'USD';
-  stock_disponible: number;
+  stock_disponible: number | null; // null = el proveedor no lo informa (nunca 0)
   unidad_minima: number;
   imagenes_urls: string[];
   atributos: {
@@ -460,7 +452,8 @@ type ProductoProveedor = {
 };
 ```
 
-Cada workflow proveedor transforma su payload propio a esta forma.
+Cada adaptador transforma su payload propio a esta forma (en la v3, como modelo canónico de
+Python; el tipo de arriba es ilustrativo).
 
 ---
 

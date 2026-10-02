@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-10-01 · «Pocas piezas» vuelve a decir la verdad, y el sync tiene diseño nuevo (v77)
+
+**Tipo**: `datos` (**PRODUCCIÓN**) + `docs` + `decisión` (ADR 011). Cero líneas facturables.
+
+### Existencias reales, solo con listón
+
+Un proveedor movió sus existencias a otro método de su API. La tarea de existencias ya lo lee:
+**58 productos** muestran «Pocas piezas» con datos reales, en vez de los 1,438 del dato faltante
+(v76). Con la medición en la mano, JC decidió que «Pocas piezas» se muestre **solo con el
+listón**, en los tres proveedores. El aviso dentro de la descripción solo se escribía al procesar
+el producto y nunca se quitaba: **306 productos decían «Pocas piezas» sin tenerlas**. El sync dejó
+de escribirlo y se quitaron **684 avisos** (inglés interno y español), con respaldo, plantilla de
+prueba, verificación y reversa. El listón no se tocó.
+
+### El sync de proveedores se rediseña (ADR 011)
+
+La Fase 8 deja atrás «migrar a n8n». La v3 será Python en la misma PC, con su detalle en un repo
+privado. Arma un **plan** antes de aplicar, retiene lo riesgoso para aprobación, respeta lo que se
+edita a mano (SEO, nombre, descripción, imágenes, categorías agregadas) y reconoce los productos
+por el **código del proveedor**, no por el nombre. El ADR deja escrita la política de aprobación
+del sync, que aterriza la regla de «más de 10 productos» del `CLAUDE.md`. El diseño (59
+requisitos, cada uno con su prueba) vive en el repo privado; aquí se actualizaron el roadmap, la
+§5 de `specs/integrations.md` y el puntero del `CLAUDE.md`.
+
+---
+
 ## 2026-09-30 · la derivación vuelve y un aviso falso sale de 1,438 productos (v76)
 
 **Tipo**: `datos` (**PRODUCCIÓN**) + `scripts` + `docs`. Cero líneas facturables.

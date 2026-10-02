@@ -235,11 +235,26 @@ de las 36.
 - [ ] Validar contra una muestra de las **447 cotizaciones ya hechas a mano**, midiendo
       aciertos en producto, servicio y cantidad
 ### FASE 8: Madurar integración con proveedores
-**Estado**: 🔴 No iniciada (semana 16+)
+**Estado**: 🟡 **En curso desde 2026-09-25**: rediseño del sync (v3). Decisión y alcance en
+`decisions/011-rediseno-sync-proveedores.md`. El detalle (inventario de la v2, diseño de la v3,
+decisiones y bitácora) vive en el repo **privado** `mozaprint-sync`.
 **Tareas**:
-- [ ] Migrar script actual a workflows de n8n
-- [ ] Migrar XML-RPC → JSON-2 API
-- [ ] Configurar webhooks salientes para sync inverso
+- [x] **Etapa 1**: repo privado y la v2 documentada acción por acción, con 17 hallazgos
+      verificados (2026-09-29)
+- [x] **Excepciones a la v2** mientras llega la v3 (2026-09-30 / 10-01): «Pocas piezas» sin
+      datos inventados y solo con listón, publicación por producto, existencias de un proveedor
+      por su método nuevo y derivación de técnicas restablecida (changelog v76 y v77)
+- [x] **Etapa 2**: 14 decisiones de negocio y diseño de la v3 (59 requisitos con prueba)
+      (2026-10-01)
+- [ ] **Etapa 3**: construir la v3 en paralelo, con pruebas, golden master contra la v2 y
+      simulacros
+- [ ] **Etapa 4**: corte gradual por proveedor. Base de test nueva, migración de identidad
+      (código del proveedor y limpieza de duplicados), modo sombra y horarios consolidados (esto
+      cubre el antiguo «cron de sync nocturno consolidado»)
+- [x] ~~Migrar script actual a workflows de n8n~~: descartado; la v3 es Python en la PC (ADR 011)
+- [ ] Migrar XML-RPC → JSON-2 API: lo hace la v3 (la v2 sigue en XML-RPC hasta el corte)
+- [ ] Configurar webhooks salientes para sync inverso: fuera del alcance de la v3; se revisa
+      después del corte
 - [ ] **Rediseñar «Consultar inventario» de la ficha de producto** — 🟠 **riesgo
       aceptado desde el 2026-09-09, con pendiente de diseño abierto**. Hoy corre
       en el navegador del visitante desde `website.custom_code_footer`. Hay que
@@ -247,7 +262,6 @@ de las 36.
       cliente) o resolverlo con existencias ya sincronizadas. **Detalle, alcance
       medido y la decisión en `analysis/supplier-sync/HALLAZGO_JS_INVENTARIO.md`**
       — no se documenta aquí porque el repo es público
-- [ ] Cron de sync nocturno consolidado
 
 ### FASE 9: SEO + Home + Dashboard
 **Estado**: 🔴 No iniciada (paralelizable, semana 4+)
