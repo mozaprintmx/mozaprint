@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-10-05 · El sync v3 llega a producción con Promo Opción (v78)
+
+**Tipo**: `datos` (**PRODUCCIÓN**) + `docs`. Cero líneas facturables.
+
+- **Campos nuevos** en `product.template` (`x_sync_clave`, `x_sync_huellas`) y `product.product`
+  (`x_sync_clave`), creados por Ajustes → Técnico (sin prefijo ni costo de Studio), primero en
+  la base de test y luego en producción. Con ellos el sync reconoce cada producto por el código
+  de su proveedor y no por el nombre: se acabaron los duplicados al reactivar. Se documentan
+  también los campos de variante que ya escribía el sync (`x_stock_proveedor`,
+  `x_tipo_producto`, `x_imagen_url_variante`). `specs/data-model.md` y `studio-fields.yaml` 0.9.0.
+- **Promo Opción corre con la v3 desde el 4-oct**, después de ensayar todo en una base de test
+  duplicada y de una migración de identidad sin cambios visibles. Además se quitó de su catálogo
+  la imagen genérica «IMAGEN» tachada que el proveedor manda cuando no tiene foto.
+- **4P cambió de API el 5-oct**: la versión anterior dejó de responder. La v3 ya usa la nueva;
+  el corte de 4P va antes que el de INN. 🔴 La parte de 4P del botón «Consultar inventario» del
+  sitio dejó de funcionar ese día.
+- **Contexto para otras conversaciones**: el `CLAUDE.md` apunta al repo privado del sync, que
+  ahora tiene su manual de operación y el contexto para rediseñar el botón de existencias.
+
 ## 2026-10-01 · «Pocas piezas» vuelve a decir la verdad, y el sync tiene diseño nuevo (v77)
 
 **Tipo**: `datos` (**PRODUCCIÓN**) + `docs` + `decisión` (ADR 011). Cero líneas facturables.

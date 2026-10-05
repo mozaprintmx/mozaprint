@@ -17,8 +17,8 @@
 # - default: valor por defecto
 # - relation: solo para many2one/many2many/one2many
 
-version: '0.8.0'
-last_updated: 2026-08-14
+version: '0.9.0'
+last_updated: 2026-10-05
 
 # =============================================================================
 # NOTA IMPORTANTE — PREFIJO x_studio_ (depende de CÓMO se crea el campo)
@@ -95,6 +95,24 @@ extensions:
       string: 'URL imagen principal'
       status: created
 
+    # --- SYNC DE PROVEEDORES v3 (Fase 8), creados 2026-10-02 en test y producción ---
+    # Vía Ajustes → Técnico → Estructura de BD. Solo los escribe el sync (repo privado).
+
+    - field_name: x_sync_clave
+      field_type: char
+      string: 'Clave de sync'
+      index: true
+      copied: false
+      status: created
+      help: 'Identidad del producto en su proveedor; el sync lo reconoce aunque cambie de nombre.'
+
+    - field_name: x_sync_huellas
+      field_type: text
+      string: 'Huellas de sync'
+      copied: false
+      status: created
+      help: 'JSON con la huella de lo último que escribió el sync (no pisar ediciones a mano).'
+
     # --- CREADOS Y POBLADOS EN FASE 2 (técnica canónica) ---
     # Poblados por scripts/derive_tecnicas.py desde x_tecnica_impresion (~5,203 templates).
 
@@ -161,6 +179,32 @@ extensions:
       status: created
       created_date: 2026-08-06
       # Creado manualmente vía Técnico. Nombre real sin x_studio_ (verificado por fields_get).
+
+  product.product:
+    # Campos de variante que escribe el sync de proveedores (repo privado mozaprint-sync).
+    - field_name: x_sync_clave
+      field_type: char
+      string: 'Clave de sync'
+      index: true
+      copied: false
+      status: created
+      help: 'Identidad de la variante en su proveedor. Creado 2026-10-02.'
+
+    - field_name: x_stock_proveedor
+      field_type: integer
+      string: 'Stock Proveedor'
+      status: created
+      help: 'Existencias que reporta el proveedor para esa variante.'
+
+    - field_name: x_tipo_producto
+      field_type: char
+      string: 'Tipo de Producto'
+      status: created
+
+    - field_name: x_imagen_url_variante
+      field_type: char
+      string: 'URL imagen variante'
+      status: created
 
   crm.lead:
     # --- CREADOS EN PRODUCCIÓN (2026-06-02) ---

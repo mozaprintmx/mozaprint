@@ -114,6 +114,23 @@ x_imagen_url_principal:
   type: char
   string: "URL imagen principal"
   status: legacy
+
+# ✓ EXISTEN en producción y test desde 2026-10-02 (Fase 8, sync v3). Creados por
+# Ajustes → Técnico → Estructura de BD (sin prefijo x_studio_, sin costo de Studio).
+# Los escribe SOLO el sync; no editarlos a mano. Formato y reglas: repo privado
+# mozaprint-sync (docs/SYNC_DISENO_V3.md §4).
+x_sync_clave:
+  type: char
+  string: "Clave de sync"
+  index: true
+  copy: false
+  help: "Identidad del producto en su proveedor (prefijo del proveedor + código). Con ella el sync reconoce el producto aunque cambie de nombre."
+
+x_sync_huellas:
+  type: text
+  string: "Huellas de sync"
+  copy: false
+  help: "JSON con la huella de lo último que escribió el sync; sirve para no pisar ediciones a mano."
 ```
 
 #### ✓ Campos de técnica creados y poblados en Fase 2
@@ -241,7 +258,33 @@ x_color_hex:
   string: "Color hex"
   help: "Color HTML para variantes de color, ej. #3B82F6"
   computed_from: attribute_value
+
+# ✓ EXISTEN en producción. Los escribe el sync de proveedores (repo privado mozaprint-sync).
+x_sync_clave:            # desde 2026-10-02; propio de la variante (no el heredado)
+  type: char
+  string: "Clave de sync"
+  index: true
+  copy: false
+  help: "Identidad de la variante en su proveedor (SKU, o SKU + color cuando el SKU es compartido)."
+
+x_stock_proveedor:
+  type: integer
+  string: "Stock Proveedor"
+  help: "Existencias que reporta el proveedor para esa variante. Base del listón «Pocas piezas»."
+
+x_tipo_producto:
+  type: char
+  string: "Tipo de Producto"
+  help: "Normal / Promo / Unico / Outlet (vocabulario cerrado del sync)."
+
+x_imagen_url_variante:
+  type: char
+  string: "URL imagen variante"
+  help: "URL de origen de la imagen del color; el sync solo la vuelve a descargar si cambia."
 ```
+
+> Odoo refleja `x_sync_huellas` de la plantilla en `product.product` como «Campo base» no
+> almacenado (`related = product_tmpl_id.x_sync_huellas`). Es normal: no borrarlo.
 
 ### crm.lead (extendido)
 

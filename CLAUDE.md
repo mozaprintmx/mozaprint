@@ -203,6 +203,11 @@ python3 scripts/rollback_category_images.py --from backups/category_images_AAAAM
 - Actualizaciones de Odoo: `docs/upgrades/README.md`. Las dos bases corren **saas~19.3**
   desde 2026-08-22. Cuando diverjan, lo que falla en test es aviso anticipado de
   producción — no lo repares antes de tiempo, salvo que el arreglo valga en ambas.
+- **Sync de proveedores (PO, 4P, INN), existencias y botón «Consultar inventario»**: viven en
+  el repo **privado** local `D:\MozaPrint\Odoo\Proyectos\mozaprint-sync\` (ADR 011). Antes de
+  tocar productos de proveedor, existencias o ese botón, lee su `CLAUDE.md` y su
+  `docs/OPERACION.md` (estado, tareas y horarios); para el botón, `docs/BOTON_INVENTARIO.md`.
+  El detalle no se copia a este repo.
 - **`arch_db` y demás campos traducidos**: al escribirlos por API, itera los idiomas
   (`en_US` primero, luego los activos). Escribir solo el de la sesión deja el sitio roto
   para el visitante con el backend viéndose bien. Ya mordió a dos scripts.

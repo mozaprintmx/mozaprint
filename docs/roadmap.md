@@ -246,13 +246,17 @@ decisiones y bitácora) vive en el repo **privado** `mozaprint-sync`.
       por su método nuevo y derivación de técnicas restablecida (changelog v76 y v77)
 - [x] **Etapa 2**: 14 decisiones de negocio y diseño de la v3 (59 requisitos con prueba)
       (2026-10-01)
-- [ ] **Etapa 3**: construir la v3 en paralelo, con pruebas, golden master contra la v2 y
-      simulacros
+- [x] **Etapa 3**: construir la v3 en paralelo, con pruebas, golden master contra la v2 y
+      simulacros (2026-10-02)
 - [ ] **Etapa 4**: corte gradual por proveedor. Base de test nueva, migración de identidad
       (código del proveedor y limpieza de duplicados), modo sombra y horarios consolidados (esto
-      cubre el antiguo «cron de sync nocturno consolidado»)
+      cubre el antiguo «cron de sync nocturno consolidado»). Hecho: base de test, campos
+      `x_sync_clave`/`x_sync_huellas` y migración de identidad en producción (2026-10-02);
+      **PO corre con la v3 desde 2026-10-04**. En curso: 4P (su API cambió de versión el
+      2026-10-05) y después INN; al final, retiro de la v2
 - [x] ~~Migrar script actual a workflows de n8n~~: descartado; la v3 es Python en la PC (ADR 011)
-- [ ] Migrar XML-RPC → JSON-2 API: lo hace la v3 (la v2 sigue en XML-RPC hasta el corte)
+- [ ] Migrar XML-RPC → JSON-2 API: lo hace la v3 (ya en JSON-2 para PO; la v2 sigue en
+      XML-RPC hasta su retiro)
 - [ ] Configurar webhooks salientes para sync inverso: fuera del alcance de la v3; se revisa
       después del corte
 - [ ] **Rediseñar «Consultar inventario» de la ficha de producto** — 🟠 **riesgo
@@ -261,7 +265,10 @@ decisiones y bitácora) vive en el repo **privado** `mozaprint-sync`.
       moverlo a n8n (patrón del `CLAUDE.md`: HTTP saliente y secretos fuera del
       cliente) o resolverlo con existencias ya sincronizadas. **Detalle, alcance
       medido y la decisión en `analysis/supplier-sync/HALLAZGO_JS_INVENTARIO.md`**
-      — no se documenta aquí porque el repo es público
+      — no se documenta aquí porque el repo es público. Contexto para el rediseño (estado
+      del botón, datos que ya deja el sync, restricciones y opciones): repo privado,
+      `docs/BOTON_INVENTARIO.md`. 🔴 Desde el 2026-10-05 la parte de 4P del botón no
+      responde (el proveedor cambió de API)
 
 ### FASE 9: SEO + Home + Dashboard
 **Estado**: 🔴 No iniciada (paralelizable, semana 4+)
