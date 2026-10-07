@@ -1,6 +1,6 @@
 # Punto de control — Mozaprint MX
 
-Última actualización: 2026-09-22. Pegar/leer al iniciar un chat nuevo para retomar con contexto mínimo.
+Última actualización: 2026-10-06. Pegar/leer al iniciar un chat nuevo para retomar con contexto mínimo.
 
 ## Cómo trabajar (para ahorrar tokens)
 - Un chat nuevo por pieza de trabajo; cortar al cerrar cada pieza, no a media tarea.
@@ -11,7 +11,7 @@
 ## Stack
 - Odoo Online **saas~19.3** Custom (db `mozaprintmx`, mozaprintmx.com) — subió el 2026-08-22. Extensión solo vía Studio / Ajustes→Técnico / Automation Rules / Server Actions. JSON-2 API (no XML-RPC) para integraciones nuevas.
 - Repo PÚBLICO `github.com/mozaprintmx/mozaprint`, local `D:\MozaPrint\Odoo\Proyectos\mozaprint`. NUNCA credenciales.
-- Sync de proveedores (4P, INN, PO): paquete Python `sync_odoo_paquete_v2`. Producción: `D:\MozaPrint\Odoo\Scripts PY\ProductSync\`. Copia de análisis (editable por Claude Code, gitignored): `analysis\supplier-sync\`. Usa XML-RPC + usuario/contraseña. Python global Python312.
+- Sync de proveedores (PO, 4P, INN): **v3** (`mozasync`, JSON-2) desde 2026-10-04/05/06, en el repo **privado** `mozaprint-sync` (`D:\MozaPrint\Odoo\Proyectos\mozaprint-sync\`; ADR 011). Operación, horarios y reversas: su `docs/OPERACION.md`. La v2 (`sync_odoo_paquete_v2`) ya no corre.
 - Negocio: artículos promocionales personalizados B2B, CDMX. Operador único (Juan Carlos). Volumen bajo (~10-20 conversaciones/semana).
 
 ## Modelo de datos de técnica (Fase 2) — COMPLETO
@@ -21,17 +21,11 @@
 - Derivación: `scripts/derive_tecnicas.py` (raw→canónico vía aliases, dry-run/--apply/--since, writes agrupados por derivación idéntica ~50x, mini-test m2m antes del lote). Aplicada: 5,203 productos. Quedan 15 kits multicomponente marcados (cola opcional F5, no bloqueante).
 - Seed versionado: `data/tecnicas_seed.csv` + `data/tecnicas_seed.md` (procedencia). 3 aliases agregadas tras dry-runs: "Grabado en bajo relieve", "Goteado en Resina", "Grabado en Arena".
 
-## Desvío al SYNC — COMPLETO (en producción)
-Auditoría completa en `analysis/supplier-sync/AUDITORIA_SYNC.md` (local, gitignored). Piezas hechas:
-1. **Dry-run** en auto_sync/stock_sync (guard centralizado en OdooClient._call). --dry-run no escribe nada. Limitación: creates no enumeran variantes.
-2. **Fix truncación INN**: conserva TODAS las TecnicasImpresion[] (une con "-") y Materiales[] (une con ", "). Antes tomaba solo [0]. ~437 productos recuperaron multi-técnica. Verificado: TX-119, TX-311 con Serigrafía+Bordado.
-3. **Fuga de credenciales CORREGIDA**: la Clave de INN se escribía en claro en logs. Solución: redact() + RedactingFilter global en logger.py (cubre mensaje y traceback). Logs viejos purgados. Sync NO se respalda → no hace falta rotar clave.
-4. **Encadenamiento sync→derivación**: auto_sync, al terminar sin errores, invoca derive_tecnicas.py del repo (subprocess, --since hora_inicio-1h UTC, entorno sin heredar vars Odoo del sync). Config .env: DERIVE_ENABLED/DERIVE_SCRIPT_PATH/DERIVE_PYTHON_PATH.
-5. **Imágenes AVIF**: diagnóstico detallado + conversión AVIF→PNG/JPEG (Pillow) + saltar rotas. Fallo de imagen ya NO cuenta como error de producto (desacoplado) → ya no bloquea la derivación.
-6. **Backup diario INN**: cada respuesta exitosa guarda productos_INN_AAAAMMDD.json (rotación 14d) + actualiza fallback. Escritura atómica, solo si datos válidos.
-7. **Ajustes del usuario** (ya en prod): _PAGE_LIMIT INN 800→400 (API no respondía con 800). **Desactivación de sobrantes**: auto_sync desactiva productos que el proveedor ya no manda SI sobrantes <10% del catálogo DE ESE PROVEEDOR (confirmado); si ≥10% avisa "posible catálogo truncado" sin tocar. Config SURPLUS_AUTO_DEACTIVATE/SURPLUS_MAX_PCT.
-
-Horarios reales (Task Scheduler, no en código): stock_sync INN 09:15/13:15/17:15; stock_sync PO+4P cada 4h; auto_sync productos INN 09:15 (ventana API 09:00–10:00), PO+4P 03:00.
+## Sync de proveedores — v3 en producción (Fase 8)
+La v2 (auditoría y mejoras de julio–septiembre) quedó sustituida por la **v3**: los tres
+proveedores corren con ella desde el 2026-10-06 y la v2 ya no corre. Todo el detalle (diseño,
+decisiones, horarios, bitácora y reversas) vive en el repo **privado** `mozaprint-sync` (ADR 011);
+aquí no se documenta.
 
 ## Fase 2 — /shop filtros — COMPLETO (limpieza)
 - Audit: `scripts/audit_atributos.py` (reportes gitignored). 17 atributos, solo 2 reales: **Color** (204 valores, 5,444 productos, create_variant=always — NO TOCAR esa mecánica de variantes) y **Talla** (29 productos). Los otros 15 son basura (0 o 1 producto), con duplicados Brand/brand, color/Color.
@@ -171,12 +165,12 @@ sin número).
 - Detalle: `decisions/010-checkout-sin-pago-en-linea.md` · operación: `docs/manual-vendedor-pedidos-web.md`.
 
 ## PENDIENTES / próximas piezas (cada una = chat nuevo)
-- 🟠 **Rediseñar «Consultar inventario» de la ficha de producto** — **riesgo aceptado el 2026-09-09**, pendiente **de diseño**, no de ejecución: el botón «Consultar inventario» de la ficha de producto vive en `website.custom_code_footer` y consulta a los proveedores **desde el navegador del visitante**. Rehacerlo contra n8n (patrón del `CLAUDE.md`: HTTP saliente y secretos fuera del cliente), o resolverlo con existencias ya sincronizadas por el sync nocturno, que elimina la llamada en vivo. **No se corrige a medias**: el razonamiento de por qué está en el archivo. Detalle, alcance medido y la decisión en `analysis/supplier-sync/HALLAZGO_JS_INVENTARIO.md` — **no se documenta aquí porque el repo es público**.
-- **Vigilar** primeras corridas: desactivación de sobrantes (riesgo API inestable bajo umbral 10%); que imágenes AVIF se conviertan/salten; que la derivación se dispare sola post-sync; que el backup productos_INN_*.json se genere. Revisar logs en ProductSync\logs\.
+- ✅ **«Consultar inventario» rehecho** (2026-10-05): consulta solo el producto de la página por un servicio intermedio, sin credenciales en el navegador. Detalle en el repo privado (`docs/BOTON_INVENTARIO.md`).
+- **Sync v3**: vigilar las primeras corridas de INN y 4P en el correo diario de las 10:30; pendiente el retiro de la v2 (Fase 8, Etapa 4).
 - **Limpieza fina opcional** (higiene, sin prisa): borrar de verdad los atributos basura; limpiar valores de Color (10 huérfanos + 40 de-1-producto).
 - **Piezas de Fase 2 sin tocar**: swatches de color, optional/accessory products. **Descripciones con IA DESCARTADAS del cierre de Fase 2** (2026-07-06) — reencuadradas como iniciativa SEO DIRIGIDA de Fase 9, condicionada a diagnóstico GSC. Señal: clientes que buscan productos agotados en otros revendedores caen aquí, pero compartimos la descripción duplicada del proveedor → Google deprioritiza. Palanca real = title/H1 únicos, no el body. Ver `decisions/006` y roadmap Fase 9.
 - **15 kits multicomponente**: refinamiento manual de default (cosmético).
-- **Backlog del sync** (Fase 8 / mini-proyectos): XML-RPC→JSON-2; precio en pricelist en vez de ×1.5 en código; supplierinfo completo (product_code/min_qty para matriz de costos Fase 3); Materiales[] en PO/4P; tags de material palabra-completa vs primera palabra; "esperar 2-3 corridas antes de desactivar sobrantes".
+- **Backlog del sync**: vive en el repo privado `mozaprint-sync` (XML-RPC→JSON-2 ya quedó con la v3).
 - **Fase 3 CERRADA** (2026-08-25). Lo que queda no es código: **costos de 4P** (único proveedor sin lista tabulada) y preguntarle a **Promo Opción** si tiene tarifa para pedidos por debajo de sus mínimos. Falta también la **prueba manual de JC**: armar una cotización completa en producción con el manual del vendedor delante — es lo único que puede decir si el flujo funciona para quien lo usa a diario. Higiene: partners de proveedor duplicados (INN 82/32, PO 11/8).
 - **Fases siguientes**: ~~el cuello de botella es el VPS de n8n~~ — **falso desde el 2026-08-31** (ADR 008): Odoo Online es URL pública y es dueño del webhook, así que el VPS dejó de ser prerrequisito de las fases 4-7. La Fase 4 está en producción sin él. Los cuellos de botella reales hoy son **las plantillas de Meta** (bloque D, 24-72 h de aprobación cada una) y **el bloque F** (6 semanas de prueba). La **Fase 9 (SEO)** sigue sin depender de nada y se puede avanzar en paralelo — ya tiene línea base de tráfico, ver `docs/roadmap.md` Fase 9.
 

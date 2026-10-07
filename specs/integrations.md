@@ -412,9 +412,9 @@ Mozaprint sincroniza catálogo, precios y stock de tres proveedores:
 > 🔒 El **detalle de integración del sync** (endpoints, autenticación, paginación,
 > lógica por proveedor, cadencia/horarios) **NO se documenta en este repo público**.
 > Vive en el repo **privado** `mozaprint-sync`: inventario de la v2, diseño de la v3,
-> decisiones y bitácora (`analysis/AUDITORIA_SYNC.md` quedó como histórico). Hoy corre la
-> v2 (paquete Python, XML-RPC) mientras se construye la v3 (Python, JSON-2): ver
-> `decisions/011-rediseno-sync-proveedores.md`.
+> decisiones y bitácora (`analysis/AUDITORIA_SYNC.md` quedó como histórico). Desde el
+> 2026-10-06 los tres proveedores corren con la **v3** (Python, JSON-2) y la v2 ya no corre:
+> ver `decisions/011-rediseno-sync-proveedores.md`.
 
 ### Interfaz común (v3)
 

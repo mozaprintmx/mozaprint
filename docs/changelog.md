@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-10-06 · Los tres proveedores corren con el sync v3; la v2 ya no corre (v79)
+
+**Tipo**: `datos` (**PRODUCCIÓN**) + `docs`. Cero líneas facturables.
+
+- **4Promotional pasó a la v3 el 5-oct** (noche) y **InnovationLine el 6-oct**. Con Promo Opción
+  (4-oct), los tres proveedores sincronizan con la v3 y **ninguna tarea de la v2 está activa**
+  (quedan deshabilitadas para poder revertir). Cada corte se ensayó completo en la base de test,
+  con respaldo previo del catálogo y de las fotos, aprobación por tandas y una segunda corrida en
+  cero.
+- **Fotos**: los dos proveedores cambiaron de servidor de imágenes. En 4P la v3 descargó las
+  fotos nuevas; en INN, **1,393 productos mostraban cada foto dos veces** (la del servidor viejo y
+  la nueva). La v3 ahora quita de la galería lo que el proveedor ya no manda: unas 6,000 fotos
+  menos en cada proveedor, sin galerías vacías.
+- **Productos que la v2 juntaba en uno**: proveedores con varios productos del mismo nombre
+  (p. ej. 22 relojes «RELOJ DE PULSO.») quedaban fundidos en una sola ficha. La v3 los separa con
+  su código: 26 productos nuevos de INN.
+- **Costo 0 del proveedor**: ya no se convierte en precio $0 en el sitio; el producto queda
+  retenido para revisión (hoy, uno).
+- **Botón «Consultar inventario»** (5-oct): rehecho; consulta solo el producto de la página a
+  través de un servicio intermedio, **sin credenciales en el navegador**, y volvió a funcionar
+  para 4P. Cierra el riesgo aceptado el 2026-09-09.
+- Detalle (fichas, decisiones, bitácora y reversas) en el repo privado `mozaprint-sync`.
+
 ## 2026-10-05 · El sync v3 llega a producción con Promo Opción (v78)
 
 **Tipo**: `datos` (**PRODUCCIÓN**) + `docs`. Cero líneas facturables.

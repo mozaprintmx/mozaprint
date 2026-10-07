@@ -252,14 +252,16 @@ decisiones y bitácora) vive en el repo **privado** `mozaprint-sync`.
       (código del proveedor y limpieza de duplicados), modo sombra y horarios consolidados (esto
       cubre el antiguo «cron de sync nocturno consolidado»). Hecho: base de test, campos
       `x_sync_clave`/`x_sync_huellas` y migración de identidad en producción (2026-10-02);
-      **PO corre con la v3 desde 2026-10-04**. En curso: 4P (su API cambió de versión el
-      2026-10-05) y después INN; al final, retiro de la v2
+      **PO corre con la v3 desde 2026-10-04, 4P desde 2026-10-05 y INN desde 2026-10-06**:
+      ya no corre ninguna tarea de la v2. Falta el retiro de la v2 (borrar tareas y código
+      cuando ya no se necesite la reversa)
 - [x] ~~Migrar script actual a workflows de n8n~~: descartado; la v3 es Python en la PC (ADR 011)
-- [ ] Migrar XML-RPC → JSON-2 API: lo hace la v3 (ya en JSON-2 para PO; la v2 sigue en
-      XML-RPC hasta su retiro)
+- [x] Migrar XML-RPC → JSON-2 API: la v3 usa JSON-2 para los tres proveedores (2026-10-06)
 - [ ] Configurar webhooks salientes para sync inverso: fuera del alcance de la v3; se revisa
       después del corte
-- [ ] **Rediseñar «Consultar inventario» de la ficha de producto** — 🟠 **riesgo
+- [x] **Rediseñar «Consultar inventario» de la ficha de producto** — **hecho el
+      2026-10-05**: consulta solo el producto de la página a través de un servicio intermedio,
+      sin credenciales en el navegador (detalle en el repo privado). Antes: 🟠 **riesgo
       aceptado desde el 2026-09-09, con pendiente de diseño abierto**. Hoy corre
       en el navegador del visitante desde `website.custom_code_footer`. Hay que
       moverlo a n8n (patrón del `CLAUDE.md`: HTTP saliente y secretos fuera del
