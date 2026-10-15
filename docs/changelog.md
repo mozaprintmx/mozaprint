@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-10-14 · Stock Sur, cuarto proveedor del sitio (v80)
+
+**Tipo**: `datos` (**PRODUCCIÓN**) + `docs`. Cero líneas facturables.
+
+- **433 productos nuevos** (1,177 colores) de **Stock Sur**, con fotos, precios y existencias, en
+  las categorías que ya existían en el sitio (sin crear ninguna). Ensayo completo en la base de
+  test antes de producción; alta de noche y por tandas, con respaldo previo y reversa.
+- Desde el 14-oct Stock Sur se sincroniza como los otros tres proveedores (catálogo cada noche y
+  existencias cada 4 h) y participa en el botón «Consultar inventario».
+- Mejoras que quedaron para todos los proveedores: las categorías con nombres repetidos en el
+  árbol se eligen por nivel, y un texto del proveedor con caracteres rotos ya no reemplaza uno
+  bueno.
+- Contacto de proveedor nuevo en Odoo: `STOCKSUR` (nombre técnico, como `PROMOOPCION`; no se
+  renombra). Detalle en el repo privado `mozaprint-sync`.
+
 ## 2026-10-06 · Los tres proveedores corren con el sync v3; la v2 ya no corre (v79)
 
 **Tipo**: `datos` (**PRODUCCIÓN**) + `docs`. Cero líneas facturables.

@@ -11,7 +11,7 @@
 ## Stack
 - Odoo Online **saas~19.3** Custom (db `mozaprintmx`, mozaprintmx.com) — subió el 2026-08-22. Extensión solo vía Studio / Ajustes→Técnico / Automation Rules / Server Actions. JSON-2 API (no XML-RPC) para integraciones nuevas.
 - Repo PÚBLICO `github.com/mozaprintmx/mozaprint`, local `D:\MozaPrint\Odoo\Proyectos\mozaprint`. NUNCA credenciales.
-- Sync de proveedores (PO, 4P, INN): **v3** (`mozasync`, JSON-2) desde 2026-10-04/05/06, en el repo **privado** `mozaprint-sync` (`D:\MozaPrint\Odoo\Proyectos\mozaprint-sync\`; ADR 011). Operación, horarios y reversas: su `docs/OPERACION.md`. La v2 (`sync_odoo_paquete_v2`) ya no corre.
+- Sync de proveedores (PO, 4P, INN y Stock Sur desde 2026-10-14): **v3** (`mozasync`, JSON-2) desde 2026-10-04/05/06, en el repo **privado** `mozaprint-sync` (`D:\MozaPrint\Odoo\Proyectos\mozaprint-sync\`; ADR 011). Operación, horarios y reversas: su `docs/OPERACION.md`. La v2 (`sync_odoo_paquete_v2`) ya no corre.
 - Negocio: artículos promocionales personalizados B2B, CDMX. Operador único (Juan Carlos). Volumen bajo (~10-20 conversaciones/semana).
 
 ## Modelo de datos de técnica (Fase 2) — COMPLETO

@@ -135,8 +135,8 @@ con `# TODO(mozaprint):`; cuestiona requerimientos ambiguos antes de implementar
 - No instalar librerías sin documentar por qué en el commit.
 - No migrar datos sin script de rollback.
 - No cambiar nombres de campos custom existentes (rompe integraciones).
-- **NUNCA renombrar los partners de proveedor** `INNOVATIONLINE`, `PROMOOPCION` ni
-  `4PROMOTIONAL` (ids 82, 11, 15). Esos nombres en mayúsculas son **identificadores
+- **NUNCA renombrar los partners de proveedor** `INNOVATIONLINE`, `PROMOOPCION`,
+  `4PROMOTIONAL` ni `STOCKSUR` (ids 82, 11, 15, 307). Esos nombres en mayúsculas son **identificadores
   técnicos, no etiquetas**: el sync los busca con `name = '<exacto>'` y, si no los
   encuentra, **crea un duplicado en silencio** — partiendo `product.supplierinfo` entre
   dos partners y rompiendo `seed_costos.py`, que exige exactamente 1 coincidencia. Ya hay
@@ -203,7 +203,7 @@ python3 scripts/rollback_category_images.py --from backups/category_images_AAAAM
 - Actualizaciones de Odoo: `docs/upgrades/README.md`. Las dos bases corren **saas~19.3**
   desde 2026-08-22. Cuando diverjan, lo que falla en test es aviso anticipado de
   producción — no lo repares antes de tiempo, salvo que el arreglo valga en ambas.
-- **Sync de proveedores (PO, 4P, INN), existencias y botón «Consultar inventario»**: viven en
+- **Sync de proveedores (PO, 4P, INN, SS), existencias y botón «Consultar inventario»**: viven en
   el repo **privado** local `D:\MozaPrint\Odoo\Proyectos\mozaprint-sync\` (ADR 011). Antes de
   tocar productos de proveedor, existencias o ese botón, lee su `CLAUDE.md` y su
   `docs/OPERACION.md` (estado, tareas y horarios); para el botón, `docs/BOTON_INVENTARIO.md`.
