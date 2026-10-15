@@ -235,7 +235,7 @@ de las 36.
 - [ ] Validar contra una muestra de las **447 cotizaciones ya hechas a mano**, midiendo
       aciertos en producto, servicio y cantidad
 ### FASE 8: Madurar integración con proveedores
-**Estado**: 🟡 **En curso desde 2026-09-25**: rediseño del sync (v3). Decisión y alcance en
+**Estado**: 🟢 **Cerrada el 2026-10-15** (iniciada 2026-09-25): rediseño del sync (v3). Decisión y alcance en
 `decisions/011-rediseno-sync-proveedores.md`. El detalle (inventario de la v2, diseño de la v3,
 decisiones y bitácora) vive en el repo **privado** `mozaprint-sync`.
 **Tareas**:
@@ -248,13 +248,16 @@ decisiones y bitácora) vive en el repo **privado** `mozaprint-sync`.
       (2026-10-01)
 - [x] **Etapa 3**: construir la v3 en paralelo, con pruebas, golden master contra la v2 y
       simulacros (2026-10-02)
-- [ ] **Etapa 4**: corte gradual por proveedor. Base de test nueva, migración de identidad
+- [x] **Etapa 4**: corte gradual por proveedor. Base de test nueva, migración de identidad
       (código del proveedor y limpieza de duplicados), modo sombra y horarios consolidados (esto
       cubre el antiguo «cron de sync nocturno consolidado»). Hecho: base de test, campos
       `x_sync_clave`/`x_sync_huellas` y migración de identidad en producción (2026-10-02);
       **PO corre con la v3 desde 2026-10-04, 4P desde 2026-10-05 y INN desde 2026-10-06**:
-      ya no corre ninguna tarea de la v2. Falta el retiro de la v2 (borrar tareas y código
-      cuando ya no se necesite la reversa)
+      ya no corre ninguna tarea de la v2. **v2 retirada el 2026-10-15** (tareas y carpeta de
+      producción borradas, con respaldo)
+- [x] **Cuarto proveedor: Stock Sur** (2026-10-14), con la misma v3: 433 productos
+- [x] Existencias del sync **2 veces al día** (antes cada 4 h): el dato en vivo lo da el botón
+      del sitio y un enlace «Existencias en vivo» en el producto (backend, en curso)
 - [x] ~~Migrar script actual a workflows de n8n~~: descartado; la v3 es Python en la PC (ADR 011)
 - [x] Migrar XML-RPC → JSON-2 API: la v3 usa JSON-2 para los tres proveedores (2026-10-06)
 - [ ] Configurar webhooks salientes para sync inverso: fuera del alcance de la v3; se revisa

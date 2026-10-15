@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-10-15 · Se retira el sync anterior (v2); existencias 2 veces al día (v81)
+
+**Tipo**: `ops` + `datos` (**PRODUCCIÓN**) + `docs`. Cero líneas facturables.
+
+- **Fase 8 cerrada**: la v2 del sync se retiró. Sus tareas programadas se borraron (con
+  respaldo) y su carpeta de producción se archivó en un zip **sin credenciales**. Los cuatro
+  proveedores corren con la v3.
+- **Existencias del sync 2 veces al día** (antes, cada 4 horas): el listón «Pocas piezas» se sigue
+  actualizando a diario; la consulta en vivo la hace el botón «Consultar inventario».
+- **Enlace «Existencias en vivo»** en cada producto (backend), para validar existencias al momento
+  sin código de Studio (un campo simple y una página del sitio solo para usuarios internos):
+  probado en la base de test; falta producción.
+- Un producto de INN con costo 0 (estaba en $1, el precio por omisión de Odoo) se archivó hasta
+  que el proveedor le ponga precio. Detalle en el repo privado `mozaprint-sync`.
+
 ## 2026-10-14 · Stock Sur, cuarto proveedor del sitio (v80)
 
 **Tipo**: `datos` (**PRODUCCIÓN**) + `docs`. Cero líneas facturables.
