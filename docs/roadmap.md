@@ -257,7 +257,7 @@ decisiones y bitácora) vive en el repo **privado** `mozaprint-sync`.
       producción borradas, con respaldo)
 - [x] **Cuarto proveedor: Stock Sur** (2026-10-14), con la misma v3: 433 productos
 - [x] Existencias del sync **2 veces al día** (antes cada 4 h): el dato en vivo lo da el botón
-      del sitio y un enlace «Existencias en vivo» en el producto (backend, en curso)
+      del sitio y un enlace «Existencias en vivo» en el producto (backend, 2026-10-15)
 - [x] ~~Migrar script actual a workflows de n8n~~: descartado; la v3 es Python en la PC (ADR 011)
 - [x] Migrar XML-RPC → JSON-2 API: la v3 usa JSON-2 para los tres proveedores (2026-10-06)
 - [ ] Configurar webhooks salientes para sync inverso: fuera del alcance de la v3; se revisa

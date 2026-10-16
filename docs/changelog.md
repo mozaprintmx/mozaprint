@@ -15,7 +15,7 @@
   actualizando a diario; la consulta en vivo la hace el botón «Consultar inventario».
 - **Enlace «Existencias en vivo»** en cada producto (backend), para validar existencias al momento
   sin código de Studio (un campo simple y una página del sitio solo para usuarios internos):
-  probado en la base de test; falta producción.
+  en producción desde el 15-oct en los 5,877 productos de proveedor.
 - Un producto de INN con costo 0 (estaba en $1, el precio por omisión de Odoo) se archivó hasta
   que el proveedor le ponga precio. Detalle en el repo privado `mozaprint-sync`.
 
